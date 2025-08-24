@@ -5,6 +5,7 @@ const fs = require("fs");
 const path = require("path");
 const { sequelize } = require("./models");
 
+
 const app = express();
 
 // ✅ Allow all origins (CORS)
@@ -21,6 +22,9 @@ app.use(express.json());
 // ✅ Routes
 app.use("/api/users", require("./routes/user.routes"));
 app.use("/api/auth", require("./routes/auth.routes"));
+app.use('/api/foods', require('./routes/foods.routes'));
+app.use('/api/cart', require('./routes/cart.routes'));
+app.use('/api/checkout', require('./routes/checkout.routes'));
 
 // ✅ Swagger setup
 const swaggerUi = require("swagger-ui-express");
