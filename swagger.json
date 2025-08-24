@@ -551,6 +551,418 @@
                     }
                 }
             }
+        },
+        "/api/foods": {
+            "post": {
+                "summary": "Create a new food item",
+                "tags": [
+                    "Foods"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "description": {
+                                        "type": "string"
+                                    },
+                                    "price": {
+                                        "type": "number"
+                                    },
+                                    "imageUrl": {
+                                        "type": "string"
+                                    },
+                                    "isAvailable": {
+                                        "type": "boolean"
+                                    }
+                                },
+                                "required": [
+                                    "name",
+                                    "price"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Food created"
+                    }
+                }
+            },
+            "get": {
+                "summary": "List all food items",
+                "tags": [
+                    "Foods"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of food items"
+                    }
+                }
+            }
+        },
+      "/api/foods/{id}": {
+            "get": {
+                "summary": "Get food by ID",
+                "tags": [
+                    "Foods"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Food item"
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                }
+            },
+            "put": {
+                "summary": "Update food by ID",
+                "tags": [
+                    "Foods"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Food"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Food updated"
+                    }
+                }
+            },
+            "delete": {
+                "summary": "Delete food by ID",
+                "tags": [
+                    "Foods"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Deleted"
+                    }
+                }
+            }
+        },
+        "/api/carts/active/{userId}": {
+            "get": {
+                "summary": "Get active cart for a user",
+                "tags": [
+                    "Cart"
+                ],
+                "parameters": [
+                    {
+                        "name": "userId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Active cart"
+                    }
+                }
+            }
+        },
+        "/api/carts/ensure": {
+            "post": {
+                "summary": "Ensure a user has a cart",
+                "tags": [
+                    "Cart"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "userId": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "userId"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Cart ensured"
+                    }
+                }
+            }
+        },
+        "/api/carts/items": {
+            "post": {
+                "summary": "Add item to cart",
+                "tags": [
+                    "Cart"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "cartId": {
+                                        "type": "string"
+                                    },
+                                    "foodId": {
+                                        "type": "string"
+                                    },
+                                    "quantity": {
+                                        "type": "integer"
+                                    }
+                                },
+                                "required": [
+                                    "cartId",
+                                    "foodId",
+                                    "quantity"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Item added"
+                    }
+                }
+            }
+        },
+        "/api/carts/items/{id}": {
+            "put": {
+                "summary": "Update cart item",
+                "tags": [
+                    "Cart"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "quantity": {
+                                        "type": "integer"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Item updated"
+                    }
+                }
+            },
+            "delete": {
+                "summary": "Remove item from cart",
+                "tags": [
+                    "Cart"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Item removed"
+                    }
+                }
+            }
+        },
+        "/api/carts/{cartId}/summary": {
+            "get": {
+                "summary": "Get cart summary",
+                "tags": [
+                    "Cart"
+                ],
+                "parameters": [
+                    {
+                        "name": "cartId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Cart summary"
+                    }
+                }
+            }
+        },
+        "/api/checkout/proceed": {
+            "post": {
+                "summary": "Proceed to payment",
+                "tags": [
+                    "Checkout"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "cartId": {
+                                        "type": "string"
+                                    },
+                                    "paymentMethod": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "cartId",
+                                    "paymentMethod"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Payment initiated"
+                    }
+                }
+            }
+        },
+        "/api/checkout/{orderId}/paid": {
+            "post": {
+                "summary": "Mark order as paid",
+                "tags": [
+                    "Checkout"
+                ],
+                "parameters": [
+                    {
+                        "name": "orderId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Order marked as paid"
+                    }
+                }
+            }
+        },
+        "/api/orders/{id}": {
+            "get": {
+                "summary": "Get order details",
+                "tags": [
+                    "Checkout"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Order details"
+                    }
+                }
+            }
+        },
+        "/api/orders/{id}/cancel": {
+            "post": {
+                "summary": "Cancel an order",
+                "tags": [
+                    "Checkout"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Order cancelled"
+                    }
+                }
+            }
         }
     },
     "components": {
@@ -639,6 +1051,38 @@
                         "format": "date-time"
                     }
                 }
+            },
+            "Food": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "price": {
+                        "type": "number"
+                    },
+                    "imageUrl": {
+                        "type": "string"
+                    },
+                    "isAvailable": {
+                        "type": "boolean"
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updatedAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                }
             }
         }
     },
@@ -650,6 +1094,18 @@
         {
             "name": "Users",
             "description": "User CRUD endpoints"
+        },
+        {
+            "name": "Foods",
+            "description": "CRUD operations for Food items"
+        },
+        {
+            "name": "Cart",
+            "description": "Cart management"
+        },
+        {
+            "name": "Checkout",
+            "description": "Checkout and order management"
         }
     ]
 }
