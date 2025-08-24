@@ -6,11 +6,11 @@ const { sequelize } = require('../models');
 module.exports = {
   async up(queryInterface, Sequelize) {
     await queryInterface.createTable('Images', {
-      id: {
-        allowNull: false,
-        primaryKey: true,
+       id: {
         type: Sequelize.UUID,
-        defaultValue: Sequelize.UUIDV4
+        defaultValue: Sequelize.UUIDV4,
+        allowNull: false,
+        primaryKey: true
       },
       filename: {
         type: Sequelize.STRING

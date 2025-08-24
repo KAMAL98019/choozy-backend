@@ -2,6 +2,8 @@
 const {
   Model
 } = require('sequelize');
+const { v4: uuidv4, parse, stringify } = require('uuid'); // helper
+
 module.exports = (sequelize, DataTypes) => {
   class Order extends Model {
     /**
@@ -14,6 +16,11 @@ module.exports = (sequelize, DataTypes) => {
     }
   }
   Order.init({
+     id: {
+      type: DataTypes.UUID,
+      defaultValue: DataTypes.UUIDV4,
+      primaryKey: true
+    },
     userId: DataTypes.UUID,
     cartId: DataTypes.UUID,
     subtotal: DataTypes.DECIMAL,

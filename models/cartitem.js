@@ -2,6 +2,8 @@
 const {
   Model
 } = require('sequelize');
+const { v4: uuidv4, parse, stringify } = require('uuid'); // helper
+
 module.exports = (sequelize, DataTypes) => {
   class CartItem extends Model {
     /**
@@ -14,6 +16,11 @@ module.exports = (sequelize, DataTypes) => {
     }
   }
   CartItem.init({
+     id: {
+      type: DataTypes.UUID,
+      defaultValue: DataTypes.UUIDV4,
+      primaryKey: true
+    },
     cartId: DataTypes.UUID,
     foodId: DataTypes.UUID,
     quantity: DataTypes.INTEGER,

@@ -3,11 +3,11 @@
 module.exports = {
   async up(queryInterface, Sequelize) {
     await queryInterface.createTable('CartItems', {
-      id: {
+     id: {
+        type: Sequelize.CHAR,
+        defaultValue: Sequelize.UUIDV4,
         allowNull: false,
-        primaryKey: true,
-        type: Sequelize.UUID,
-        defaultValue: Sequelize.UUIDV4
+        primaryKey: true
       },
       cartId: {
         type: Sequelize.UUID

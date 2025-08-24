@@ -3,6 +3,8 @@ const {
   Model
 } = require('sequelize');
 const { Sequelize } = require('.');
+const { v4: uuidv4, parse, stringify } = require('uuid'); // helper
+
 module.exports = (sequelize, DataTypes) => {
   class Image extends Model {
     /**
@@ -15,9 +17,9 @@ module.exports = (sequelize, DataTypes) => {
     }
   }
   Image.init({
-    id: {
+     id: {
       type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,  // Auto-generate UUID
+      defaultValue: DataTypes.UUIDV4,
       primaryKey: true
     },
     filename: DataTypes.STRING,
