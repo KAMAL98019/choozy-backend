@@ -25,6 +25,10 @@ app.use("/api/auth", require("./routes/auth.routes"));
 app.use('/api/foods', require('./routes/foods.routes'));
 app.use('/api/cart', require('./routes/cart.routes'));
 app.use('/api/checkout', require('./routes/checkout.routes'));
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
+// Routes
+app.use("/api", require("./routes/upload.routes"));
 
 // ✅ Swagger setup
 const swaggerUi = require("swagger-ui-express");
