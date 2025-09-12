@@ -22,13 +22,15 @@ app.use(express.json());
 // ✅ Routes
 app.use("/api/users", require("./routes/user.routes"));
 app.use("/api/auth", require("./routes/auth.routes"));
-app.use('/api/foods', require('./routes/foods.routes'));
 app.use('/api/cart', require('./routes/cart.routes'));
 app.use('/api/checkout', require('./routes/checkout.routes'));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
-
-// Routes
+app.use('/api/restaurants', require('./routes/restaurant.routes'));
+app.use('/api/food-items', require('./routes/fooditem.routes'));
 app.use("/api", require("./routes/upload.routes"));
+app.use('/api/categories', require('./routes/category.routes'));
+app.use('/api/cuisines', require('./routes/cuisine.routes'));
+
 
 // ✅ Swagger setup
 const swaggerUi = require("swagger-ui-express");

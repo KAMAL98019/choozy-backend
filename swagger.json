@@ -1,9 +1,9 @@
 {
     "openapi": "3.0.0",
     "info": {
-        "title": "OTP + User CRUD API",
+        "title": "Choozy App",
         "version": "1.0.0",
-        "description": "API for OTP-based login (no JWT) and full user CRUD."
+        "description": ""
     },
     "servers": [
         {
@@ -552,66 +552,126 @@
                 }
             }
         },
-        "/api/foods": {
-            "post": {
-                "summary": "Create a new food item",
+        "/api/restaurants": {
+            "get": {
+                "summary": "List restaurants (with search & pagination)",
                 "tags": [
-                    "Foods"
+                    "Restaurants"
+                ],
+                "parameters": [
+                    {
+                        "name": "q",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Search in name/address/cuisine"
+                    },
+                    {
+                        "name": "cuisine",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "minCost",
+                        "in": "query",
+                        "schema": {
+                            "type": "number"
+                        }
+                    },
+                    {
+                        "name": "maxCost",
+                        "in": "query",
+                        "schema": {
+                            "type": "number"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        }
+                    },
+                    {
+                        "name": "pageSize",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 20
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Paginated result",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "total": {
+                                            "type": "integer"
+                                        },
+                                        "page": {
+                                            "type": "integer"
+                                        },
+                                        "pageSize": {
+                                            "type": "integer"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/RestaurantReg"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "summary": "Create restaurant",
+                "tags": [
+                    "Restaurants"
                 ],
                 "requestBody": {
                     "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "name": {
-                                        "type": "string"
-                                    },
-                                    "description": {
-                                        "type": "string"
-                                    },
-                                    "price": {
-                                        "type": "number"
-                                    },
-                                    "imageUrl": {
-                                        "type": "string"
-                                    },
-                                    "isAvailable": {
-                                        "type": "boolean"
-                                    }
-                                },
-                                "required": [
-                                    "name",
-                                    "price"
-                                ]
+                                "$ref": "#/components/schemas/RestaurantRegCreate"
                             }
                         }
                     }
                 },
                 "responses": {
                     "201": {
-                        "description": "Food created"
-                    }
-                }
-            },
-            "get": {
-                "summary": "List all food items",
-                "tags": [
-                    "Foods"
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Array of food items"
+                        "description": "Created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RestaurantReg"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Validation error"
                     }
                 }
             }
         },
-        "/api/foods/{id}": {
+        "/api/restaurants/{id}": {
             "get": {
-                "summary": "Get food by ID",
+                "summary": "Get restaurant by id",
                 "tags": [
-                    "Foods"
+                    "Restaurants"
                 ],
                 "parameters": [
                     {
@@ -619,13 +679,21 @@
                         "in": "path",
                         "required": true,
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "format": "uuid"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Food item"
+                        "description": "Restaurant",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RestaurantReg"
+                                }
+                            }
+                        }
                     },
                     "404": {
                         "description": "Not found"
@@ -633,9 +701,9 @@
                 }
             },
             "put": {
-                "summary": "Update food by ID",
+                "summary": "Update restaurant",
                 "tags": [
-                    "Foods"
+                    "Restaurants"
                 ],
                 "parameters": [
                     {
@@ -643,7 +711,8 @@
                         "in": "path",
                         "required": true,
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "format": "uuid"
                         }
                     }
                 ],
@@ -652,21 +721,31 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/Food"
+                                "$ref": "#/components/schemas/RestaurantRegUpdate"
                             }
                         }
                     }
                 },
                 "responses": {
                     "200": {
-                        "description": "Food updated"
+                        "description": "Updated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RestaurantReg"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found"
                     }
                 }
             },
             "delete": {
-                "summary": "Delete food by ID",
+                "summary": "Delete restaurant",
                 "tags": [
-                    "Foods"
+                    "Restaurants"
                 ],
                 "parameters": [
                     {
@@ -674,13 +753,17 @@
                         "in": "path",
                         "required": true,
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "format": "uuid"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "Deleted"
+                    },
+                    "404": {
+                        "description": "Not found"
                     }
                 }
             }
@@ -704,6 +787,242 @@
                 "responses": {
                     "200": {
                         "description": "Active cart"
+                    }
+                }
+            }
+        },
+        "/api/food-items": {
+            "get": {
+                "summary": "Get all food items",
+                "tags": [
+                    "Food Items"
+                ],
+                "parameters": [
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Search term to filter food items by dishname or category"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of food items"
+                    },
+                    "500": {
+                        "description": "Server error"
+                    }
+                }
+            },
+            "post": {
+                "summary": "Create a food item",
+                "tags": [
+                    "Food Items"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "rest_id": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "example": "b1a2c3d4-e5f6-7890-1234-56789abcdef0"
+                                    },
+                                    "dishname": {
+                                        "type": "string",
+                                        "example": "Paneer Butter Masala"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "example": "A rich and creamy North Indian curry made with paneer cubes, butter, tomatoes, and spices."
+                                    },
+                                    "price": {
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 250.0
+                                    },
+                                    "category": {
+                                        "type": "string",
+                                        "example": "Main Course"
+                                    },
+                                    "veg": {
+                                        "type": "boolean",
+                                        "example": true
+                                    },
+                                    "contain_allergens": {
+                                        "type": "boolean",
+                                        "example": true
+                                    },
+                                    "specify_allergence": {
+                                        "type": "string",
+                                        "example": "Contains dairy and cashew nuts"
+                                    },
+                                    "customised_options": {
+                                        "type": "object",
+                                        "example": {
+                                            "spice_level": [
+                                                "Mild",
+                                                "Medium",
+                                                "Spicy"
+                                            ],
+                                            "add_ons": [
+                                                {
+                                                    "name": "Extra Paneer",
+                                                    "price": 50
+                                                },
+                                                {
+                                                    "name": "Butter Naan",
+                                                    "price": 40
+                                                }
+                                            ]
+                                        }
+                                    }
+                                },
+                                "required": [
+                                    "rest_id",
+                                    "dishname",
+                                    "price",
+                                    "category"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Food item created"
+                    },
+                    "500": {
+                        "description": "Server error"
+                    }
+                }
+            }
+        },
+        "/api/food-items/{id}": {
+            "get": {
+                "summary": "Get food item by ID",
+                "tags": [
+                    "Food Items"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Single food item"
+                    },
+                    "404": {
+                        "description": "Food item not found"
+                    },
+                    "500": {
+                        "description": "Server error"
+                    }
+                }
+            },
+            "put": {
+                "summary": "Update food item",
+                "tags": [
+                    "Food Items"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "dishname": {
+                                        "type": "string"
+                                    },
+                                    "description": {
+                                        "type": "string"
+                                    },
+                                    "price": {
+                                        "type": "number",
+                                        "format": "float"
+                                    },
+                                    "category": {
+                                        "type": "string"
+                                    },
+                                    "veg": {
+                                        "type": "boolean"
+                                    },
+                                    "contain_allergens": {
+                                        "type": "boolean"
+                                    },
+                                    "specify_allergence": {
+                                        "type": "string"
+                                    },
+                                    "customised_options": {
+                                        "type": "object"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Updated food item"
+                    },
+                    "404": {
+                        "description": "Food item not found"
+                    },
+                    "500": {
+                        "description": "Server error"
+                    }
+                }
+            },
+            "delete": {
+                "summary": "Delete food item",
+                "tags": [
+                    "Food Items"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Food item deleted"
+                    },
+                    "404": {
+                        "description": "Food item not found"
+                    },
+                    "500": {
+                        "description": "Server error"
                     }
                 }
             }
@@ -1010,6 +1329,252 @@
                     }
                 }
             }
+        },
+        "/api/categories": {
+            "get": {
+                "summary": "Get all categories",
+                "tags": [
+                    "Food Categories"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                }
+            },
+            "post": {
+                "summary": "Create new category",
+                "tags": [
+                    "Food Categories"
+                ],
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "category",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "required": [
+                                "name"
+                            ],
+                            "properties": {
+                                "name": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created successfully"
+                    }
+                }
+            }
+        },
+        "/api/categories/{id}": {
+            "get": {
+                "summary": "Get category by ID",
+                "tags": [
+                    "Food Categories"
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "type": "integer"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    },
+                    "404": {
+                        "description": "Category not found"
+                    }
+                }
+            },
+            "put": {
+                "summary": "Update category",
+                "tags": [
+                    "Food Categories"
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "type": "integer"
+                    },
+                    {
+                        "in": "body",
+                        "name": "category",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "name": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Updated successfully"
+                    },
+                    "404": {
+                        "description": "Category not found"
+                    }
+                }
+            },
+            "delete": {
+                "summary": "Delete category",
+                "tags": [
+                    "Food Categories"
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "type": "integer"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Deleted successfully"
+                    },
+                    "404": {
+                        "description": "Category not found"
+                    }
+                }
+            }
+        },
+        "/api/cuisines": {
+            "get": {
+                "summary": "Get all cuisines",
+                "tags": [
+                    "Food Cuisine"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                }
+            },
+            "post": {
+                "summary": "Create new cuisine",
+                "tags": [
+                    "Food Cuisine"
+                ],
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "cuisine",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "required": [
+                                "name"
+                            ],
+                            "properties": {
+                                "name": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created successfully"
+                    }
+                }
+            }
+        },
+        "/api/cuisines/{id}": {
+            "get": {
+                "summary": "Get cuisine by ID",
+                "tags": [
+                    "Food Cuisine"
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "type": "integer"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    },
+                    "404": {
+                        "description": "Cuisine not found"
+                    }
+                }
+            },
+            "put": {
+                "summary": "Update cuisine",
+                "tags": [
+                    "Food Cuisine"
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "type": "integer"
+                    },
+                    {
+                        "in": "body",
+                        "name": "cuisine",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "name": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Updated successfully"
+                    },
+                    "404": {
+                        "description": "Cuisine not found"
+                    }
+                }
+            },
+            "delete": {
+                "summary": "Delete cuisine",
+                "tags": [
+                    "Food Cuisine"
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "type": "integer"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Deleted successfully"
+                    },
+                    "404": {
+                        "description": "Cuisine not found"
+                    }
+                }
+            }
         }
     },
     "components": {
@@ -1099,27 +1664,93 @@
                     }
                 }
             },
-            "Food": {
+            "RestaurantReg": {
                 "type": "object",
                 "properties": {
                     "id": {
                         "type": "string",
                         "format": "uuid"
                     },
-                    "name": {
+                    "Rest_name": {
                         "type": "string"
                     },
-                    "description": {
+                    "Rest_address": {
                         "type": "string"
                     },
-                    "price": {
-                        "type": "number"
-                    },
-                    "imageUrl": {
+                    "cuision_type": {
                         "type": "string"
                     },
-                    "isAvailable": {
-                        "type": "boolean"
+                    "avg_cost_two": {
+                        "type": "number",
+                        "format": "float",
+                        "nullable": true
+                    },
+                    "rest_logo": {
+                        "type": "string",
+                        "description": "Path/URL to logo",
+                        "nullable": true
+                    },
+                    "contact_person_name": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "contact_email": {
+                        "type": "string",
+                        "format": "email",
+                        "nullable": true
+                    },
+                    "contact_number": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "operational_hours": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "day": {
+                                    "type": "string",
+                                    "example": "Mon"
+                                },
+                                "enabled": {
+                                    "type": "boolean"
+                                },
+                                "from": {
+                                    "type": "string",
+                                    "example": "09:00"
+                                },
+                                "to": {
+                                    "type": "string",
+                                    "example": "18:00"
+                                }
+                            }
+                        },
+                        "nullable": true
+                    },
+                    "fssai_certificate": {
+                        "type": "string",
+                        "description": "Path/URL to FSSAI certificate"
+                    },
+                    "gst_certificate": {
+                        "type": "string",
+                        "description": "Path/URL to GST certificate",
+                        "nullable": true
+                    },
+                    "bank_account_name": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "Account_number": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "ifsc_code": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "agree_to_terms": {
+                        "type": "boolean",
+                        "default": false
                     },
                     "createdAt": {
                         "type": "string",
@@ -1128,6 +1759,185 @@
                     "updatedAt": {
                         "type": "string",
                         "format": "date-time"
+                    }
+                }
+            },
+            "RestaurantRegCreate": {
+                "type": "object",
+                "required": [
+                    "Rest_name",
+                    "Rest_address",
+                    "cuision_type",
+                    "fssai_certificate"
+                ],
+                "properties": {
+                    "Rest_name": {
+                        "type": "string"
+                    },
+                    "Rest_address": {
+                        "type": "string"
+                    },
+                    "cuision_type": {
+                        "type": "string"
+                    },
+                    "avg_cost_two": {
+                        "type": "number",
+                        "format": "float"
+                    },
+                    "rest_logo": {
+                        "type": "string"
+                    },
+                    "contact_person_name": {
+                        "type": "string"
+                    },
+                    "contact_email": {
+                        "type": "string",
+                        "format": "email"
+                    },
+                    "contact_number": {
+                        "type": "string"
+                    },
+                    "operational_hours": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "day": {
+                                    "type": "string"
+                                },
+                                "enabled": {
+                                    "type": "boolean"
+                                },
+                                "from": {
+                                    "type": "string"
+                                },
+                                "to": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "fssai_certificate": {
+                        "type": "string"
+                    },
+                    "gst_certificate": {
+                        "type": "string"
+                    },
+                    "bank_account_name": {
+                        "type": "string"
+                    },
+                    "Account_number": {
+                        "type": "string"
+                    },
+                    "ifsc_code": {
+                        "type": "string"
+                    },
+                    "agree_to_terms": {
+                        "type": "boolean"
+                    }
+                }
+            },
+            "RestaurantRegUpdate": {
+                "type": "object",
+                "properties": {
+                    "Rest_name": {
+                        "type": "string"
+                    },
+                    "Rest_address": {
+                        "type": "string"
+                    },
+                    "cuision_type": {
+                        "type": "string"
+                    },
+                    "avg_cost_two": {
+                        "type": "number",
+                        "format": "float"
+                    },
+                    "rest_logo": {
+                        "type": "string"
+                    },
+                    "contact_person_name": {
+                        "type": "string"
+                    },
+                    "contact_email": {
+                        "type": "string",
+                        "format": "email"
+                    },
+                    "contact_number": {
+                        "type": "string"
+                    },
+                    "operational_hours": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "day": {
+                                    "type": "string"
+                                },
+                                "enabled": {
+                                    "type": "boolean"
+                                },
+                                "from": {
+                                    "type": "string"
+                                },
+                                "to": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "fssai_certificate": {
+                        "type": "string"
+                    },
+                    "gst_certificate": {
+                        "type": "string"
+                    },
+                    "bank_account_name": {
+                        "type": "string"
+                    },
+                    "Account_number": {
+                        "type": "string"
+                    },
+                    "ifsc_code": {
+                        "type": "string"
+                    },
+                    "agree_to_terms": {
+                        "type": "boolean"
+                    }
+                }
+            },
+            "FoodItem": {
+                "type": "object",
+                "properties": {
+                    "rest_id": {
+                        "type": "string"
+                    },
+                    "dishname": {
+                        "type": "string"
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "price": {
+                        "type": "number"
+                    },
+                    "category": {
+                        "type": "string"
+                    },
+                    "veg": {
+                        "type": "boolean"
+                    },
+                    "contain_allergens": {
+                        "type": "boolean"
+                    },
+                    "specify_allergence": {
+                        "type": "string"
+                    },
+                    "customised_options": {
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        }
                     }
                 }
             }
@@ -1143,8 +1953,8 @@
             "description": "User CRUD endpoints"
         },
         {
-            "name": "Foods",
-            "description": "CRUD operations for Food items"
+            "name": "Restaurants",
+            "description": "Restaurant registration CRUD"
         },
         {
             "name": "Cart",

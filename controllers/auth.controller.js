@@ -96,8 +96,9 @@ exports.login = async (req, res) => {
 
     if (user) {
       return res.json({
+        success: true,
         message: "Login successful",
-        isNewUser: false,
+        isNewUser: true,
         user,
       });
     } else {
@@ -138,8 +139,9 @@ exports.loginWithEmailPassword = async (req, res) => {
     }
 
     return res.json({
+      success: true,
       message: "Login successful",
-      isNewUser: false,
+      isNewUser: true,
       user,
     });
   } catch (e) {
