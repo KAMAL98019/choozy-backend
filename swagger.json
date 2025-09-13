@@ -1575,8 +1575,190 @@
                     }
                 }
             }
+        },
+        "/api/delivery/register": {
+            "post": {
+                "tags": [
+                    "Delivery Partner"
+                ],
+                "summary": "Register a new partner (all details in one step)",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Partner"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Partner created successfully"
+                    }
+                }
+            }
+        },
+        "/api/delivery/partner": {
+            "get": {
+                "tags": [
+                    "Delivery Partner"
+                ],
+                "summary": "Get all partners",
+                "responses": {
+                    "200": {
+                        "description": "List of partners"
+                    }
+                }
+            }
+        },
+        "/api/delivery/partner/{id}": {
+            "get": {
+                "tags": [
+                    "Delivery Partner"
+                ],
+                "summary": "Get a partner by ID",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Partner object"
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Delivery Partner"
+                ],
+                "summary": "Update a partner",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Partner"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Partner updated successfully"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Delivery Partner"
+                ],
+                "summary": "Delete a partner",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Partner deleted successfully"
+                    }
+                }
+            }
+        },
+        "/api/delivery/login": {
+            "post": {
+                "tags": [
+                    "Delivery UserAuth"
+                ],
+                "summary": "Login a user",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "email": {
+                                        "type": "string"
+                                    },
+                                    "password": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "email",
+                                    "password"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Login successful"
+                    }
+                }
+            }
+        },
+        "/api/delivery/forgot-password": {
+            "post": {
+                "tags": [
+                    "Delivery UserAuth"
+                ],
+                "summary": "Reset password",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "email": {
+                                        "type": "string"
+                                    },
+                                    "newPassword": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "email",
+                                    "newPassword"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Password reset successful"
+                    }
+                }
+            }
         }
     },
+    
     "components": {
         "schemas": {
             "User": {
@@ -1940,9 +2122,44 @@
                         }
                     }
                 }
-            }
+            },
+
+            "Partner": {
+        "type": "object",
+        "properties": {
+          "fullName": { "type": "string" },
+          "mobile": { "type": "string" },
+          "email": { "type": "string" },
+          "dob": { "type": "string", "format": "date" },
+          "gender": { "type": "string" },
+          "referralCode": { "type": "string" },
+          "password": { "type": "string" },
+          "address": { "type": "string" },
+          "city": { "type": "string" },
+          "state": { "type": "string" },
+          "pincode": { "type": "string" },
+          "emergencyName": { "type": "string" },
+          "emergencyMobile": { "type": "string" },
+          "vehicleType": { "type": "string" },
+          "vehicleModel": { "type": "string" },
+          "licensePlate": { "type": "string" },
+          "rcFile": { "type": "string" },
+          "dlFile": { "type": "string" },
+          "workType": { "type": "string", "enum": ["full-time", "part-time", "weekend"] },
+          "breakStart": { "type": "string", "format": "time" },
+          "breakEnd": { "type": "string", "format": "time" },
+          "bankName": { "type": "string" },
+          "accountNumber": { "type": "string" },
+          "ifsc": { "type": "string" },
+          "idProofFile": { "type": "string" }
+        },
+        "required": ["fullName", "mobile", "email", "password"]
+      }
         }
     },
+
+    
+    
     "tags": [
         {
             "name": "Auth",
@@ -1963,6 +2180,17 @@
         {
             "name": "Checkout",
             "description": "Checkout and order management"
+        },
+        {
+            "name": "Delivery Partner",
+            "description": "Partner registration & CRUD operations"
+        },
+        {
+            "name": "Delivery UserAuth",
+            "description": "User authentication (Login & Forgot Password)"
         }
+        
     ]
+     
+
 }

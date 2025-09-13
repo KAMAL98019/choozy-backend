@@ -3,6 +3,8 @@ const multer = require("multer");
 const path = require("path");
 const uploadController = require("../controllers/upload.controller");
 
+
+
 const router = express.Router();
 
 // Multer storage config
@@ -20,5 +22,7 @@ const upload = multer({ storage });
 
 // Route: Upload Image
 router.post("/upload", upload.single("image"), uploadController.uploadImage);
+
+
 
 module.exports = router;

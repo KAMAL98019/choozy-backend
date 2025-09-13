@@ -19,6 +19,8 @@ app.use(
 
 app.use(express.json());
 
+app.use("/uploads", express.static("uploads"));
+
 // ✅ Routes
 app.use("/api/users", require("./routes/user.routes"));
 app.use("/api/auth", require("./routes/auth.routes"));
@@ -30,6 +32,7 @@ app.use('/api/food-items', require('./routes/fooditem.routes'));
 app.use("/api", require("./routes/upload.routes"));
 app.use('/api/categories', require('./routes/category.routes'));
 app.use('/api/cuisines', require('./routes/cuisine.routes'));
+app.use("/api/delivery", require("./routes/deliveryPartner.routes"));
 
 
 // ✅ Swagger setup
