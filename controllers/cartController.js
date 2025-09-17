@@ -1,4 +1,4 @@
-const { Cart, CartItem, Food, Order, sequelize } = require('../models');
+const { Cart, CartItem, FoodItem , Order, sequelize } = require('../models');
 
 exports.getActiveCart = async (req,res)=>{
   try{
@@ -24,8 +24,8 @@ exports.addItem = async (req,res)=>{
   const t = await sequelize.transaction();
   try{
     const { cartId, foodId, quantity } = req.body;
-    const food = await Food.findByPk(foodId, { transaction:t });
-    if(!food || !food.isAvailable) { await t.rollback(); return res.status(400).json({error:'Food unavailable'}); }
+    const food = await FoodItem .findByPk(foodId, { transaction:t });
+    if(!food ) { await t.rollback(); return res.status(400).json({error:'Food unavailable'}); }
 
     const unitPrice = food.price;
     let item = await CartItem.findOne({ where:{ cartId, foodId }, transaction:t });
@@ -36,7 +36,7 @@ exports.addItem = async (req,res)=>{
     }
     await t.commit();
     res.status(201).json(item);
-  }catch(e){ console.error(e); await t.rollback(); res.status(400).json({error:'Add item failed'}); }
+  }catch(e){ console.error("AddItem Error:", e); await t.rollback(); res.status(400).json({error: e.message}); }
 };
 
 exports.updateItem = async (req,res)=>{
@@ -51,7 +51,7 @@ exports.updateItem = async (req,res)=>{
     }
     await item.update({ quantity });
     res.json(item);
-  }catch(e){ console.error(e); res.status(400).json({error:'Update item failed'}); }
+  }catch(e){ console.error("AddItem Error:", e); res.status(400).json({error: e.message}); }
 };
 
 exports.removeItem = async (req,res)=>{
@@ -67,11 +67,15 @@ exports.removeItem = async (req,res)=>{
 exports.summary = async (req,res)=>{
   try{
     const { cartId } = req.params;
-    const items = await CartItem.findAll({ where: { cartId }, include:[Food] });
+    const items = await CartItem.findAll({ where: { cartId }, include:[ {model: FoodItem, as: 'food'}] });
     const subtotal = items.reduce((s,i)=> s + Number(i.unitPrice)*i.quantity, 0);
     const tax = +(subtotal * 0.05).toFixed(2);
     const deliveryFee = subtotal > 499 ? 0 : 40;
     const total = +(subtotal + tax + deliveryFee).toFixed(2);
     res.json({ cartId, items, subtotal, tax, deliveryFee, total });
-  }catch(e){ console.error(e); res.status(500).json({error:'Failed to compute summary'}); }
+  }catch(e){
+  console.error("Summary Error:", e.message, e.stack);
+  res.status(500).json({ error:'Failed to compute summary', details:e.message });
+}
+
 };

@@ -1,11 +1,11 @@
 const router = require('express').Router();
 const cart = require('../controllers/cartController');
 
-router.get('/carts/active/:userId', cart.getActiveCart);
-router.post('/carts/ensure', cart.ensureCart);
-router.post('/carts/items', cart.addItem);
-router.put('/carts/items/:id', cart.updateItem);
-router.delete('/carts/items/:id', cart.removeItem);
-router.get('/carts/:cartId/summary', cart.summary);
+router.get('/active/:userId', cart.getActiveCart);
+router.post('/ensure', cart.ensureCart);
+router.post('/items', cart.addItem);
+router.put('/items/:id', cart.updateItem);
+router.delete('/items/:id', cart.removeItem);
+router.get('/summary/:cartId', cart.summary);
 
 module.exports = router;

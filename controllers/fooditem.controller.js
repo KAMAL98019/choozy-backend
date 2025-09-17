@@ -1,5 +1,6 @@
-const { FoodItem } = require('../models');
+const { FoodItem,CartItem } = require('../models');
 const { Op } = require('sequelize');
+
 
 exports.create = async (req, res) => {
   try {

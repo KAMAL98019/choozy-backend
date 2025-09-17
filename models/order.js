@@ -1,38 +1,48 @@
 'use strict';
-const {
-  Model
-} = require('sequelize');
-const { v4: uuidv4, parse, stringify } = require('uuid'); // helper
+const { Model } = require('sequelize');
 
 module.exports = (sequelize, DataTypes) => {
   class Order extends Model {
-    /**
-     * Helper method for defining associations.
-     * This method is not a part of Sequelize lifecycle.
-     * The `models/index` file will call this method automatically.
-     */
     static associate(models) {
-      // define association here
+      Order.hasMany(models.OrderItem, { foreignKey: 'orderId', as: 'items' });
+      Order.belongsTo(models.User, { foreignKey: 'userId', as: 'user' });
+      Order.belongsTo(models.Cart, { foreignKey: 'cartId', as: 'cart' });
     }
   }
-  Order.init({
-     id: {
-      type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
-      primaryKey: true
+
+  Order.init(
+    {
+      id: {
+        type: DataTypes.UUID,
+        defaultValue: DataTypes.UUIDV4,
+        primaryKey: true
+      },
+      userId: {
+        type: DataTypes.UUID,
+        allowNull: false
+      },
+      cartId: {
+        type: DataTypes.UUID,
+        allowNull: false
+      },
+      subtotal: DataTypes.FLOAT,
+      tax: DataTypes.FLOAT,
+      deliveryFee: DataTypes.FLOAT,
+      totalAmount: DataTypes.FLOAT,
+      status: {
+        type: DataTypes.ENUM(
+          'PENDING',
+          'CONFIRMED',
+          'PREPARING',
+          'OUT_FOR_DELIVERY',
+          'DELIVERED',
+          'CANCELLED'
+        ),
+        defaultValue: 'PENDING'
+      }
     },
-    userId: DataTypes.UUID,
-    cartId: DataTypes.UUID,
-    subtotal: DataTypes.DECIMAL,
-    tax: DataTypes.DECIMAL,
-    deliveryFee: DataTypes.DECIMAL,
-    total: DataTypes.DECIMAL,
-    status: DataTypes.STRING,
-    paymentMethod: DataTypes.STRING,
-    paymentRef: DataTypes.STRING
-  }, {
-    sequelize,
-    modelName: 'Order',
-  });
+    { sequelize, modelName: 'Order' }
+  );
+
   return Order;
 };

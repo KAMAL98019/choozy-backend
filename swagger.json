@@ -290,6 +290,7 @@
                         "required": true,
                         "schema": {
                             "type": "string"
+                    
                         }
                     }
                 ],
@@ -483,7 +484,8 @@
                         "in": "path",
                         "required": true,
                         "schema": {
-                            "type": "integer"
+                            "type": "string",
+                            "format": "uuid"
                         }
                     }
                 ],
@@ -507,7 +509,8 @@
                         "in": "path",
                         "required": true,
                         "schema": {
-                            "type": "integer"
+                            "type": "string",
+                            "format": "uuid"
                         }
                     }
                 ],
@@ -541,7 +544,8 @@
                         "in": "path",
                         "required": true,
                         "schema": {
-                            "type": "integer"
+                            "type": "string",
+                            "format": "uuid"
                         }
                     }
                 ],
@@ -780,7 +784,8 @@
                         "in": "path",
                         "required": true,
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "format": "uuid"
                         }
                     }
                 ],
@@ -803,7 +808,8 @@
                         "in": "query",
                         "required": false,
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "format": "uuid"
                         },
                         "description": "Search term to filter food items by dishname or category"
                     }
@@ -1108,9 +1114,10 @@
                         "name": "id",
                         "in": "path",
                         "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
+                       "schema": {
+                        "type": "string",
+                        "format": "uuid"
+                    }
                     }
                 ],
                 "requestBody": {
@@ -1144,9 +1151,10 @@
                         "name": "id",
                         "in": "path",
                         "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
+                       "schema": {
+                        "type": "string",
+                        "format": "uuid"
+                    }
                     }
                 ],
                 "responses": {
@@ -1156,7 +1164,7 @@
                 }
             }
         },
-        "/api/carts/{cartId}/summary": {
+        "/api/carts/summary/{cartId}": {
             "get": {
                 "summary": "Get cart summary",
                 "tags": [
@@ -1167,9 +1175,10 @@
                         "name": "cartId",
                         "in": "path",
                         "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
+                    "schema": {
+                        "type": "string",
+                        "format": "uuid"
+                    }
                     }
                 ],
                 "responses": {
@@ -1179,111 +1188,91 @@
                 }
             }
         },
-        "/api/checkout/proceed": {
-            "post": {
-                "summary": "Proceed to payment",
-                "tags": [
-                    "Checkout"
-                ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "cartId": {
-                                        "type": "string"
-                                    },
-                                    "paymentMethod": {
-                                        "type": "string"
-                                    }
-                                },
-                                "required": [
-                                    "cartId",
-                                    "paymentMethod"
-                                ]
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Payment initiated"
-                    }
-                }
+       "/api/checkout": {
+      "post": {
+        "summary": "Create an order from cart",
+        "tags": ["Orders"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CheckoutRequest" }
             }
+          }
         },
-        "/api/checkout/{orderId}/paid": {
-            "post": {
-                "summary": "Mark order as paid",
-                "tags": [
-                    "Checkout"
-                ],
-                "parameters": [
-                    {
-                        "name": "orderId",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Order marked as paid"
-                    }
-                }
+        "responses": {
+          "201": {
+            "description": "Checkout successful",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/CheckoutResponse" } }
             }
+          },
+          "400": {
+            "description": "Cart empty or stock insufficient",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "500": {
+            "description": "Server error",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
+        }
+      }
+    },
+    "/api/orders": {
+      "get": {
+        "summary": "Get all orders",
+        "tags": ["Orders"],
+        "responses": {
+          "200": {
+            "description": "List of orders",
+            "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Order" } } } }
+          }
+        }
+      }
+    },
+    "/api/orders/{id}": {
+      "get": {
+        "summary": "Get single order by ID",
+        "tags": ["Orders"],
+        "parameters": [
+          { "in": "path", "name": "id", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": { "description": "Order details", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Order" } } } },
+          "404": { "description": "Order not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      },
+      "delete": {
+        "summary": "Delete order",
+        "tags": ["Orders"],
+        "parameters": [
+          { "in": "path", "name": "id", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": { "description": "Order deleted" },
+          "404": { "description": "Order not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/api/orders/{id}/status": {
+      "put": {
+        "summary": "Update order status",
+        "tags": ["Orders"],
+        "parameters": [
+          { "in": "path", "name": "id", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "type": "object", "properties": { "status": { "type": "string", "enum": ["PENDING","CONFIRMED","PREPARING","OUT_FOR_DELIVERY","DELIVERED","CANCELLED"] } }, "required": ["status"] } } }
         },
-        "/api/orders/{id}": {
-            "get": {
-                "summary": "Get order details",
-                "tags": [
-                    "Checkout"
-                ],
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Order details"
-                    }
-                }
-            }
-        },
-        "/api/orders/{id}/cancel": {
-            "post": {
-                "summary": "Cancel an order",
-                "tags": [
-                    "Checkout"
-                ],
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Order cancelled"
-                    }
-                }
-            }
-        },
-        "/api/upload": {
+        "responses": {
+          "200": { "description": "Order status updated", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Order" } } } },
+          "400": { "description": "Invalid status transition", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "404": { "description": "Order not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+      "/api/upload": {
             "post": {
                 "tags": [
                     "Upload"
@@ -1347,24 +1336,24 @@
                 "tags": [
                     "Food Categories"
                 ],
-                "parameters": [
-                    {
-                        "in": "body",
-                        "name": "category",
-                        "required": true,
-                        "schema": {
-                            "type": "object",
-                            "required": [
-                                "name"
-                            ],
-                            "properties": {
-                                "name": {
-                                    "type": "string"
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "name"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    }
                                 }
                             }
                         }
                     }
-                ],
+                },
                 "responses": {
                     "201": {
                         "description": "Created successfully"
@@ -1383,7 +1372,10 @@
                         "in": "path",
                         "name": "id",
                         "required": true,
-                        "type": "integer"
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+  }
                     }
                 ],
                 "responses": {
@@ -1405,22 +1397,31 @@
                         "in": "path",
                         "name": "id",
                         "required": true,
-                        "type": "integer"
-                    },
-                    {
-                        "in": "body",
-                        "name": "category",
-                        "required": true,
                         "schema": {
-                            "type": "object",
-                            "properties": {
-                                "name": {
-                                    "type": "string"
-                                }
-                            }
+                            "type": "string",
+                            "format": "uuid"
                         }
                     }
                 ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                        
+                                    }
+                                },
+                                "required": [
+                                    "name"
+                                ]
+                            }
+                        }
+                    }
+                },
                 "responses": {
                     "200": {
                         "description": "Updated successfully"
@@ -1430,6 +1431,7 @@
                     }
                 }
             },
+
             "delete": {
                 "summary": "Delete category",
                 "tags": [
@@ -1440,7 +1442,10 @@
                         "in": "path",
                         "name": "id",
                         "required": true,
-                        "type": "integer"
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+  }
                     }
                 ],
                 "responses": {
@@ -1464,30 +1469,30 @@
                         "description": "Success"
                     }
                 }
-            },
-            "post": {
+            },"post": {
                 "summary": "Create new cuisine",
                 "tags": [
                     "Food Cuisine"
                 ],
-                "parameters": [
-                    {
-                        "in": "body",
-                        "name": "cuisine",
-                        "required": true,
-                        "schema": {
-                            "type": "object",
-                            "required": [
-                                "name"
-                            ],
-                            "properties": {
-                                "name": {
-                                    "type": "string"
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "name"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    
+                                    }
                                 }
                             }
                         }
                     }
-                ],
+                },
                 "responses": {
                     "201": {
                         "description": "Created successfully"
@@ -1506,7 +1511,10 @@
                         "in": "path",
                         "name": "id",
                         "required": true,
-                        "type": "integer"
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+  }
                     }
                 ],
                 "responses": {
@@ -1528,22 +1536,30 @@
                         "in": "path",
                         "name": "id",
                         "required": true,
-                        "type": "integer"
-                    },
-                    {
-                        "in": "body",
-                        "name": "cuisine",
-                        "required": true,
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "name": {
-                                    "type": "string"
+                       "schema": {
+                        "type": "string",
+                        "format": "uuid"
+                    }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "name"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    }
                                 }
                             }
                         }
                     }
-                ],
+                },
                 "responses": {
                     "200": {
                         "description": "Updated successfully"
@@ -1563,7 +1579,10 @@
                         "in": "path",
                         "name": "id",
                         "required": true,
-                        "type": "integer"
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+  }
                     }
                 ],
                 "responses": {
@@ -1624,7 +1643,8 @@
                         "in": "path",
                         "required": true,
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "format": "uuid"
                         }
                     }
                 ],
@@ -1645,7 +1665,8 @@
                         "in": "path",
                         "required": true,
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "format": "uuid"
                         }
                     }
                 ],
@@ -1676,7 +1697,8 @@
                         "in": "path",
                         "required": true,
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "format": "uuid"
                         }
                     }
                 ],
@@ -2154,7 +2176,67 @@
           "idProofFile": { "type": "string" }
         },
         "required": ["fullName", "mobile", "email", "password"]
+      },
+        "CartItem": {
+        "type": "object",
+        "properties": {
+          "foodId": { "type": "string", "format": "uuid", "example": "70ad3246-4b20-44da-aa3a-a433311d7932" },
+          "quantity": { "type": "integer", "example": 2 },
+          "price": { "type": "number", "format": "float", "example": 250 },
+          "totalPrice": { "type": "number", "format": "float", "example": 500 }
+        }
+      },
+      "CheckoutRequest": {
+        "type": "object",
+        "properties": {
+          "userId": { "type": "string", "format": "uuid" },
+          "cartId": { "type": "string", "format": "uuid" }
+        },
+        "required": ["userId", "cartId"]
+      },
+      "OrderItem": {
+        "type": "object",
+        "properties": {
+          "foodId": { "type": "string", "format": "uuid" },
+          "quantity": { "type": "integer" },
+          "price": { "type": "number" },
+          "totalPrice": { "type": "number" }
+        }
+      },
+      "Order": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "userId": { "type": "string", "format": "uuid" },
+          "cartId": { "type": "string", "format": "uuid" },
+          "subtotal": { "type": "number" },
+          "tax": { "type": "number" },
+          "deliveryFee": { "type": "number" },
+          "totalAmount": { "type": "number" },
+          "status": {
+            "type": "string",
+            "enum": ["PENDING","CONFIRMED","PREPARING","OUT_FOR_DELIVERY","DELIVERED","CANCELLED"]
+          },
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/OrderItem" } },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": { "type": "string" }
+        }
+      },
+      "CheckoutResponse": {
+        "type": "object",
+        "properties": {
+          "message": { "type": "string" },
+          "order": { "$ref": "#/components/schemas/Order" }
+        }
       }
+    
+    
         }
     },
 
@@ -2178,7 +2260,7 @@
             "description": "Cart management"
         },
         {
-            "name": "Checkout",
+            "name": "Orders",
             "description": "Checkout and order management"
         },
         {
