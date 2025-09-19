@@ -21,6 +21,11 @@ module.exports = {
       unitPrice: {
         type: Sequelize.DECIMAL
       },
+       selectedAddOns: {
+        type: Sequelize.JSON, // Example: [{ "name": "Extra Paneer", "price": 50 }]
+        allowNull: true,
+        defaultValue: []
+      },
       createdAt: {
         allowNull: false,
         type: Sequelize.DATE

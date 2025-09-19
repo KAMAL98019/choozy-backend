@@ -1,7 +1,7 @@
 const { sequelize, Cart, CartItem, FoodItem, Order, OrderItem } = require('../models');
 
 exports.checkout = async (req, res) => {
-  const { userId, cartId } = req.body;
+  const { userId, cartId,address, paymentMethod } = req.body;
 
   // Start a transaction
   const t = await sequelize.transaction();
@@ -47,6 +47,8 @@ exports.checkout = async (req, res) => {
     const order = await Order.create({
       userId,
       cartId,
+      address,
+      paymentMethod,
       subtotal,
       tax,
       deliveryFee,

@@ -18,7 +18,14 @@ module.exports = (sequelize, DataTypes) => {
     cartId: { type: DataTypes.UUID, allowNull: false },
     foodId: { type: DataTypes.UUID, allowNull: false },
     quantity: { type: DataTypes.INTEGER, allowNull: false },
-    unitPrice: DataTypes.DECIMAL
+    unitPrice: DataTypes.DECIMAL,
+    selectedAddOns: {
+      type: DataTypes.JSON, // Store as array of objects
+      allowNull: true,
+      defaultValue: []      // Example: [{ "name": "Extra Paneer", "price": 50 }]
+    }
+
+
   }, {
     sequelize,
     modelName: 'CartItem',

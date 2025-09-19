@@ -23,6 +23,14 @@ module.exports = {
         onUpdate: 'CASCADE',
         onDelete: 'CASCADE'
       },
+      address: {
+        type: Sequelize.STRING,
+        allowNull: false
+      },
+      paymentMethod: {
+        type: Sequelize.STRING,
+        allowNull: false
+      },
       subtotal: { type: Sequelize.FLOAT, allowNull: false, defaultValue: 0.0 },
       tax: { type: Sequelize.FLOAT, allowNull: false, defaultValue: 0.0 },
       deliveryFee: { type: Sequelize.FLOAT, allowNull: false, defaultValue: 0.0 },

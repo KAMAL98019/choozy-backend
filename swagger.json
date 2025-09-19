@@ -1778,6 +1778,172 @@
                     }
                 }
             }
+        },
+        "/api/subscriptions": {
+            "get": {
+                "tags": [
+                    "Subscription"
+                ],
+                "summary": "Get all subscriptions",
+                "responses": {
+                    "200": {
+                        "description": "List of subscriptions",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Subscription"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error"
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Subscription"
+                ],
+                "summary": "Create a new subscription",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SubscriptionInput"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Subscription created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Subscription"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid input"
+                    },
+                    "500": {
+                        "description": "Server error"
+                    }
+                }
+            }
+        },
+        "/api/subscriptions/{id}": {
+            "get": {
+                "tags": [
+                    "Subscription"
+                ],
+                "summary": "Get a subscription by ID",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Subscription details",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Subscription"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Subscription not found"
+                    },
+                    "500": {
+                        "description": "Server error"
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Subscription"
+                ],
+                "summary": "Update a subscription",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SubscriptionInput"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Subscription updated"
+                    },
+                    "400": {
+                        "description": "Invalid input"
+                    },
+                    "404": {
+                        "description": "Subscription not found"
+                    },
+                    "500": {
+                        "description": "Server error"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Subscription"
+                ],
+                "summary": "Delete a subscription",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Subscription deleted"
+                    },
+                    "404": {
+                        "description": "Subscription not found"
+                    },
+                    "500": {
+                        "description": "Server error"
+                    }
+                }
+            }
         }
     },
     
@@ -2183,58 +2349,130 @@
           "foodId": { "type": "string", "format": "uuid", "example": "70ad3246-4b20-44da-aa3a-a433311d7932" },
           "quantity": { "type": "integer", "example": 2 },
           "price": { "type": "number", "format": "float", "example": 250 },
-          "totalPrice": { "type": "number", "format": "float", "example": 500 }
-        }
-      },
-      "CheckoutRequest": {
+          "totalPrice": { "type": "number", "format": "float", "example": 500 },
+          "selectedAddOns": {
+      "type": "array",
+      "items": {
         "type": "object",
         "properties": {
-          "userId": { "type": "string", "format": "uuid" },
-          "cartId": { "type": "string", "format": "uuid" }
-        },
-        "required": ["userId", "cartId"]
+          "name": { "type": "string" },
+          "price": { "type": "number" }
+        }
       },
+      "description": "List of selected addons for this cart item"
+    },
+    "food": { "$ref": "#/components/schemas/FoodItem" }
+        }
+      },
+      
+      
       "OrderItem": {
-        "type": "object",
-        "properties": {
-          "foodId": { "type": "string", "format": "uuid" },
-          "quantity": { "type": "integer" },
-          "price": { "type": "number" },
-          "totalPrice": { "type": "number" }
-        }
+    "type": "object",
+    "properties": {
+      "id": { "type": "string", "format": "uuid" },
+      "orderId": { "type": "string", "format": "uuid" },
+      "foodId": { "type": "string", "format": "uuid" },
+      "quantity": { "type": "integer", "example": 2 },
+      "price": { "type": "number", "example": 199.99 },
+      "createdAt": { "type": "string", "format": "date-time" },
+      "updatedAt": { "type": "string", "format": "date-time" }
+    }
+  },
+  "Order": {
+    "type": "object",
+    "properties": {
+      "id": { "type": "string", "format": "uuid" },
+      "userId": { "type": "string", "format": "uuid" },
+      "cartId": { "type": "string", "format": "uuid" },
+      "subtotal": { "type": "number" },
+      "tax": { "type": "number" },
+      "deliveryFee": { "type": "number" },
+      "totalAmount": { "type": "number" },
+      "status": {
+        "type": "string",
+        "enum": ["PENDING","CONFIRMED","PREPARING","OUT_FOR_DELIVERY","DELIVERED","CANCELLED"]
       },
-      "Order": {
-        "type": "object",
-        "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "userId": { "type": "string", "format": "uuid" },
-          "cartId": { "type": "string", "format": "uuid" },
-          "subtotal": { "type": "number" },
-          "tax": { "type": "number" },
-          "deliveryFee": { "type": "number" },
-          "totalAmount": { "type": "number" },
-          "status": {
-            "type": "string",
-            "enum": ["PENDING","CONFIRMED","PREPARING","OUT_FOR_DELIVERY","DELIVERED","CANCELLED"]
-          },
-          "items": { "type": "array", "items": { "$ref": "#/components/schemas/OrderItem" } },
-          "createdAt": { "type": "string", "format": "date-time" },
-          "updatedAt": { "type": "string", "format": "date-time" }
-        }
+      "address": { "type": "string", "example": "123, MG Road, Bangalore" },
+      "paymentMethod": {
+        "type": "string",
+        "enum": ["CASH","CARD","UPI"],
+        "example": "CARD"
       },
-      "ErrorResponse": {
-        "type": "object",
-        "properties": {
-          "error": { "type": "string" }
-        }
+      "items": {
+        "type": "array",
+        "items": { "$ref": "#/components/schemas/OrderItem" }
       },
-      "CheckoutResponse": {
-        "type": "object",
-        "properties": {
-          "message": { "type": "string" },
-          "order": { "$ref": "#/components/schemas/Order" }
-        }
+      "createdAt": { "type": "string", "format": "date-time" },
+      "updatedAt": { "type": "string", "format": "date-time" }
+    }
+  },
+  "CheckoutRequest": {
+    "type": "object",
+    "required": ["userId", "cartId", "address", "paymentMethod"],
+    "properties": {
+      "userId": { "type": "string", "format": "uuid" },
+      "cartId": { "type": "string", "format": "uuid" },
+      "address": { "type": "string", "example": "123, MG Road, Bangalore" },
+      "paymentMethod": {
+        "type": "string",
+        "enum": ["CASH","CARD","UPI"],
+        "example": "CARD"
       }
+    }
+  },
+  "CheckoutResponse": {
+    "type": "object",
+    "properties": {
+      "message": { "type": "string", "example": "Checkout successful" },
+      "order": { "$ref": "#/components/schemas/Order" }
+    }
+  },
+  "ErrorResponse": {
+    "type": "object",
+    "properties": {
+      "error": { "type": "string", "example": "Cart empty or stock insufficient" }
+    }
+  },"Subscription": {
+  "type": "object",
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "userId": { "type": "string", "format": "uuid" },
+    "foodId": { "type": "string", "format": "uuid" },
+    "planName": { "type": "string" },
+    "price": { "type": "number" },
+    "address": { "type": "string", "example": "123, MG Road, Bangalore" },
+    "paymentMethod": {
+      "type": "string",
+      "enum": ["CASH","CARD","UPI"],
+      "example": "UPI"
+    },
+    "startDate": { "type": "string", "format": "date-time" },
+    "endDate": { "type": "string", "format": "date-time" },
+    "status": { "type": "string", "enum": ["ACTIVE","EXPIRED","CANCELLED"] },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "updatedAt": { "type": "string", "format": "date-time" }
+  }
+},
+"SubscriptionInput": {
+  "type": "object",
+  "required": ["userId", "foodId", "planName", "price", "startDate", "address", "paymentMethod"],
+  "properties": {
+    "userId": { "type": "string", "format": "uuid" },
+    "foodId": { "type": "string", "format": "uuid" },
+    "planName": { "type": "string" },
+    "price": { "type": "number" },
+    "address": { "type": "string", "example": "123, MG Road, Bangalore" },
+    "paymentMethod": {
+      "type": "string",
+      "enum": ["CASH","CARD","UPI"],
+      "example": "CARD"
+    },
+    "startDate": { "type": "string", "format": "date-time" },
+    "endDate": { "type": "string", "format": "date-time" },
+    "status": { "type": "string", "enum": ["ACTIVE","EXPIRED","CANCELLED"] }
+  }
+}
+
     
     
         }
@@ -2270,6 +2508,10 @@
         {
             "name": "Delivery UserAuth",
             "description": "User authentication (Login & Forgot Password)"
+        },
+        {
+            "name": "Subscription",
+            "description": "Subscription CRUD operations"
         }
         
     ]

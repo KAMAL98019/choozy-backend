@@ -5,7 +5,8 @@ exports.getActiveCart = async (req,res)=>{
     const { userId } = req.params; // UUID
     const cart = await Cart.findOne({
       where: { userId, status: 'active' },
-      include: { model: CartItem, as: 'items', include: [Food] }
+      include: { model: CartItem, as: 'items', include: [{ model: FoodItem, as: 'food' }] }
+
     });
     res.json(cart || null);
   }catch(e){ console.error(e); res.status(500).json({error:'Failed to get cart'}); }
@@ -20,23 +21,49 @@ exports.ensureCart = async (req,res)=>{
   }catch(e){ console.error(e); res.status(400).json({error:'Failed to create/find cart'}); }
 };
 
-exports.addItem = async (req,res)=>{
+exports.addItem = async (req, res) => {
   const t = await sequelize.transaction();
-  try{
-    const { cartId, foodId, quantity } = req.body;
-    const food = await FoodItem .findByPk(foodId, { transaction:t });
-    if(!food ) { await t.rollback(); return res.status(400).json({error:'Food unavailable'}); }
+  try {
+    const { cartId, foodId, quantity, selectedAddOns } = req.body;
+
+    const food = await FoodItem.findByPk(foodId, { transaction: t });
+    if (!food) { 
+      await t.rollback(); 
+      return res.status(400).json({ error: 'Food unavailable' }); 
+    }
 
     const unitPrice = food.price;
-    let item = await CartItem.findOne({ where:{ cartId, foodId }, transaction:t });
-    if(item){
-      await item.update({ quantity: item.quantity + (quantity || 1), unitPrice }, { transaction:t });
+    let item = await CartItem.findOne({ where: { cartId, foodId }, transaction: t });
+
+    if (item) {
+      await item.update(
+        { 
+          quantity: item.quantity + (quantity || 1),
+          unitPrice,
+          selectedAddOns: selectedAddOns || []   // ✅ save user addons
+        },
+        { transaction: t }
+      );
     } else {
-      item = await CartItem.create({ cartId, foodId, quantity: quantity||1, unitPrice }, { transaction:t });
+      item = await CartItem.create(
+        { 
+          cartId, 
+          foodId, 
+          quantity: quantity || 1, 
+          unitPrice,
+          selectedAddOns: selectedAddOns || []   // ✅ save user addons
+        }, 
+        { transaction: t }
+      );
     }
+
     await t.commit();
     res.status(201).json(item);
-  }catch(e){ console.error("AddItem Error:", e); await t.rollback(); res.status(400).json({error: e.message}); }
+  } catch (e) {
+    console.error("AddItem Error:", e);
+    await t.rollback();
+    res.status(400).json({ error: e.message });
+  }
 };
 
 exports.updateItem = async (req,res)=>{
@@ -67,15 +94,38 @@ exports.removeItem = async (req,res)=>{
 exports.summary = async (req,res)=>{
   try{
     const { cartId } = req.params;
-    const items = await CartItem.findAll({ where: { cartId }, include:[ {model: FoodItem, as: 'food'}] });
-    const subtotal = items.reduce((s,i)=> s + Number(i.unitPrice)*i.quantity, 0);
+    const items = await CartItem.findAll({ 
+      where: { cartId }, 
+      include:[ {model: FoodItem, as: 'food'}] 
+    });
+
+    const subtotal = items.reduce((s,i)=> {
+
+      let selectedAddOns = [];
+      if (i.selectedAddOns) {
+        if (typeof i.selectedAddOns === "string") {
+          try {
+            selectedAddOns = JSON.parse(i.selectedAddOns);
+          } catch {
+            selectedAddOns = [];
+          }
+        } else {
+          selectedAddOns = i.selectedAddOns;
+        }
+      }
+
+      const addOnsTotal = selectedAddOns.reduce((a, addon)=> a + Number(addon.price || 0), 0);
+
+      return s + (Number(i.unitPrice) + addOnsTotal) * i.quantity;
+    }, 0);
+
     const tax = +(subtotal * 0.05).toFixed(2);
     const deliveryFee = subtotal > 499 ? 0 : 40;
     const total = +(subtotal + tax + deliveryFee).toFixed(2);
+
     res.json({ cartId, items, subtotal, tax, deliveryFee, total });
   }catch(e){
-  console.error("Summary Error:", e.message, e.stack);
-  res.status(500).json({ error:'Failed to compute summary', details:e.message });
-}
-
+    console.error("Summary Error:", e.message, e.stack);
+    res.status(500).json({ error:'Failed to compute summary', details:e.message });
+  }
 };

@@ -25,6 +25,16 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.UUID,
         allowNull: false
       },
+      address: { 
+        type: DataTypes.STRING, 
+        allowNull: false 
+      },
+      paymentMethod: { 
+        type: DataTypes.ENUM('CASH', 'CARD', 'UPI'), 
+        allowNull: false 
+      },
+
+
       subtotal: DataTypes.FLOAT,
       tax: DataTypes.FLOAT,
       deliveryFee: DataTypes.FLOAT,
