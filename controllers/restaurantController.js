@@ -3,9 +3,11 @@
 const { Op } = require('sequelize');
 const { RestaurantReg } = require('../models');
 const { v4: uuidv4 } = require('uuid');
+const bcrypt = require("bcryptjs");
 
 // Create (Insert)
 exports.create = async (req, res) => {
+  const hashedPassword = await bcrypt.hash(req.body.password, 10);
   try {
     const payload = {
       id: uuidv4(),
@@ -16,6 +18,7 @@ exports.create = async (req, res) => {
       rest_logo: req.body.rest_logo,
       contact_person_name: req.body.contact_person_name,
       contact_email: req.body.contact_email,
+      password:hashedPassword,
       contact_number: req.body.contact_number,
       operational_hours: JSON.stringify(req.body.operational_hours || []), // ✅ stringify
       fssai_certificate: req.body.fssai_certificate,
@@ -118,6 +121,7 @@ exports.update = async (req, res) => {
       rest_logo: req.body.rest_logo,
       contact_person_name: req.body.contact_person_name,
       contact_email: req.body.contact_email,
+      password:req.body.password,
       contact_number: req.body.contact_number,
       operational_hours: req.body.operational_hours,
       fssai_certificate: req.body.fssai_certificate,
@@ -149,5 +153,48 @@ exports.remove = async (req, res) => {
   } catch (e) {
     console.error(e);
     return res.status(500).json({ error: 'Delete failed' });
+  }
+};
+
+exports.login = async (req, res) => {
+  try {
+    const { contact_email, password } = req.body;
+
+    const restaurant = await RestaurantReg.findOne({ where: {contact_email } });
+    if (!restaurant) {
+      return res.status(404).json({ error: "Email not found" });
+    }
+
+    const isMatch = await bcrypt.compare(password, restaurant.password);
+    if (!isMatch) {
+      return res.status(400).json({ error: "Invalid password" });
+    }
+    const restaurantData = restaurant.toJSON();
+    delete restaurantData.password;
+
+    res.json({ message: "Login successful",  data: restaurantData });
+  } catch (e) {
+    console.error("Login Error:", e);
+    res.status(500).json({ error: "Login failed" });
+  }
+};
+
+exports.resetPassword = async (req, res) => {
+  try {
+    const {contact_email, newPassword } = req.body;
+
+    const restaurant = await RestaurantReg.findOne({ where: {contact_email } });
+    if (!restaurant) {
+      return res.status(404).json({ error: "Email not found" });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    restaurant.password = hashedPassword;
+    await restaurant.save();
+
+    res.json({ message: "Password reset successful" });
+  } catch (e) {
+    console.error("Reset Error:", e);
+    res.status(500).json({ error: "Password reset failed" });
   }
 };

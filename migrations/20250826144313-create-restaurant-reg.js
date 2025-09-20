@@ -45,6 +45,10 @@ module.exports = {
         type: Sequelize.STRING(255),
         allowNull: true
       },
+      password: {
+      type: Sequelize.STRING,
+      allowNull: false,
+    },
 
       contact_number: {
         type: Sequelize.STRING(32),

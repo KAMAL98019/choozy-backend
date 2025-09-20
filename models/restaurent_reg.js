@@ -24,6 +24,7 @@ module.exports = (sequelize, DataTypes) => {
     rest_logo: { type: DataTypes.TEXT, allowNull: true },
     contact_person_name: { type: DataTypes.STRING(255), allowNull: true },
     contact_email: { type: DataTypes.STRING(255), allowNull: true },
+    password: {type: DataTypes.STRING,allowNull: false,},
     contact_number: { type: DataTypes.STRING(32), allowNull: true },
     operational_hours: { type: DataTypes.JSON, allowNull: true },
     fssai_certificate: { type: DataTypes.STRING(1024), allowNull: false },
