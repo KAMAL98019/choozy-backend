@@ -1160,13 +1160,49 @@
                                 "type": "object",
                                 "properties": {
                                     "cartId": {
-                                        "type": "string"
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "example": "411adec9-4cd5-4e5b-aca7-30ed87d2573c"
                                     },
                                     "foodId": {
-                                        "type": "string"
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "example": "232c2163-53d7-4c1a-86ec-c3ca5eee0fa8"
                                     },
                                     "quantity": {
-                                        "type": "integer"
+                                        "type": "integer",
+                                        "example": 2
+                                    },
+                                    "selectedAddOns": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object",
+                                            "properties": {
+                                                "name": {
+                                                    "type": "string",
+                                                    "example": "Extra Paneer"
+                                                },
+                                                "price": {
+                                                    "type": "number",
+                                                    "example": 50
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "name",
+                                                "price"
+                                            ]
+                                        },
+                                        "example": [
+                                            {
+                                                "name": "Extra Paneer",
+                                                "price": 50
+                                            },
+                                            {
+                                                "name": "Butter Naan",
+                                                "price": 30
+                                            }
+                                        ]
                                     }
                                 },
                                 "required": [
@@ -1180,7 +1216,10 @@
                 },
                 "responses": {
                     "201": {
-                        "description": "Item added"
+                        "description": "Item added successfully"
+                    },
+                    "400": {
+                        "description": "Invalid input"
                     }
                 }
             }
@@ -2349,6 +2388,267 @@
                 "responses": {
                     "200": {
                         "description": "Deleted"
+                    }
+                }
+            }
+        },
+        "/api/addresses": {
+            "post": {
+                "summary": "Add a new address",
+                "tags": [
+                    "Address"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "userId": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "example": "d9f1b5a4-1c2e-4a6f-9b1f-1234567890ab"
+                                    },
+                                    "street": {
+                                        "type": "string",
+                                        "example": "123 MG Road"
+                                    },
+                                    "city": {
+                                        "type": "string",
+                                        "example": "Bangalore"
+                                    },
+                                    "state": {
+                                        "type": "string",
+                                        "example": "Karnataka"
+                                    },
+                                    "country": {
+                                        "type": "string",
+                                        "example": "India"
+                                    },
+                                    "pincode": {
+                                        "type": "string",
+                                        "example": "560001"
+                                    },
+                                    "latitude": {
+                                        "type": "number",
+                                        "format": "double",
+                                        "example": 12.9715987
+                                    },
+                                    "longitude": {
+                                        "type": "number",
+                                        "format": "double",
+                                        "example": 77.5945627
+                                    },
+                                    "isDefault": {
+                                        "type": "boolean",
+                                        "example": true
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Address created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": {
+                                        "id": "411adec9-4cd5-4e5b-aca7-30ed87d2573c",
+                                        "userId": "d9f1b5a4-1c2e-4a6f-9b1f-1234567890ab",
+                                        "street": "123 MG Road",
+                                        "city": "Bangalore",
+                                        "state": "Karnataka",
+                                        "country": "India",
+                                        "pincode": "560001",
+                                        "latitude": 12.9715987,
+                                        "longitude": 77.5945627,
+                                        "isDefault": true,
+                                        "createdAt": "2025-09-20T10:00:00.000Z",
+                                        "updatedAt": "2025-09-20T10:00:00.000Z"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to create address"
+                    }
+                }
+            }
+        },
+        "/api/addresses/{userId}": {
+            "get": {
+                "summary": "Get all addresses of a user",
+                "tags": [
+                    "Address"
+                ],
+                "parameters": [
+                    {
+                        "name": "userId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "example": "d9f1b5a4-1c2e-4a6f-9b1f-1234567890ab"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of addresses",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "example": {
+                                            "id": "411adec9-4cd5-4e5b-aca7-30ed87d2573c",
+                                            "userId": "d9f1b5a4-1c2e-4a6f-9b1f-1234567890ab",
+                                            "street": "123 MG Road",
+                                            "city": "Bangalore",
+                                            "state": "Karnataka",
+                                            "country": "India",
+                                            "pincode": "560001",
+                                            "latitude": 12.9715987,
+                                            "longitude": 77.5945627,
+                                            "isDefault": true,
+                                            "createdAt": "2025-09-20T10:00:00.000Z",
+                                            "updatedAt": "2025-09-20T10:00:00.000Z"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to fetch addresses"
+                    }
+                }
+            }
+        },
+        "/api/addresses/{id}": {
+            "put": {
+                "summary": "Update an address",
+                "tags": [
+                    "Address"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "example": "411adec9-4cd5-4e5b-aca7-30ed87d2573c"
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "street": {
+                                        "type": "string",
+                                        "example": "456 MG Road"
+                                    },
+                                    "city": {
+                                        "type": "string",
+                                        "example": "Bangalore"
+                                    },
+                                    "state": {
+                                        "type": "string",
+                                        "example": "Karnataka"
+                                    },
+                                    "country": {
+                                        "type": "string",
+                                        "example": "India"
+                                    },
+                                    "pincode": {
+                                        "type": "string",
+                                        "example": "560002"
+                                    },
+                                    "latitude": {
+                                        "type": "number",
+                                        "format": "double",
+                                        "example": 12.971599
+                                    },
+                                    "longitude": {
+                                        "type": "number",
+                                        "format": "double",
+                                        "example": 77.594563
+                                    },
+                                    "isDefault": {
+                                        "type": "boolean",
+                                        "example": false
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Address updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": {
+                                        "id": "411adec9-4cd5-4e5b-aca7-30ed87d2573c",
+                                        "userId": "d9f1b5a4-1c2e-4a6f-9b1f-1234567890ab",
+                                        "street": "456 MG Road",
+                                        "city": "Bangalore",
+                                        "state": "Karnataka",
+                                        "country": "India",
+                                        "pincode": "560002",
+                                        "latitude": 12.971599,
+                                        "longitude": 77.594563,
+                                        "isDefault": false,
+                                        "createdAt": "2025-09-20T10:00:00.000Z",
+                                        "updatedAt": "2025-09-20T10:05:00.000Z"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to update address"
+                    }
+                }
+            },
+            "delete": {
+                "summary": "Delete an address",
+                "tags": [
+                    "Address"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "example": "411adec9-4cd5-4e5b-aca7-30ed87d2573c"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Address deleted successfully"
+                    },
+                    "500": {
+                        "description": "Failed to delete address"
                     }
                 }
             }

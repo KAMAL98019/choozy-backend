@@ -39,3 +39,4 @@ exports.deleteOrder = async (req, res) => {
   await order.destroy();
   res.json({ message: 'Order deleted' });
 };
+

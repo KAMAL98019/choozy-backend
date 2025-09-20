@@ -35,6 +35,7 @@ app.use("/api/delivery", require("./routes/deliveryPartner.routes"));
 app.use("/api", require("./routes/order.routes"));
 app.use("/api/subscriptions", require("./routes/subscription.routes"));
 app.use('/api', require('./routes/offer.routes'));
+app.use('/api',require('./routes/addressRoutes') )
 
 
 

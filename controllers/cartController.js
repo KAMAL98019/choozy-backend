@@ -26,45 +26,80 @@ exports.addItem = async (req, res) => {
   try {
     const { cartId, foodId, quantity, selectedAddOns } = req.body;
 
-    const food = await FoodItem.findByPk(foodId, { transaction: t });
-    if (!food) { 
-      await t.rollback(); 
-      return res.status(400).json({ error: 'Food unavailable' }); 
+    const food = await FoodItem.findByPk(foodId);
+    if (!food) {
+      await t.rollback();
+      return res.status(404).json({ error: 'Food not found' });
     }
 
-    const unitPrice = food.price;
-    let item = await CartItem.findOne({ where: { cartId, foodId }, transaction: t });
+    // normalize addons (stringify for comparison)
+    let finalAddOns = [];
+    if (Array.isArray(selectedAddOns)) {
+      for (const addOn of selectedAddOns) {
+        if (typeof addOn === "object") {
+          finalAddOns.push(addOn);
+        } else if (typeof addOn === "number") {
+          const addOnObj = food.customised_options?.add_ons?.[addOn];
+          if (addOnObj) finalAddOns.push(addOnObj);
+        }
+      }
+    }
 
-    if (item) {
-      await item.update(
-        { 
-          quantity: item.quantity + (quantity || 1),
-          unitPrice,
-          selectedAddOns: selectedAddOns || []   // ✅ save user addons
-        },
-        { transaction: t }
+    const addOnKey = JSON.stringify(finalAddOns.sort((a, b) => a.name.localeCompare(b.name)));
+
+    // 🔑 check if same item with same addons exists
+    const existingItem = await CartItem.findOne({
+      where: { cartId, foodId },
+      transaction: t
+    });
+
+    let item;
+    if (existingItem) {
+      const existingKey = JSON.stringify(
+        (typeof existingItem.selectedAddOns === "string"
+          ? JSON.parse(existingItem.selectedAddOns)
+          : existingItem.selectedAddOns || []
+        ).sort((a, b) => a.name.localeCompare(b.name))
       );
+
+      if (existingKey === addOnKey) {
+        // same item → just update quantity
+        await existingItem.update(
+          { quantity: existingItem.quantity + (quantity || 1) },
+          { transaction: t }
+        );
+        item = existingItem;
+      } else {
+        // different addons → create new row
+        item = await CartItem.create({
+          cartId,
+          foodId,
+          quantity: quantity || 1,
+          unitPrice: food.price,
+          selectedAddOns: finalAddOns
+        }, { transaction: t });
+      }
     } else {
-      item = await CartItem.create(
-        { 
-          cartId, 
-          foodId, 
-          quantity: quantity || 1, 
-          unitPrice,
-          selectedAddOns: selectedAddOns || []   // ✅ save user addons
-        }, 
-        { transaction: t }
-      );
+      // no existing item → create new row
+      item = await CartItem.create({
+        cartId,
+        foodId,
+        quantity: quantity || 1,
+        unitPrice: food.price,
+        selectedAddOns: finalAddOns
+      }, { transaction: t });
     }
 
     await t.commit();
     res.status(201).json(item);
-  } catch (e) {
-    console.error("AddItem Error:", e);
+  } catch (err) {
     await t.rollback();
-    res.status(400).json({ error: e.message });
+    console.error(err);
+    res.status(500).json({ error: 'Failed to add item' });
   }
 };
+
+
 
 exports.updateItem = async (req,res)=>{
   try{
@@ -100,7 +135,6 @@ exports.summary = async (req,res)=>{
     });
 
     const subtotal = items.reduce((s,i)=> {
-
       let selectedAddOns = [];
       if (i.selectedAddOns) {
         if (typeof i.selectedAddOns === "string") {
@@ -116,7 +150,10 @@ exports.summary = async (req,res)=>{
 
       const addOnsTotal = selectedAddOns.reduce((a, addon)=> a + Number(addon.price || 0), 0);
 
-      return s + (Number(i.unitPrice) + addOnsTotal) * i.quantity;
+      // ✅ correct per item calculation
+      const itemTotal = (Number(i.unitPrice) * i.quantity) + (addOnsTotal * i.quantity);
+
+      return s + itemTotal;   // 👈 now correct line
     }, 0);
 
     const tax = +(subtotal * 0.05).toFixed(2);
