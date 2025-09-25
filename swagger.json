@@ -1,0 +1,4677 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "Choozy App",
+        "version": "1.0.0",
+        "description": ""
+    },
+    "servers": [
+        {
+            "url": "http://localhost:5000"
+        }
+    ],
+    "paths": {
+        "/api/auth/send-otp": {
+            "post": {
+                "summary": "Send OTP to mobile",
+                "tags": [
+                    "Auth"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "mobile": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "mobile"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "OTP sent"
+                    },
+                    "400": {
+                        "description": "Bad request"
+                    },
+                    "429": {
+                        "description": "Rate limited"
+                    },
+                    "500": {
+                        "description": "Server error"
+                    }
+                }
+            }
+        },
+        "/api/auth/resend-otp": {
+            "post": {
+                "summary": "Resend OTP (subject to rate limit)",
+                "tags": [
+                    "Auth"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "mobile": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "mobile"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "OTP resent"
+                    }
+                }
+            }
+        },
+        "/api/auth/login": {
+            "post": {
+                "summary": "Login with mobile + OTP",
+                "tags": [
+                    "Auth"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "mobile": {
+                                        "type": "string"
+                                    },
+                                    "otp": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "mobile",
+                                    "otp"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Login success or new user",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string"
+                                                },
+                                                "isNewUser": {
+                                                    "type": "boolean"
+                                                },
+                                                "user": {
+                                                    "$ref": "#/components/schemas/User"
+                                                }
+                                            }
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string"
+                                                },
+                                                "isNewUser": {
+                                                    "type": "boolean"
+                                                },
+                                                "mobile": {
+                                                    "type": "string"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid or expired OTP"
+                    },
+                    "500": {
+                        "description": "Login failed"
+                    }
+                }
+            }
+        },
+        "/api/auth/verify-otp": {
+            "post": {
+                "summary": "Verify OTP; returns if profile exists",
+                "tags": [
+                    "Auth"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "mobile": {
+                                        "type": "string"
+                                    },
+                                    "otp": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "mobile",
+                                    "otp"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "OTP verified",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string"
+                                                },
+                                                "isNewUser": {
+                                                    "type": "boolean"
+                                                },
+                                                "user": {
+                                                    "$ref": "#/components/schemas/User"
+                                                }
+                                            }
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string"
+                                                },
+                                                "isNewUser": {
+                                                    "type": "boolean"
+                                                },
+                                                "mobile": {
+                                                    "type": "string"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid or expired OTP"
+                    }
+                }
+            }
+        },
+        "/api/auth/create-account": {
+            "post": {
+                "summary": "Create account after OTP verified",
+                "tags": [
+                    "Auth"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UserCreate"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Account created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        },
+                                        "user": {
+                                            "$ref": "#/components/schemas/User"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Phone not verified via OTP"
+                    },
+                    "400": {
+                        "description": "Email/mobile already used"
+                    }
+                }
+            }
+        },
+        "/api/auth/check-email": {
+            "get": {
+                "summary": "Check whether email is already used",
+                "tags": [
+                    "Auth"
+                ],
+                "parameters": [
+                    {
+                        "name": "email",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Exists response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "exists": {
+                                            "type": "boolean"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/auth/check-mobile": {
+            "get": {
+                "summary": "Check whether mobile is already used",
+                "tags": [
+                    "Auth"
+                ],
+                "parameters": [
+                    {
+                        "name": "mobile",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Exists response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "exists": {
+                                            "type": "boolean"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/auth/login-email": {
+            "post": {
+                "summary": "Login with email + password",
+                "tags": [
+                    "Auth"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "email": {
+                                        "type": "string"
+                                    },
+                                    "password": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "email",
+                                    "password"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Login successful",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        },
+                                        "isNewUser": {
+                                            "type": "boolean"
+                                        },
+                                        "user": {
+                                            "$ref": "#/components/schemas/User"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid email or password"
+                    },
+                    "500": {
+                        "description": "Login failed"
+                    }
+                }
+            }
+        },
+        "/api/auth/logout": {
+            "post": {
+                "summary": "Logout (stateless) - clears latest OTP verification",
+                "tags": [
+                    "Auth"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "mobile"
+                                ],
+                                "properties": {
+                                    "mobile": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Logged out"
+                    }
+                }
+            }
+        },
+        "/api/users": {
+            "get": {
+                "summary": "List users",
+                "tags": [
+                    "Users"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of users"
+                    }
+                }
+            },
+            "post": {
+                "summary": "Create user (direct create) - can be used by admin",
+                "tags": [
+                    "Users"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UserCreate"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "User created"
+                    }
+                }
+            }
+        },
+        "/api/users/{id}": {
+            "get": {
+                "summary": "Get user by id",
+                "tags": [
+                    "Users"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "User"
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                }
+            },
+            "put": {
+                "summary": "Update user",
+                "tags": [
+                    "Users"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UserUpdate"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Updated"
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                }
+            },
+            "delete": {
+                "summary": "Delete user",
+                "tags": [
+                    "Users"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Deleted"
+                    }
+                }
+            }
+        },
+        "/api/restaurants": {
+            "get": {
+                "summary": "List restaurants (with search & pagination)",
+                "tags": [
+                    "Restaurants"
+                ],
+                "parameters": [
+                    {
+                        "name": "q",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Search in name/address/cuisine"
+                    },
+                    {
+                        "name": "cuisine",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "minCost",
+                        "in": "query",
+                        "schema": {
+                            "type": "number"
+                        }
+                    },
+                    {
+                        "name": "maxCost",
+                        "in": "query",
+                        "schema": {
+                            "type": "number"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        }
+                    },
+                    {
+                        "name": "pageSize",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 20
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Paginated result",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "total": {
+                                            "type": "integer"
+                                        },
+                                        "page": {
+                                            "type": "integer"
+                                        },
+                                        "pageSize": {
+                                            "type": "integer"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/RestaurantReg"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "summary": "Create restaurant",
+                "tags": [
+                    "Restaurants"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RestaurantRegCreate"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RestaurantReg"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Validation error"
+                    }
+                }
+            }
+        },
+        "/api/restaurants/{id}": {
+            "get": {
+                "summary": "Get restaurant by id",
+                "tags": [
+                    "Restaurants"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Restaurant",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RestaurantReg"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                }
+            },
+            "put": {
+                "summary": "Update restaurant",
+                "tags": [
+                    "Restaurants"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RestaurantRegUpdate"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Updated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RestaurantReg"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                }
+            },
+            "delete": {
+                "summary": "Delete restaurant",
+                "tags": [
+                    "Restaurants"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Deleted"
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                }
+            }
+        },
+        "/api/restaurants/login": {
+            "post": {
+                "summary": "Restaurant login",
+                "tags": [
+                    "Restaurant Auth"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "contact_email": {
+                                        "type": "string",
+                                        "example": "restaurant@test.com"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "example": "secret123"
+                                    }
+                                },
+                                "required": [
+                                    "email",
+                                    "password"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Login successful"
+                    },
+                    "400": {
+                        "description": "Invalid password"
+                    },
+                    "404": {
+                        "description": "Email not found"
+                    }
+                }
+            }
+        },
+        "/api/restaurants/reset-password": {
+            "post": {
+                "summary": "Reset password using only email",
+                "tags": [
+                    "Restaurant Auth"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "contact_email": {
+                                        "type": "string",
+                                        "example": "restaurant@test.com"
+                                    },
+                                    "newPassword": {
+                                        "type": "string",
+                                        "example": "newSecret123"
+                                    }
+                                },
+                                "required": [
+                                    "email",
+                                    "newPassword"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Password reset successful"
+                    },
+                    "404": {
+                        "description": "Email not found"
+                    }
+                }
+            }
+        },
+        "/api/carts/active/{userId}": {
+            "get": {
+                "summary": "Get active cart for a user",
+                "tags": [
+                    "Cart"
+                ],
+                "parameters": [
+                    {
+                        "name": "userId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Active cart"
+                    }
+                }
+            }
+        },
+        "/api/food-items": {
+            "get": {
+                "summary": "Get all food items",
+                "tags": [
+                    "Food Items"
+                ],
+                "parameters": [
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "description": "Search term to filter food items by dishname or category"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of food items"
+                    },
+                    "500": {
+                        "description": "Server error"
+                    }
+                }
+            },
+            "post": {
+                "summary": "Create a food item",
+                "tags": [
+                    "Food Items"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "rest_id": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "example": "b1a2c3d4-e5f6-7890-1234-56789abcdef0"
+                                    },
+                                    "dishname": {
+                                        "type": "string",
+                                        "example": "Paneer Butter Masala"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "example": "A rich and creamy North Indian curry made with paneer cubes, butter, tomatoes, and spices."
+                                    },
+                                    "price": {
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 250.0
+                                    },
+                                    "category": {
+                                        "type": "string",
+                                        "example": "Main Course"
+                                    },
+                                    "veg": {
+                                        "type": "boolean",
+                                        "example": true
+                                    },
+                                    "contain_allergens": {
+                                        "type": "boolean",
+                                        "example": true
+                                    },
+                                    "specify_allergence": {
+                                        "type": "string",
+                                        "example": "Contains dairy and cashew nuts"
+                                    },
+                                    "customised_options": {
+                                        "type": "object",
+                                        "example": {
+                                            "spice_level": [
+                                                "Mild",
+                                                "Medium",
+                                                "Spicy"
+                                            ],
+                                            "add_ons": [
+                                                {
+                                                    "name": "Extra Paneer",
+                                                    "price": 50
+                                                },
+                                                {
+                                                    "name": "Butter Naan",
+                                                    "price": 40
+                                                }
+                                            ]
+                                        }
+                                    }
+                                },
+                                "required": [
+                                    "rest_id",
+                                    "dishname",
+                                    "price",
+                                    "category"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Food item created"
+                    },
+                    "500": {
+                        "description": "Server error"
+                    }
+                }
+            }
+        },
+        "/api/food-items/{id}": {
+            "get": {
+                "summary": "Get food item by ID",
+                "tags": [
+                    "Food Items"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Single food item"
+                    },
+                    "404": {
+                        "description": "Food item not found"
+                    },
+                    "500": {
+                        "description": "Server error"
+                    }
+                }
+            },
+            "put": {
+                "summary": "Update food item",
+                "tags": [
+                    "Food Items"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "dishname": {
+                                        "type": "string"
+                                    },
+                                    "description": {
+                                        "type": "string"
+                                    },
+                                    "price": {
+                                        "type": "number",
+                                        "format": "float"
+                                    },
+                                    "category": {
+                                        "type": "string"
+                                    },
+                                    "veg": {
+                                        "type": "boolean"
+                                    },
+                                    "contain_allergens": {
+                                        "type": "boolean"
+                                    },
+                                    "specify_allergence": {
+                                        "type": "string"
+                                    },
+                                    "customised_options": {
+                                        "type": "object"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Updated food item"
+                    },
+                    "404": {
+                        "description": "Food item not found"
+                    },
+                    "500": {
+                        "description": "Server error"
+                    }
+                }
+            },
+            "delete": {
+                "summary": "Delete food item",
+                "tags": [
+                    "Food Items"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Food item deleted"
+                    },
+                    "404": {
+                        "description": "Food item not found"
+                    },
+                    "500": {
+                        "description": "Server error"
+                    }
+                }
+            }
+        },
+        "/api/carts/ensure": {
+            "post": {
+                "summary": "Ensure a user has a cart",
+                "tags": [
+                    "Cart"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "userId": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "userId"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Cart ensured"
+                    }
+                }
+            }
+        },
+        "/api/carts/items": {
+            "post": {
+                "summary": "Add item to cart",
+                "tags": [
+                    "Cart"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "cartId": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "example": "411adec9-4cd5-4e5b-aca7-30ed87d2573c"
+                                    },
+                                    "foodId": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "example": "232c2163-53d7-4c1a-86ec-c3ca5eee0fa8"
+                                    },
+                                    "quantity": {
+                                        "type": "integer",
+                                        "example": 2
+                                    },
+                                    "selectedAddOns": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object",
+                                            "properties": {
+                                                "name": {
+                                                    "type": "string",
+                                                    "example": "Extra Paneer"
+                                                },
+                                                "price": {
+                                                    "type": "number",
+                                                    "example": 50
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "name",
+                                                "price"
+                                            ]
+                                        },
+                                        "example": [
+                                            {
+                                                "name": "Extra Paneer",
+                                                "price": 50
+                                            },
+                                            {
+                                                "name": "Butter Naan",
+                                                "price": 30
+                                            }
+                                        ]
+                                    }
+                                },
+                                "required": [
+                                    "cartId",
+                                    "foodId",
+                                    "quantity"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Item added successfully"
+                    },
+                    "400": {
+                        "description": "Invalid input"
+                    }
+                }
+            }
+        },
+        "/api/carts/items/{id}": {
+            "put": {
+                "summary": "Update cart item",
+                "tags": [
+                    "Cart"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "quantity": {
+                                        "type": "integer"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Item updated"
+                    }
+                }
+            },
+            "delete": {
+                "summary": "Remove item from cart",
+                "tags": [
+                    "Cart"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Item removed"
+                    }
+                }
+            }
+        },
+        "/api/carts/summary/{cartId}": {
+            "get": {
+                "summary": "Get cart summary",
+                "tags": [
+                    "Cart"
+                ],
+                "parameters": [
+                    {
+                        "name": "cartId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Cart summary"
+                    }
+                }
+            }
+        },
+        "/api/checkout": {
+            "post": {
+                "summary": "Create an order from cart",
+                "tags": [
+                    "Orders"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CheckoutRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Checkout successful",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CheckoutResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Cart empty or stock insufficient",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/orders": {
+            "get": {
+                "summary": "Get all orders",
+                "tags": [
+                    "Orders"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of orders",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Order"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/orders/{id}": {
+            "get": {
+                "summary": "Get single order by ID",
+                "tags": [
+                    "Orders"
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Order details",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Order"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Order not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "summary": "Delete order",
+                "tags": [
+                    "Orders"
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Order deleted"
+                    },
+                    "404": {
+                        "description": "Order not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/orders/{id}/status": {
+            "put": {
+                "summary": "Update order status",
+                "tags": [
+                    "Orders"
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "status": {
+                                        "type": "string",
+                                        "enum": [
+                                            "PENDING",
+                                            "CONFIRMED",
+                                            "PREPARING",
+                                            "OUT_FOR_DELIVERY",
+                                            "DELIVERED",
+                                            "CANCELLED"
+                                        ]
+                                    }
+                                },
+                                "required": [
+                                    "status"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Order status updated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Order"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid status transition",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Order not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/upload": {
+            "post": {
+                "tags": [
+                    "Upload"
+                ],
+                "summary": "Upload an image",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "image": {
+                                        "type": "string",
+                                        "format": "binary"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful upload",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "url": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Upload failed"
+                    }
+                }
+            }
+        },
+        "/api/categories": {
+            "get": {
+                "summary": "Get all categories",
+                "tags": [
+                    "Food Categories"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                }
+            },
+            "post": {
+                "summary": "Create new category",
+                "tags": [
+                    "Food Categories"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "name"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created successfully"
+                    }
+                }
+            }
+        },
+        "/api/categories/{id}": {
+            "get": {
+                "summary": "Get category by ID",
+                "tags": [
+                    "Food Categories"
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    },
+                    "404": {
+                        "description": "Category not found"
+                    }
+                }
+            },
+            "put": {
+                "summary": "Update category",
+                "tags": [
+                    "Food Categories"
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "name"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Updated successfully"
+                    },
+                    "404": {
+                        "description": "Category not found"
+                    }
+                }
+            },
+            "delete": {
+                "summary": "Delete category",
+                "tags": [
+                    "Food Categories"
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Deleted successfully"
+                    },
+                    "404": {
+                        "description": "Category not found"
+                    }
+                }
+            }
+        },
+        "/api/cuisines": {
+            "get": {
+                "summary": "Get all cuisines",
+                "tags": [
+                    "Food Cuisine"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                }
+            },
+            "post": {
+                "summary": "Create new cuisine",
+                "tags": [
+                    "Food Cuisine"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "name"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created successfully"
+                    }
+                }
+            }
+        },
+        "/api/cuisines/{id}": {
+            "get": {
+                "summary": "Get cuisine by ID",
+                "tags": [
+                    "Food Cuisine"
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    },
+                    "404": {
+                        "description": "Cuisine not found"
+                    }
+                }
+            },
+            "put": {
+                "summary": "Update cuisine",
+                "tags": [
+                    "Food Cuisine"
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "name"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Updated successfully"
+                    },
+                    "404": {
+                        "description": "Cuisine not found"
+                    }
+                }
+            },
+            "delete": {
+                "summary": "Delete cuisine",
+                "tags": [
+                    "Food Cuisine"
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Deleted successfully"
+                    },
+                    "404": {
+                        "description": "Cuisine not found"
+                    }
+                }
+            }
+        },
+        "/api/delivery/register": {
+            "post": {
+                "tags": [
+                    "Delivery Partner"
+                ],
+                "summary": "Register a new partner (all details in one step)",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Partner"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Partner created successfully"
+                    }
+                }
+            }
+        },
+        "/api/delivery/partner": {
+            "get": {
+                "tags": [
+                    "Delivery Partner"
+                ],
+                "summary": "Get all partners",
+                "responses": {
+                    "200": {
+                        "description": "List of partners"
+                    }
+                }
+            }
+        },
+        "/api/delivery/partner/{id}": {
+            "get": {
+                "tags": [
+                    "Delivery Partner"
+                ],
+                "summary": "Get a partner by ID",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Partner object"
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Delivery Partner"
+                ],
+                "summary": "Update a partner",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Partner"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Partner updated successfully"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Delivery Partner"
+                ],
+                "summary": "Delete a partner",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Partner deleted successfully"
+                    }
+                }
+            }
+        },
+        "/api/delivery/login": {
+            "post": {
+                "tags": [
+                    "Delivery UserAuth"
+                ],
+                "summary": "Login a user",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "email": {
+                                        "type": "string"
+                                    },
+                                    "password": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "email",
+                                    "password"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Login successful"
+                    }
+                }
+            }
+        },
+        "/api/delivery/forgot-password": {
+            "post": {
+                "tags": [
+                    "Delivery UserAuth"
+                ],
+                "summary": "Reset password",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "email": {
+                                        "type": "string"
+                                    },
+                                    "newPassword": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "email",
+                                    "newPassword"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Password reset successful"
+                    }
+                }
+            }
+        },
+        "/api/subscriptions": {
+            "get": {
+                "tags": [
+                    "Subscription"
+                ],
+                "summary": "Get all subscriptions",
+                "responses": {
+                    "200": {
+                        "description": "List of subscriptions",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Subscription"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error"
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Subscription"
+                ],
+                "summary": "Create a new subscription",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SubscriptionInput"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Subscription created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Subscription"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid input"
+                    },
+                    "500": {
+                        "description": "Server error"
+                    }
+                }
+            }
+        },
+        "/api/subscriptions/{id}": {
+            "get": {
+                "tags": [
+                    "Subscription"
+                ],
+                "summary": "Get a subscription by ID",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Subscription details",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Subscription"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Subscription not found"
+                    },
+                    "500": {
+                        "description": "Server error"
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Subscription"
+                ],
+                "summary": "Update a subscription",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SubscriptionInput"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Subscription updated"
+                    },
+                    "400": {
+                        "description": "Invalid input"
+                    },
+                    "404": {
+                        "description": "Subscription not found"
+                    },
+                    "500": {
+                        "description": "Server error"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Subscription"
+                ],
+                "summary": "Delete a subscription",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Subscription deleted"
+                    },
+                    "404": {
+                        "description": "Subscription not found"
+                    },
+                    "500": {
+                        "description": "Server error"
+                    }
+                }
+            }
+        },
+        "/api/offers": {
+            "post": {
+                "summary": "Create an offer",
+                "tags": [
+                    "Offers"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/OfferInput"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Offer created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Offer"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid input",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "get": {
+                "summary": "List offers",
+                "tags": [
+                    "Offers"
+                ],
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "restaurantId",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": false
+                    },
+                    {
+                        "in": "query",
+                        "name": "status",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "ACTIVE",
+                                "INACTIVE"
+                            ]
+                        },
+                        "required": false
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of offers",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Offer"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/offers/{id}": {
+            "get": {
+                "summary": "Get offer by id",
+                "tags": [
+                    "Offers"
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Offer",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Offer"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                }
+            },
+            "put": {
+                "summary": "Update offer",
+                "tags": [
+                    "Offers"
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/OfferInput"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Updated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Offer"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "summary": "Delete offer",
+                "tags": [
+                    "Offers"
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Deleted"
+                    }
+                }
+            }
+        },
+        "/api/addresses": {
+            "post": {
+                "summary": "Add a new address",
+                "tags": [
+                    "Address"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "userId": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "example": "d9f1b5a4-1c2e-4a6f-9b1f-1234567890ab"
+                                    },
+                                    "street": {
+                                        "type": "string",
+                                        "example": "123 MG Road"
+                                    },
+                                    "city": {
+                                        "type": "string",
+                                        "example": "Bangalore"
+                                    },
+                                    "state": {
+                                        "type": "string",
+                                        "example": "Karnataka"
+                                    },
+                                    "country": {
+                                        "type": "string",
+                                        "example": "India"
+                                    },
+                                    "pincode": {
+                                        "type": "string",
+                                        "example": "560001"
+                                    },
+                                    "latitude": {
+                                        "type": "number",
+                                        "format": "double",
+                                        "example": 12.9715987
+                                    },
+                                    "longitude": {
+                                        "type": "number",
+                                        "format": "double",
+                                        "example": 77.5945627
+                                    },
+                                    "isDefault": {
+                                        "type": "boolean",
+                                        "example": true
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Address created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": {
+                                        "id": "411adec9-4cd5-4e5b-aca7-30ed87d2573c",
+                                        "userId": "d9f1b5a4-1c2e-4a6f-9b1f-1234567890ab",
+                                        "street": "123 MG Road",
+                                        "city": "Bangalore",
+                                        "state": "Karnataka",
+                                        "country": "India",
+                                        "pincode": "560001",
+                                        "latitude": 12.9715987,
+                                        "longitude": 77.5945627,
+                                        "isDefault": true,
+                                        "createdAt": "2025-09-20T10:00:00.000Z",
+                                        "updatedAt": "2025-09-20T10:00:00.000Z"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to create address"
+                    }
+                }
+            }
+        },
+        "/api/addresses/{userId}": {
+            "get": {
+                "summary": "Get all addresses of a user",
+                "tags": [
+                    "Address"
+                ],
+                "parameters": [
+                    {
+                        "name": "userId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "example": "d9f1b5a4-1c2e-4a6f-9b1f-1234567890ab"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of addresses",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "example": {
+                                            "id": "411adec9-4cd5-4e5b-aca7-30ed87d2573c",
+                                            "userId": "d9f1b5a4-1c2e-4a6f-9b1f-1234567890ab",
+                                            "street": "123 MG Road",
+                                            "city": "Bangalore",
+                                            "state": "Karnataka",
+                                            "country": "India",
+                                            "pincode": "560001",
+                                            "latitude": 12.9715987,
+                                            "longitude": 77.5945627,
+                                            "isDefault": true,
+                                            "createdAt": "2025-09-20T10:00:00.000Z",
+                                            "updatedAt": "2025-09-20T10:00:00.000Z"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to fetch addresses"
+                    }
+                }
+            }
+        },
+        "/api/addresses/{id}": {
+            "put": {
+                "summary": "Update an address",
+                "tags": [
+                    "Address"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "example": "411adec9-4cd5-4e5b-aca7-30ed87d2573c"
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "street": {
+                                        "type": "string",
+                                        "example": "456 MG Road"
+                                    },
+                                    "city": {
+                                        "type": "string",
+                                        "example": "Bangalore"
+                                    },
+                                    "state": {
+                                        "type": "string",
+                                        "example": "Karnataka"
+                                    },
+                                    "country": {
+                                        "type": "string",
+                                        "example": "India"
+                                    },
+                                    "pincode": {
+                                        "type": "string",
+                                        "example": "560002"
+                                    },
+                                    "latitude": {
+                                        "type": "number",
+                                        "format": "double",
+                                        "example": 12.971599
+                                    },
+                                    "longitude": {
+                                        "type": "number",
+                                        "format": "double",
+                                        "example": 77.594563
+                                    },
+                                    "isDefault": {
+                                        "type": "boolean",
+                                        "example": false
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Address updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": {
+                                        "id": "411adec9-4cd5-4e5b-aca7-30ed87d2573c",
+                                        "userId": "d9f1b5a4-1c2e-4a6f-9b1f-1234567890ab",
+                                        "street": "456 MG Road",
+                                        "city": "Bangalore",
+                                        "state": "Karnataka",
+                                        "country": "India",
+                                        "pincode": "560002",
+                                        "latitude": 12.971599,
+                                        "longitude": 77.594563,
+                                        "isDefault": false,
+                                        "createdAt": "2025-09-20T10:00:00.000Z",
+                                        "updatedAt": "2025-09-20T10:05:00.000Z"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to update address"
+                    }
+                }
+            },
+            "delete": {
+                "summary": "Delete an address",
+                "tags": [
+                    "Address"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "example": "411adec9-4cd5-4e5b-aca7-30ed87d2573c"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Address deleted successfully"
+                    },
+                    "500": {
+                        "description": "Failed to delete address"
+                    }
+                }
+            }
+        },
+        "/api/partner/status": {
+            "put": {
+                "tags": [
+                    "Partner"
+                ],
+                "summary": "Update Partner Status",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "partnerId": {
+                                        "type": "string"
+                                    },
+                                    "status": {
+                                        "type": "string",
+                                        "enum": [
+                                            "online",
+                                            "offline"
+                                        ]
+                                    },
+                                    "fcmToken": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "partnerId",
+                                    "status"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Status updated"
+                    }
+                }
+            }
+        },
+        "/api/partner/assign": {
+            "post": {
+                "tags": [
+                    "Partner"
+                ],
+                "summary": "Assign order to Partner",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "partnerId": {
+                                        "type": "string"
+                                    },
+                                    "orderId": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "partnerId",
+                                    "orderId"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Order assigned & notification sent"
+                    }
+                }
+            }
+        },
+        "/api/partner/reject": {
+            "post": {
+                "tags": [
+                    "Partner"
+                ],
+                "summary": "Reject an order",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "partnerId": {
+                                        "type": "string"
+                                    },
+                                    "orderId": {
+                                        "type": "string"
+                                    },
+                                    "reason": {
+                                        "type": "string",
+                                        "description": "Reason for rejection"
+                                    }
+                                },
+                                "required": [
+                                    "partnerId",
+                                    "orderId"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Order rejected"
+                    }
+                }
+            }
+        },
+        "/api/partner/pickup/{id}": {
+            "put": {
+                "tags": [
+                    "Partner"
+                ],
+                "summary": "Mark order as picked up with location",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "latitude": {
+                                        "type": "number",
+                                        "format": "double"
+                                    },
+                                    "longitude": {
+                                        "type": "number",
+                                        "format": "double"
+                                    }
+                                },
+                                "required": [
+                                    "latitude",
+                                    "longitude"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Order picked up with location"
+                    }
+                }
+            }
+        },
+        "/api/partner/deliver/{id}": {
+            "put": {
+                "tags": [
+                    "Partner"
+                ],
+                "summary": "Mark order as delivered",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "photo": {
+                                        "type": "string",
+                                        "format": "binary"
+                                    },
+                                    "amount": {
+                                        "type": "number"
+                                    }
+                                },
+                                "required": [
+                                    "amount"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Order delivered & earnings updated"
+                    }
+                }
+            }
+        },
+        "/api/partner/earnings": {
+            "get": {
+                "tags": [
+                    "Partner"
+                ],
+                "summary": "Fetch Partner Earnings",
+                "parameters": [
+                    {
+                        "name": "partnerId",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "type",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "today",
+                                "week",
+                                "month",
+                                "lastMonth"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Earnings fetched successfully"
+                    },
+                    "400": {
+                        "description": "Invalid type"
+                    },
+                    "500": {
+                        "description": "Server error"
+                    }
+                }
+            }
+        },
+        "/api/partner/attendance": {
+            "put": {
+                "tags": [
+                    "Partner"
+                ],
+                "summary": "Upload Partner Attendance with Photo",
+                "description": "Upload attendance photo for a partner (check-in).",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "partnerId": {
+                                        "type": "string"
+                                    },
+                                    "photo": {
+                                        "type": "string",
+                                        "format": "binary"
+                                    }
+                                },
+                                "required": [
+                                    "partnerId",
+                                    "photo"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Attendance uploaded successfully"
+                    },
+                    "400": {
+                        "description": "Bad request (missing photo or partnerId)"
+                    },
+                    "500": {
+                        "description": "Server error"
+                    }
+                }
+            }
+        },
+        "/api/reviews/customer-to-restaurant": {
+            "post": {
+                "summary": "Create a review from customer to restaurant",
+                "tags": [
+                    "Customer→Restaurant"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "userId": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    "rest_id": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    "orderId": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    "rating": {
+                                        "type": "integer",
+                                        "minimum": 1,
+                                        "maximum": 5
+                                    },
+                                    "comment": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "customerId",
+                                    "restaurantId",
+                                    "rating"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Review created successfully"
+                    }
+                }
+            },
+            "get": {
+                "summary": "Get all reviews for customer→restaurant",
+                "tags": [
+                    "Customer→Restaurant"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of reviews"
+                    }
+                }
+            }
+        },
+        "/api/reviews/customer-to-restaurant/{id}": {
+            "get": {
+                "summary": "Get one review by ID",
+                "tags": [
+                    "Customer→Restaurant"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Single review"
+                    }
+                }
+            },
+            "put": {
+                "summary": "Update a review by ID",
+                "tags": [
+                    "Customer→Restaurant"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "userId": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    "rest_id": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    "orderId": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    "rating": {
+                                        "type": "integer",
+                                        "minimum": 1,
+                                        "maximum": 5
+                                    },
+                                    "comment": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "userId",
+                                    "rest_id",
+                                    "rating"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Review updated successfully"
+                    },
+                    "404": {
+                        "description": "Review not found"
+                    },
+                    "500": {
+                        "description": "Server error"
+                    }
+                }
+            },
+            "delete": {
+                "summary": "Delete a review by ID",
+                "tags": [
+                    "Customer→Restaurant"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Deleted successfully"
+                    }
+                }
+            }
+        },
+        "/api/reviews/customer-to-delivery": {
+            "post": {
+                "summary": "Create a review from customer to delivery partner",
+                "tags": [
+                    "Customer→DeliveryPartner"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "userId": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    "partnerId": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    "orderId": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    "rating": {
+                                        "type": "integer",
+                                        "minimum": 1,
+                                        "maximum": 5
+                                    },
+                                    "comment": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "customerId",
+                                    "deliveryPartnerId",
+                                    "rating"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Review created"
+                    }
+                }
+            },
+            "get": {
+                "summary": "Get all customer→delivery reviews",
+                "tags": [
+                    "Customer→DeliveryPartner"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of reviews"
+                    }
+                }
+            }
+        },
+        "/api/reviews/customer-to-delivery/{id}": {
+            "get": {
+                "summary": "Get one review by ID",
+                "tags": [
+                    "Customer→DeliveryPartner"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Single review"
+                    }
+                }
+            },
+            "put": {
+                "summary": "Update review by ID",
+                "tags": [
+                    "Customer→DeliveryPartner"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "userId": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    "partnerId": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    "orderId": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    "rating": {
+                                        "type": "integer",
+                                        "minimum": 1,
+                                        "maximum": 5
+                                    },
+                                    "comment": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "userId",
+                                    "partnerId",
+                                    "rating"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Updated successfully"
+                    },
+                    "404": {
+                        "description": "Review not found"
+                    },
+                    "500": {
+                        "description": "Server error"
+                    }
+                }
+            },
+            "delete": {
+                "summary": "Delete review by ID",
+                "tags": [
+                    "Customer→DeliveryPartner"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Deleted successfully"
+                    }
+                }
+            }
+        },
+        "/api/reviews/delivery-to-customer": {
+            "post": {
+                "summary": "Create a review from delivery partner to customer",
+                "tags": [
+                    "DeliveryPartner→Customer"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "partnerId": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    "userId": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    "orderId": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    "rating": {
+                                        "type": "integer",
+                                        "minimum": 1,
+                                        "maximum": 5
+                                    },
+                                    "comment": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "partnerId",
+                                    "userId",
+                                    "rating"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Review created"
+                    },
+                    "400": {
+                        "description": "Invalid input"
+                    },
+                    "500": {
+                        "description": "Server error"
+                    }
+                }
+            },
+            "get": {
+                "summary": "Get all delivery→customer reviews",
+                "tags": [
+                    "DeliveryPartner→Customer"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List"
+                    }
+                }
+            }
+        },
+        "/api/reviews/delivery-to-customer/{id}": {
+            "get": {
+                "summary": "Get one review by ID",
+                "tags": [
+                    "DeliveryPartner→Customer"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Single"
+                    }
+                }
+            },
+            "put": {
+                "summary": "Update review by ID",
+                "tags": [
+                    "DeliveryPartner→Customer"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "partnerId": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    "userId": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    "orderId": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    "rating": {
+                                        "type": "integer",
+                                        "minimum": 1,
+                                        "maximum": 5
+                                    },
+                                    "comment": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "partnerId",
+                                    "userId",
+                                    "rating"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Updated successfully"
+                    },
+                    "400": {
+                        "description": "Invalid input"
+                    },
+                    "404": {
+                        "description": "Review not found"
+                    },
+                    "500": {
+                        "description": "Server error"
+                    }
+                }
+            },
+            "delete": {
+                "summary": "Delete review by ID",
+                "tags": [
+                    "DeliveryPartner→Customer"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Deleted"
+                    }
+                }
+            }
+        },
+        "/api/reviews/restaurant-to-delivery": {
+            "post": {
+                "summary": "Create review from restaurant to delivery partner",
+                "tags": [
+                    "Restaurant→DeliveryPartner"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "rest_id": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    "partnerId": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    "orderId": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    "rating": {
+                                        "type": "integer",
+                                        "minimum": 1,
+                                        "maximum": 5
+                                    },
+                                    "comment": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "rest_id",
+                                    "partnerId",
+                                    "rating"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Review created"
+                    },
+                    "400": {
+                        "description": "Invalid input"
+                    },
+                    "500": {
+                        "description": "Server error"
+                    }
+                }
+            },
+            "get": {
+                "summary": "Get all restaurant→delivery reviews",
+                "tags": [
+                    "Restaurant→DeliveryPartner"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List"
+                    }
+                }
+            }
+        },
+        "/api/reviews/restaurant-to-delivery/{id}": {
+            "get": {
+                "summary": "Get one review by ID",
+                "tags": [
+                    "Restaurant→DeliveryPartner"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Single"
+                    }
+                }
+            },
+            "put": {
+                "summary": "Update review by ID",
+                "tags": [
+                    "Restaurant→DeliveryPartner"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "rest_id": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    "partnerId": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    "orderId": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    "rating": {
+                                        "type": "integer",
+                                        "minimum": 1,
+                                        "maximum": 5
+                                    },
+                                    "comment": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "rest_id",
+                                    "partnerId",
+                                    "rating"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Updated successfully"
+                    },
+                    "400": {
+                        "description": "Invalid input"
+                    },
+                    "404": {
+                        "description": "Review not found"
+                    },
+                    "500": {
+                        "description": "Server error"
+                    }
+                }
+            },
+            "delete": {
+                "summary": "Delete review by ID",
+                "tags": [
+                    "Restaurant→DeliveryPartner"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Deleted"
+                    }
+                }
+            }
+        },
+        "/api/delivery/summary/{orderId}": {
+            "get": {
+                "summary": "Get Delivery Summary",
+                "tags": [
+                    "Delivery"
+                ],
+                "parameters": [
+                    {
+                        "name": "orderId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Delivery Summary",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "orderId": "uuid",
+                                    "status": "OUT_FOR_DELIVERY",
+                                    "paymentMethod": "CASH",
+                                    "totalAmount": 550,
+                                    "customer": {
+                                        "id": "uuid",
+                                        "name": "Raj",
+                                        "mobile": "9876543210"
+                                    },
+                                    "restaurant": {
+                                        "id": "uuid",
+                                        "rest_name": "A2B",
+                                        "rest_address": "Chennai"
+                                    },
+                                    "items": [
+                                        {
+                                            "dishname": "Paneer Butter Masala",
+                                            "quantity": 2,
+                                            "price": 200,
+                                            "totalPrice": 400
+                                        }
+                                    ],
+                                    "partner": {
+                                        "id": "uuid",
+                                        "name": "Kishon",
+                                        "mobile": "9876543210",
+                                        "vehicleNumber": "TN10AB1234"
+                                    },
+                                    "earnings": 80
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "User": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "email": {
+                        "type": "string"
+                    },
+                    "mobile": {
+                        "type": "string"
+                    },
+                    "birthday": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "anniversary": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updatedAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                }
+            },
+            "UserCreate": {
+                "type": "object",
+                "required": [
+                    "mobile"
+                ],
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "email": {
+                        "type": "string"
+                    },
+                    "password": {
+                        "type": "string"
+                    },
+                    "mobile": {
+                        "type": "string"
+                    },
+                    "birthday": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "anniversary": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                }
+            },
+            "UserUpdate": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "email": {
+                        "type": "string"
+                    },
+                    "password": {
+                        "type": "string"
+                    },
+                    "birthday": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "anniversary": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                }
+            },
+            "RestaurantReg": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "rest_name": {
+                        "type": "string"
+                    },
+                    "rest_address": {
+                        "type": "string"
+                    },
+                    "cuisine_type": {
+                        "type": "string"
+                    },
+                    "avg_cost_two": {
+                        "type": "number",
+                        "format": "float",
+                        "nullable": true
+                    },
+                    "rest_logo": {
+                        "type": "string",
+                        "description": "Path/URL to logo",
+                        "nullable": true
+                    },
+                    "contact_person_name": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "contact_email": {
+                        "type": "string",
+                        "format": "email",
+                        "nullable": true
+                    },
+                    "password": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "contact_number": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "operational_hours": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "day": {
+                                    "type": "string",
+                                    "example": "Mon"
+                                },
+                                "enabled": {
+                                    "type": "boolean"
+                                },
+                                "from": {
+                                    "type": "string",
+                                    "example": "09:00"
+                                },
+                                "to": {
+                                    "type": "string",
+                                    "example": "18:00"
+                                }
+                            }
+                        },
+                        "nullable": true
+                    },
+                    "fssai_certificate": {
+                        "type": "string",
+                        "description": "Path/URL to FSSAI certificate"
+                    },
+                    "gst_certificate": {
+                        "type": "string",
+                        "description": "Path/URL to GST certificate",
+                        "nullable": true
+                    },
+                    "bank_account_name": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "account_number": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "ifsc_code": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "agree_to_terms": {
+                        "type": "boolean",
+                        "default": false
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updatedAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                }
+            },
+            "RestaurantRegCreate": {
+                "type": "object",
+                "required": [
+                    "Rest_name",
+                    "Rest_address",
+                    "cuision_type",
+                    "fssai_certificate"
+                ],
+                "properties": {
+                    "rest_name": {
+                        "type": "string"
+                    },
+                    "rest_address": {
+                        "type": "string"
+                    },
+                    "cuisine_type": {
+                        "type": "string"
+                    },
+                    "avg_cost_two": {
+                        "type": "number",
+                        "format": "float"
+                    },
+                    "rest_logo": {
+                        "type": "string"
+                    },
+                    "contact_person_name": {
+                        "type": "string"
+                    },
+                    "contact_email": {
+                        "type": "string",
+                        "format": "email"
+                    },
+                    "password": {
+                        "type": "string"
+                    },
+                    "contact_number": {
+                        "type": "string"
+                    },
+                    "operational_hours": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "day": {
+                                    "type": "string"
+                                },
+                                "enabled": {
+                                    "type": "boolean"
+                                },
+                                "from": {
+                                    "type": "string"
+                                },
+                                "to": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "fssai_certificate": {
+                        "type": "string"
+                    },
+                    "gst_certificate": {
+                        "type": "string"
+                    },
+                    "bank_account_name": {
+                        "type": "string"
+                    },
+                    "account_number": {
+                        "type": "string"
+                    },
+                    "ifsc_code": {
+                        "type": "string"
+                    },
+                    "agree_to_terms": {
+                        "type": "boolean"
+                    }
+                }
+            },
+            "RestaurantRegUpdate": {
+                "type": "object",
+                "properties": {
+                    "rest_name": {
+                        "type": "string"
+                    },
+                    "rest_address": {
+                        "type": "string"
+                    },
+                    "cuisine_type": {
+                        "type": "string"
+                    },
+                    "avg_cost_two": {
+                        "type": "number",
+                        "format": "float"
+                    },
+                    "rest_logo": {
+                        "type": "string"
+                    },
+                    "contact_person_name": {
+                        "type": "string"
+                    },
+                    "contact_email": {
+                        "type": "string",
+                        "format": "email"
+                    },
+                    "password": {
+                        "type": "string"
+                    },
+                    "contact_number": {
+                        "type": "string"
+                    },
+                    "operational_hours": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "day": {
+                                    "type": "string"
+                                },
+                                "enabled": {
+                                    "type": "boolean"
+                                },
+                                "from": {
+                                    "type": "string"
+                                },
+                                "to": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "fssai_certificate": {
+                        "type": "string"
+                    },
+                    "gst_certificate": {
+                        "type": "string"
+                    },
+                    "bank_account_name": {
+                        "type": "string"
+                    },
+                    "account_number": {
+                        "type": "string"
+                    },
+                    "ifsc_code": {
+                        "type": "string"
+                    },
+                    "agree_to_terms": {
+                        "type": "boolean"
+                    }
+                }
+            },
+            "FoodItem": {
+                "type": "object",
+                "properties": {
+                    "rest_id": {
+                        "type": "string"
+                    },
+                    "dishname": {
+                        "type": "string"
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "price": {
+                        "type": "number"
+                    },
+                    "category": {
+                        "type": "string"
+                    },
+                    "veg": {
+                        "type": "boolean"
+                    },
+                    "contain_allergens": {
+                        "type": "boolean"
+                    },
+                    "specify_allergence": {
+                        "type": "string"
+                    },
+                    "customised_options": {
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        }
+                    }
+                }
+            },
+            "Partner": {
+                "type": "object",
+                "properties": {
+                    "fullName": {
+                        "type": "string"
+                    },
+                    "mobile": {
+                        "type": "string"
+                    },
+                    "email": {
+                        "type": "string"
+                    },
+                    "dob": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "gender": {
+                        "type": "string"
+                    },
+                    "referralCode": {
+                        "type": "string"
+                    },
+                    "password": {
+                        "type": "string"
+                    },
+                    "address": {
+                        "type": "string"
+                    },
+                    "city": {
+                        "type": "string"
+                    },
+                    "state": {
+                        "type": "string"
+                    },
+                    "pincode": {
+                        "type": "string"
+                    },
+                    "emergencyName": {
+                        "type": "string"
+                    },
+                    "emergencyMobile": {
+                        "type": "string"
+                    },
+                    "vehicleType": {
+                        "type": "string"
+                    },
+                    "vehicleModel": {
+                        "type": "string"
+                    },
+                    "licensePlate": {
+                        "type": "string"
+                    },
+                    "rcFile": {
+                        "type": "string"
+                    },
+                    "dlFile": {
+                        "type": "string"
+                    },
+                    "workType": {
+                        "type": "string",
+                        "enum": [
+                            "full-time",
+                            "part-time",
+                            "weekend"
+                        ]
+                    },
+                    "breakStart": {
+                        "type": "string",
+                        "format": "time"
+                    },
+                    "breakEnd": {
+                        "type": "string",
+                        "format": "time"
+                    },
+                    "bankName": {
+                        "type": "string"
+                    },
+                    "accountNumber": {
+                        "type": "string"
+                    },
+                    "ifsc": {
+                        "type": "string"
+                    },
+                    "idProofFile": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "fullName",
+                    "mobile",
+                    "email",
+                    "password"
+                ]
+            },
+            "CartItem": {
+                "type": "object",
+                "properties": {
+                    "foodId": {
+                        "type": "string",
+                        "format": "uuid",
+                        "example": "70ad3246-4b20-44da-aa3a-a433311d7932"
+                    },
+                    "quantity": {
+                        "type": "integer",
+                        "example": 2
+                    },
+                    "price": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 250
+                    },
+                    "totalPrice": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 500
+                    },
+                    "selectedAddOns": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "name": {
+                                    "type": "string"
+                                },
+                                "price": {
+                                    "type": "number"
+                                }
+                            }
+                        },
+                        "description": "List of selected addons for this cart item"
+                    },
+                    "food": {
+                        "$ref": "#/components/schemas/FoodItem"
+                    }
+                }
+            },
+            "OrderItem": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "orderId": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "foodId": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "quantity": {
+                        "type": "integer",
+                        "example": 2
+                    },
+                    "price": {
+                        "type": "number",
+                        "example": 199.99
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updatedAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                }
+            },
+            "Order": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "userId": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "cartId": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "subtotal": {
+                        "type": "number"
+                    },
+                    "tax": {
+                        "type": "number"
+                    },
+                    "deliveryFee": {
+                        "type": "number"
+                    },
+                    "totalAmount": {
+                        "type": "number"
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "PENDING",
+                            "CONFIRMED",
+                            "PREPARING",
+                            "OUT_FOR_DELIVERY",
+                            "DELIVERED",
+                            "CANCELLED"
+                        ]
+                    },
+                    "address": {
+                        "type": "string",
+                        "example": "123, MG Road, Bangalore"
+                    },
+                    "paymentMethod": {
+                        "type": "string",
+                        "enum": [
+                            "CASH",
+                            "CARD",
+                            "UPI"
+                        ],
+                        "example": "CARD"
+                    },
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/OrderItem"
+                        }
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updatedAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                }
+            },
+            "CheckoutRequest": {
+                "type": "object",
+                "required": [
+                    "userId",
+                    "cartId",
+                    "address",
+                    "paymentMethod"
+                ],
+                "properties": {
+                    "userId": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "cartId": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "address": {
+                        "type": "string",
+                        "example": "123, MG Road, Bangalore"
+                    },
+                    "paymentMethod": {
+                        "type": "string",
+                        "enum": [
+                            "CASH",
+                            "CARD",
+                            "UPI"
+                        ],
+                        "example": "CARD"
+                    }
+                }
+            },
+            "CheckoutResponse": {
+                "type": "object",
+                "properties": {
+                    "message": {
+                        "type": "string",
+                        "example": "Checkout successful"
+                    },
+                    "order": {
+                        "$ref": "#/components/schemas/Order"
+                    }
+                }
+            },
+            "ErrorResponse": {
+                "type": "object",
+                "properties": {
+                    "error": {
+                        "type": "string",
+                        "example": "Cart empty or stock insufficient"
+                    }
+                }
+            },
+            "Subscription": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "userId": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "foodId": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "planName": {
+                        "type": "string"
+                    },
+                    "price": {
+                        "type": "number"
+                    },
+                    "address": {
+                        "type": "string",
+                        "example": "123, MG Road, Bangalore"
+                    },
+                    "paymentMethod": {
+                        "type": "string",
+                        "enum": [
+                            "CASH",
+                            "CARD",
+                            "UPI"
+                        ],
+                        "example": "UPI"
+                    },
+                    "startDate": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "endDate": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "ACTIVE",
+                            "EXPIRED",
+                            "CANCELLED"
+                        ]
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updatedAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                }
+            },
+            "SubscriptionInput": {
+                "type": "object",
+                "required": [
+                    "userId",
+                    "foodId",
+                    "planName",
+                    "price",
+                    "startDate",
+                    "address",
+                    "paymentMethod"
+                ],
+                "properties": {
+                    "userId": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "foodId": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "planName": {
+                        "type": "string"
+                    },
+                    "price": {
+                        "type": "number"
+                    },
+                    "address": {
+                        "type": "string",
+                        "example": "123, MG Road, Bangalore"
+                    },
+                    "paymentMethod": {
+                        "type": "string",
+                        "enum": [
+                            "CASH",
+                            "CARD",
+                            "UPI"
+                        ],
+                        "example": "CARD"
+                    },
+                    "startDate": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "endDate": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "ACTIVE",
+                            "EXPIRED",
+                            "CANCELLED"
+                        ]
+                    }
+                }
+            },
+            "OfferInput": {
+                "type": "object",
+                "required": [
+                    "restaurantId",
+                    "title",
+                    "discountType",
+                    "discountValue"
+                ],
+                "properties": {
+                    "restaurantId": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "discountType": {
+                        "type": "string",
+                        "enum": [
+                            "PERCENTAGE",
+                            "FLAT"
+                        ]
+                    },
+                    "discountValue": {
+                        "type": "number",
+                        "format": "float"
+                    },
+                    "minOrderValue": {
+                        "type": "number",
+                        "format": "float"
+                    },
+                    "startDate": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "endDate": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "startTime": {
+                        "type": "string",
+                        "example": "09:00"
+                    },
+                    "endTime": {
+                        "type": "string",
+                        "example": "23:00"
+                    },
+                    "applicableItems": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "description": "Array of item IDs or category IDs"
+                    },
+                    "termsConditions": {
+                        "type": "string"
+                    },
+                    "offerImage": {
+                        "type": "string",
+                        "description": "path or url to image"
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "ACTIVE",
+                            "INACTIVE"
+                        ]
+                    }
+                }
+            },
+            "Offer": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "restaurantId": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "discountType": {
+                        "type": "string"
+                    },
+                    "discountValue": {
+                        "type": "number"
+                    },
+                    "minOrderValue": {
+                        "type": "number"
+                    },
+                    "startDate": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "endDate": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "startTime": {
+                        "type": "string"
+                    },
+                    "endTime": {
+                        "type": "string"
+                    },
+                    "applicableItems": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "termsConditions": {
+                        "type": "string"
+                    },
+                    "offerImage": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updatedAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                }
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "Auth",
+            "description": "OTP and account-related endpoints"
+        },
+        {
+            "name": "Users",
+            "description": "User CRUD endpoints"
+        },
+        {
+            "name": "Restaurants",
+            "description": "Restaurant registration CRUD"
+        },
+        {
+            "name": "Restaurant Auth",
+            "description": "Restaurant authentication  (Login & Forgot Password)"
+        },
+        {
+            "name": "Cart",
+            "description": "Cart management"
+        },
+        {
+            "name": "Orders",
+            "description": "Checkout and order management"
+        },
+        {
+            "name": "Delivery Partner",
+            "description": "Partner registration & CRUD operations"
+        },
+        {
+            "name": "Delivery UserAuth",
+            "description": "User authentication (Login & Forgot Password)"
+        },
+        {
+            "name": "Subscription",
+            "description": "Subscription CRUD operations"
+        },
+        {
+            "name": "Offers",
+            "description": "Create and manage restaurant offers/discounts"
+        }
+    ]
+}
