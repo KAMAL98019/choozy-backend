@@ -28,6 +28,12 @@ module.exports = {
         allowNull: true,
         type: Sequelize.DATE
       },
+      status: {
+        type: Sequelize.STRING,
+        allowNull: false,
+        defaultValue: 'active'
+      },
+
       createdAt: {
         allowNull: false,
         type: Sequelize.DATE

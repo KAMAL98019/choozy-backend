@@ -24,7 +24,7 @@ module.exports = (sequelize, DataTypes) => {
     rest_logo: { type: DataTypes.TEXT, allowNull: true },
     contact_person_name: { type: DataTypes.STRING(255), allowNull: true },
     contact_email: { type: DataTypes.STRING(255), allowNull: true },
-    password: {type: DataTypes.STRING,allowNull: false,},
+    password: { type: DataTypes.STRING, allowNull: false, },
     contact_number: { type: DataTypes.STRING(32), allowNull: true },
     operational_hours: { type: DataTypes.JSON, allowNull: true },
     fssai_certificate: { type: DataTypes.STRING(1024), allowNull: false },
@@ -32,7 +32,13 @@ module.exports = (sequelize, DataTypes) => {
     bank_account_name: { type: DataTypes.STRING(255), allowNull: true },
     account_number: { type: DataTypes.STRING(64), allowNull: true },
     ifsc_code: { type: DataTypes.STRING(32), allowNull: true },
-    agree_to_terms: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false }
+    agree_to_terms: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
+    status: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      defaultValue: 'active'
+    }
+
   }, {
     sequelize,
     modelName: 'RestaurantReg',

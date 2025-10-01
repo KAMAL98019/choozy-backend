@@ -37,13 +37,18 @@ app.use("/api/subscriptions", require("./routes/subscription.routes"));
 app.use('/api', require('./routes/offer.routes'));
 app.use('/api',require('./routes/address.routes') );
 app.use("/api/notifications",require ('./routes/notification.routes'));
-app.use("/api/partner", require ('./routes/partner.routes'));
+app.use("/api/partner", require ('./routes/partnerAttendance.routes'));
 app.use('/api/reviews/customer-to-restaurant', require('./routes/reviewCustomerToRestaurantRoutes'));
 app.use('/api/reviews/customer-to-delivery', require('./routes/reviewCustomerToDeliveryRoutes'));
 app.use('/api/reviews/delivery-to-customer', require('./routes/reviewDeliveryToCustomerRoutes'));
 app.use('/api/reviews/restaurant-to-delivery', require('./routes/reviewRestaurantToDeliveryRoutes'));
 app.use("/api",require('./routes/deliverySummaryRoutes') );
-
+app.use('/api/admin',require('./routes/adminRoutes') );
+app.use('/api',require('./routes/trackingRoutes') );
+app.use('/api',require('./routes/restaurantOrderRoutes')  );
+app.use('/api/admin', require('./routes/admin/userRoutes'));
+app.use('/api/admin', require('./routes/admin/restaurantRoutes'));
+app.use('/api/admin', require('./routes/admin/deliveryPartnerRoutes'))
 
 
 

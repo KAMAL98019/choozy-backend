@@ -6,6 +6,8 @@ module.exports = (sequelize, DataTypes) => {
     static associate(models) {
       CartItem.belongsTo(models.FoodItem, { foreignKey: 'foodId', as: 'food' });
       CartItem.belongsTo(models.Cart, { foreignKey: 'cartId', as: 'cart' });
+      CartItem.belongsTo(models.Order, { foreignKey: 'orderId' });
+
     }
   }
 
@@ -17,6 +19,7 @@ module.exports = (sequelize, DataTypes) => {
     },
     cartId: { type: DataTypes.UUID, allowNull: false },
     foodId: { type: DataTypes.UUID, allowNull: false },
+     orderId: { type: DataTypes.UUID, allowNull:true },
     quantity: { type: DataTypes.INTEGER, allowNull: false },
     unitPrice: DataTypes.DECIMAL,
     selectedAddOns: {

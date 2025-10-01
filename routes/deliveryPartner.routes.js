@@ -4,6 +4,7 @@ const multer = require("multer");
 const path = require("path");
 const deliveryPartner = require("../controllers/deliveryPartner.controller");
 
+
 // ------------------- Multer config -------------------
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, "uploads/"),
@@ -30,6 +31,9 @@ router.put("/partner/:id",upload.fields([
     { name: "idProofFile", maxCount: 1 },
   ]), deliveryPartner.update);
 router.delete("/partner/:id", deliveryPartner.remove);
+
+
+
 router.post("/login",deliveryPartner.login);
 router.post("/forgot-password",deliveryPartner.forgotPassword);
 

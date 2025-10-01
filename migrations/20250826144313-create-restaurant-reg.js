@@ -46,9 +46,9 @@ module.exports = {
         allowNull: true
       },
       password: {
-      type: Sequelize.STRING,
-      allowNull: false,
-    },
+        type: Sequelize.STRING,
+        allowNull: false,
+      },
 
       contact_number: {
         type: Sequelize.STRING(32),
@@ -96,6 +96,12 @@ module.exports = {
         type: Sequelize.DATE,
         allowNull: false,
         defaultValue: Sequelize.fn('NOW')
+      },
+      status: {
+        type: Sequelize.STRING,
+        allowNull: false,
+        defaultValue: 'active', // default status
+
       },
 
       updatedAt: {

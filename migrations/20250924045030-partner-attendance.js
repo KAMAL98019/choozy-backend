@@ -2,7 +2,7 @@
 
 module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.createTable('partner_attendance', {
+    await queryInterface.createTable('PartnerAttendances', {
       id: {
         allowNull: false,
         primaryKey: true,
@@ -13,33 +13,42 @@ module.exports = {
         type: Sequelize.UUID,
         allowNull: false,
         references: {
-          model: 'partners',
+          model: 'Partners', // ✅ FK to Partners table
           key: 'id',
         },
+        onUpdate: 'CASCADE',
         onDelete: 'CASCADE',
       },
       attendancePhoto: {
         type: Sequelize.STRING,
         allowNull: true,
       },
+      status: {
+        type: Sequelize.ENUM('ONLINE', 'OFFLINE'),
+        allowNull: false,
+        defaultValue: 'OFFLINE', // ✅ default OFFLINE
+      },
       attendanceTime: {
         type: Sequelize.DATE,
-        allowNull: true,
+        allowNull: false,
+        defaultValue: Sequelize.fn('NOW'), // ✅ current timestamp
       },
       createdAt: {
-        allowNull: false,
         type: Sequelize.DATE,
+        allowNull: false,
         defaultValue: Sequelize.fn('NOW'),
       },
       updatedAt: {
-        allowNull: false,
         type: Sequelize.DATE,
+        allowNull: false,
         defaultValue: Sequelize.fn('NOW'),
-      }
+      },
     });
   },
 
   async down(queryInterface, Sequelize) {
-    await queryInterface.dropTable('partner_attendance');
-  }
+    // ENUM field remove safe handling
+    await queryInterface.dropTable('PartnerAttendances');
+    await queryInterface.sequelize.query('DROP TYPE IF EXISTS "enum_PartnerAttendances_status";');
+  },
 };

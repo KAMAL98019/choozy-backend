@@ -1313,7 +1313,7 @@
             "post": {
                 "summary": "Create an order from cart",
                 "tags": [
-                    "Orders"
+                    "Orderflow"
                 ],
                 "requestBody": {
                     "required": true,
@@ -1359,112 +1359,272 @@
                 }
             }
         },
-        "/api/orders": {
-            "get": {
-                "summary": "Get all orders",
+        "/api/orders/{orderId}/status": {
+            "put": {
                 "tags": [
-                    "Orders"
+                    "Orderflow"
                 ],
-                "responses": {
-                    "200": {
-                        "description": "List of orders",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/components/schemas/Order"
+                "summary": "Restaurant accept/reject order",
+                "parameters": [
+                    {
+                        "name": "orderId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "status": {
+                                        "type": "string",
+                                        "enum": [
+                                            "ACCEPTED",
+                                            "REJECTED"
+                                        ]
                                     }
-                                }
+                                },
+                                "required": [
+                                    "status"
+                                ]
                             }
                         }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Order status updated"
+                    }
+                }
+            }
+        },
+        "/api/delivery/assign": {
+            "post": {
+                "tags": [
+                    "Orderflow"
+                ],
+                "summary": "Assign a delivery partner to an order",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "orderId": {
+                                        "type": "string"
+                                    },
+                                    "partnerId": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "orderId",
+                                    "partnerId"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Delivery assignment created"
+                    }
+                }
+            }
+        },
+        "/api/delivery/{assignmentId}/respond": {
+            "put": {
+                "tags": [
+                    "Orderflow"
+                ],
+                "summary": "Partner accept or reject delivery assignment; auto-reassign if rejected",
+                "parameters": [
+                    {
+                        "name": "assignmentId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "response": {
+                                        "type": "string",
+                                        "enum": [
+                                            "ACCEPT",
+                                            "REJECT"
+                                        ]
+                                    }
+                                },
+                                "required": [
+                                    "response"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Delivery response updated"
+                    }
+                }
+            }
+        },
+        "/api/delivery/{assignmentId}/status": {
+            "put": {
+                "tags": [
+                    "Orderflow"
+                ],
+                "summary": "Update delivery status and earnings",
+                "parameters": [
+                    {
+                        "name": "assignmentId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "status": {
+                                        "type": "string",
+                                        "enum": [
+                                            "PENDING",
+                                            "ACCEPTED",
+                                            "REJECTED",
+                                            "PICKED",
+                                            "DELIVERED"
+                                        ]
+                                    },
+                                    "distanceKm": {
+                                        "type": "number"
+                                    }
+                                },
+                                "required": [
+                                    "status"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Delivery updated with km and earnings"
+                    }
+                }
+            }
+        },
+        "/api/orders": {
+            "get": {
+                "tags": [
+                    "Orderflow"
+                ],
+                "summary": "Get all orders",
+                "responses": {
+                    "200": {
+                        "description": "List of all orders"
                     }
                 }
             }
         },
         "/api/orders/{id}": {
             "get": {
-                "summary": "Get single order by ID",
                 "tags": [
-                    "Orders"
+                    "Orderflow"
                 ],
+                "summary": "Get details of a single order",
                 "parameters": [
                     {
-                        "in": "path",
                         "name": "id",
+                        "in": "path",
                         "required": true,
                         "schema": {
-                            "type": "string",
-                            "format": "uuid"
+                            "type": "string"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Order details",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/Order"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Order not found",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "summary": "Delete order",
-                "tags": [
-                    "Orders"
-                ],
-                "parameters": [
-                    {
-                        "in": "path",
-                        "name": "id",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Order deleted"
-                    },
-                    "404": {
-                        "description": "Order not found",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        }
+                        "description": "Order details"
                     }
                 }
             }
         },
-        "/api/orders/{id}/status": {
-            "put": {
-                "summary": "Update order status",
+        "/orders/{orderId}/tracking": {
+            "get": {
                 "tags": [
-                    "Orders"
+                    "Orderflow"
                 ],
+                "summary": "Get order tracking details",
                 "parameters": [
                     {
+                        "name": "orderId",
                         "in": "path",
-                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Order and delivery details retrieved",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "order": {
+                                        "id": "uuid",
+                                        "status": "PENDING",
+                                        "items": [],
+                                        "cart": {}
+                                    },
+                                    "delivery": {
+                                        "status": "OUT_FOR_DELIVERY",
+                                        "lat": 12.97,
+                                        "lng": 77.59
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Order not found"
+                    }
+                }
+            }
+        },
+        "/api/delivery/{assignmentId}/trackingStatus": {
+            "put": {
+                "tags": [
+                    "Orderflow"
+                ],
+                "summary": "Update delivery status and partner location",
+                "parameters": [
+                    {
+                        "name": "assignmentId",
+                        "in": "path",
                         "required": true,
                         "schema": {
                             "type": "string",
@@ -1481,53 +1641,101 @@
                                 "properties": {
                                     "status": {
                                         "type": "string",
-                                        "enum": [
-                                            "PENDING",
-                                            "CONFIRMED",
-                                            "PREPARING",
-                                            "OUT_FOR_DELIVERY",
-                                            "DELIVERED",
-                                            "CANCELLED"
-                                        ]
+                                        "example": "ON_ROUTE"
+                                    },
+                                    "lat": {
+                                        "type": "number",
+                                        "example": 12.9716
+                                    },
+                                    "lng": {
+                                        "type": "number",
+                                        "example": 77.5946
                                     }
-                                },
-                                "required": [
-                                    "status"
-                                ]
+                                }
                             }
                         }
                     }
                 },
                 "responses": {
                     "200": {
-                        "description": "Order status updated",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/Order"
+                        "description": "Delivery updated successfully"
+                    },
+                    "404": {
+                        "description": "Delivery assignment not found"
+                    }
+                }
+            }
+        },
+        "/api/delivery/{assignmentId}/complete": {
+            "put": {
+                "tags": [
+                    "Orderflow"
+                ],
+                "summary": "Complete delivery with optional photo & notes",
+                "parameters": [
+                    {
+                        "name": "assignmentId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "deliveryPhoto": {
+                                        "type": "string",
+                                        "format": "binary"
+                                    },
+                                    "notes": {
+                                        "type": "string",
+                                        "example": "Left at door"
+                                    },
+                                    "lat": {
+                                        "type": "number",
+                                        "example": 12.9716
+                                    },
+                                    "lng": {
+                                        "type": "number",
+                                        "example": 77.5946
+                                    }
                                 }
                             }
                         }
-                    },
-                    "400": {
-                        "description": "Invalid status transition",
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Delivery completed successfully",
                         "content": {
                             "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
+                                "example": {
+                                    "message": "Delivery completed successfully",
+                                    "delivery": {
+                                        "id": "uuid",
+                                        "status": "DELIVERED",
+                                        "notes": "Left at door",
+                                        "deliveryPhoto": "/uploads/1695700000000.jpg",
+                                        "distanceKm": 5.4,
+                                        "earnings": 54
+                                    },
+                                    "order": {
+                                        "id": "uuid",
+                                        "status": "DELIVERED"
+                                    }
                                 }
                             }
                         }
                     },
                     "404": {
-                        "description": "Order not found",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        }
+                        "description": "Delivery assignment not found"
                     }
                 }
             }
@@ -2653,12 +2861,63 @@
                 }
             }
         },
-        "/api/partner/status": {
+        "/api/partner/attendance": {
+            "post": {
+                "tags": [
+                    "Partner Attendance"
+                ],
+                "summary": "Mark partner attendance",
+                "description": "Mark attendance with photo. Default status will be ONLINE",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "partnerId": {
+                                        "type": "string",
+                                        "example": "c9a3eabc-1234-4567-89ab-cdef98765432"
+                                    },
+                                    "attendancePhoto": {
+                                        "type": "string",
+                                        "format": "binary"
+                                    }
+                                },
+                                "required": [
+                                    "partnerId"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Attendance marked successfully"
+                    },
+                    "400": {
+                        "description": "Invalid input"
+                    }
+                }
+            }
+        },
+        "/api/partner/attendance/{partnerId}/status": {
             "put": {
                 "tags": [
-                    "Partner"
+                    "Partner Attendance"
                 ],
-                "summary": "Update Partner Status",
+                "summary": "Update partner attendance status",
+                "description": "Update status to ONLINE or OFFLINE",
+                "parameters": [
+                    {
+                        "name": "partnerId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -2666,22 +2925,16 @@
                             "schema": {
                                 "type": "object",
                                 "properties": {
-                                    "partnerId": {
-                                        "type": "string"
-                                    },
                                     "status": {
                                         "type": "string",
                                         "enum": [
-                                            "online",
-                                            "offline"
-                                        ]
-                                    },
-                                    "fcmToken": {
-                                        "type": "string"
+                                            "ONLINE",
+                                            "OFFLINE"
+                                        ],
+                                        "example": "OFFLINE"
                                     }
                                 },
                                 "required": [
-                                    "partnerId",
                                     "status"
                                 ]
                             }
@@ -2690,183 +2943,21 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Status updated"
+                        "description": "Status updated successfully"
+                    },
+                    "400": {
+                        "description": "Invalid status"
                     }
                 }
             }
         },
-        "/api/partner/assign": {
-            "post": {
-                "tags": [
-                    "Partner"
-                ],
-                "summary": "Assign order to Partner",
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "partnerId": {
-                                        "type": "string"
-                                    },
-                                    "orderId": {
-                                        "type": "string"
-                                    }
-                                },
-                                "required": [
-                                    "partnerId",
-                                    "orderId"
-                                ]
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Order assigned & notification sent"
-                    }
-                }
-            }
-        },
-        "/api/partner/reject": {
-            "post": {
-                "tags": [
-                    "Partner"
-                ],
-                "summary": "Reject an order",
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "partnerId": {
-                                        "type": "string"
-                                    },
-                                    "orderId": {
-                                        "type": "string"
-                                    },
-                                    "reason": {
-                                        "type": "string",
-                                        "description": "Reason for rejection"
-                                    }
-                                },
-                                "required": [
-                                    "partnerId",
-                                    "orderId"
-                                ]
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Order rejected"
-                    }
-                }
-            }
-        },
-        "/api/partner/pickup/{id}": {
-            "put": {
-                "tags": [
-                    "Partner"
-                ],
-                "summary": "Mark order as picked up with location",
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "latitude": {
-                                        "type": "number",
-                                        "format": "double"
-                                    },
-                                    "longitude": {
-                                        "type": "number",
-                                        "format": "double"
-                                    }
-                                },
-                                "required": [
-                                    "latitude",
-                                    "longitude"
-                                ]
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Order picked up with location"
-                    }
-                }
-            }
-        },
-        "/api/partner/deliver/{id}": {
-            "put": {
-                "tags": [
-                    "Partner"
-                ],
-                "summary": "Mark order as delivered",
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "multipart/form-data": {
-                            "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "photo": {
-                                        "type": "string",
-                                        "format": "binary"
-                                    },
-                                    "amount": {
-                                        "type": "number"
-                                    }
-                                },
-                                "required": [
-                                    "amount"
-                                ]
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Order delivered & earnings updated"
-                    }
-                }
-            }
-        },
-        "/api/partner/earnings": {
+        "/api/partner/attendance/earnings": {
             "get": {
                 "tags": [
-                    "Partner"
+                    "Partner Attendance"
                 ],
-                "summary": "Fetch Partner Earnings",
+                "summary": "Get earnings for a partner",
+                "description": "Fetch partner earnings for today, week, month, or lastMonth",
                 "parameters": [
                     {
                         "name": "partnerId",
@@ -2888,7 +2979,8 @@
                                 "month",
                                 "lastMonth"
                             ]
-                        }
+                        },
+                        "example": "today"
                     }
                 ],
                 "responses": {
@@ -2897,52 +2989,6 @@
                     },
                     "400": {
                         "description": "Invalid type"
-                    },
-                    "500": {
-                        "description": "Server error"
-                    }
-                }
-            }
-        },
-        "/api/partner/attendance": {
-            "put": {
-                "tags": [
-                    "Partner"
-                ],
-                "summary": "Upload Partner Attendance with Photo",
-                "description": "Upload attendance photo for a partner (check-in).",
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "multipart/form-data": {
-                            "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "partnerId": {
-                                        "type": "string"
-                                    },
-                                    "photo": {
-                                        "type": "string",
-                                        "format": "binary"
-                                    }
-                                },
-                                "required": [
-                                    "partnerId",
-                                    "photo"
-                                ]
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Attendance uploaded successfully"
-                    },
-                    "400": {
-                        "description": "Bad request (missing photo or partnerId)"
-                    },
-                    "500": {
-                        "description": "Server error"
                     }
                 }
             }
@@ -3707,6 +3753,1033 @@
                                 }
                             }
                         }
+                    }
+                }
+            }
+        },
+        "/api/admin/login": {
+            "post": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Admin login with email and password",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "email": {
+                                        "type": "string",
+                                        "example": "admin@example.com"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "example": "admin123"
+                                    }
+                                },
+                                "required": [
+                                    "email",
+                                    "password"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Login successful",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Login successful"
+                                        },
+                                        "adminId": {
+                                            "type": "integer",
+                                            "example": 1
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Invalid email or password",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "type": "string",
+                                            "example": "Invalid email or password"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "type": "string",
+                                            "example": "Internal server error"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/restaurant/status": {
+            "post": {
+                "tags": [
+                    "Restaurants Flow"
+                ],
+                "summary": "Set or update restaurant status",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "rest_id": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "description": "Unique identifier for the restaurant"
+                                    },
+                                    "status": {
+                                        "type": "string",
+                                        "enum": [
+                                            "ONLINE",
+                                            "OFFLINE"
+                                        ],
+                                        "description": "Current status of the restaurant"
+                                    },
+                                    "reason": {
+                                        "type": "string",
+                                        "description": "Reason for the current status"
+                                    }
+                                },
+                                "required": [
+                                    "restaurantId",
+                                    "status"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Restaurant status updated successfully"
+                    },
+                    "201": {
+                        "description": "Restaurant status set successfully"
+                    },
+                    "400": {
+                        "description": "Bad request due to missing parameters"
+                    },
+                    "500": {
+                        "description": "Internal server error"
+                    }
+                }
+            }
+        },
+        "/api/order/details/{orderId}": {
+            "get": {
+                "tags": [
+                    "Restaurants Flow"
+                ],
+                "summary": "Get detailed order information",
+                "parameters": [
+                    {
+                        "name": "orderId",
+                        "in": "path",
+                        "required": true,
+                        "description": "Unique identifier for the order",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Order details retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "orderId": {
+                                            "type": "integer",
+                                            "description": "Unique identifier for the order"
+                                        },
+                                        "customer": {
+                                            "type": "object",
+                                            "properties": {
+                                                "name": {
+                                                    "type": "string",
+                                                    "description": "Name of the customer"
+                                                },
+                                                "address": {
+                                                    "type": "string",
+                                                    "description": "Address of the customer"
+                                                },
+                                                "phone": {
+                                                    "type": "string",
+                                                    "description": "Phone number of the customer"
+                                                }
+                                            }
+                                        },
+                                        "items": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string",
+                                                        "description": "Name of the item"
+                                                    },
+                                                    "quantity": {
+                                                        "type": "integer",
+                                                        "description": "Quantity of the item"
+                                                    },
+                                                    "price": {
+                                                        "type": "number",
+                                                        "format": "float",
+                                                        "description": "Price of the item"
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "partner": {
+                                            "type": "object",
+                                            "properties": {
+                                                "name": {
+                                                    "type": "string",
+                                                    "description": "Name of the delivery partner"
+                                                },
+                                                "contact": {
+                                                    "type": "string",
+                                                    "description": "Contact information of the delivery partner"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Order not found"
+                    },
+                    "500": {
+                        "description": "Internal server error"
+                    }
+                }
+            }
+        },
+        "/api/admin/customers": {
+            "get": {
+                "tags": [
+                    "Admin - Customers"
+                ],
+                "summary": "Get all customers with pagination and search",
+                "description": "Retrieve a paginated list of customers with search functionality",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Page number",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 1,
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "description": "Number of customers per page",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 10,
+                            "minimum": 1,
+                            "maximum": 100
+                        }
+                    },
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "description": "Search by name, email, or mobile number",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Customers fetched successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Customers fetched successfully"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "customers": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "$ref": "#/components/schemas/CustomerListItem"
+                                                    }
+                                                },
+                                                "pagination": {
+                                                    "$ref": "#/components/schemas/Pagination"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/customers/{id}": {
+            "get": {
+                "tags": [
+                    "Admin - Customers"
+                ],
+                "summary": "Get single customer details",
+                "description": "Retrieve complete details of a specific customer",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Customer ID (UUID)",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Customer details fetched successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Customer details fetched successfully"
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/CustomerDetails"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Customer not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/customers/stats": {
+            "get": {
+                "tags": [
+                    "Admin - Customers"
+                ],
+                "summary": "Get customer statistics",
+                "description": "Retrieve statistics for admin dashboard",
+                "responses": {
+                    "200": {
+                        "description": "Statistics fetched successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Customer statistics fetched successfully"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "totalCustomers": {
+                                                    "type": "integer",
+                                                    "example": 1250
+                                                },
+                                                "activeCustomers": {
+                                                    "type": "integer",
+                                                    "example": 1200
+                                                },
+                                                "blockedCustomers": {
+                                                    "type": "integer",
+                                                    "example": 50
+                                                },
+                                                "newCustomersThisMonth": {
+                                                    "type": "integer",
+                                                    "example": 85
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/customers/{id}/status": {
+            "put": {
+                "tags": [
+                    "Admin - Customers"
+                ],
+                "summary": "Block or unblock a customer",
+                "description": "Update customer status to active or blocked",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Customer ID (UUID)",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "status"
+                                ],
+                                "properties": {
+                                    "status": {
+                                        "type": "string",
+                                        "enum": [
+                                            "active",
+                                            "blocked"
+                                        ],
+                                        "example": "blocked"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Customer status updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Customer blocked successfully"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "string",
+                                                    "format": "uuid"
+                                                },
+                                                "status": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "active",
+                                                        "blocked"
+                                                    ]
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid status value",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Customer not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/restaurants": {
+            "get": {
+                "tags": [
+                    "Admin - Restaurants"
+                ],
+                "summary": "Get all restaurants with filters and pagination",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 10
+                        }
+                    },
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "active",
+                                "pending",
+                                "blocked",
+                                "inactive"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "cuisineType",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "city",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Restaurants fetched successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "restaurants": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "string"
+                                                            },
+                                                            "rest_name": {
+                                                                "type": "string"
+                                                            },
+                                                            "contact_email": {
+                                                                "type": "string"
+                                                            },
+                                                            "contact_number": {
+                                                                "type": "string"
+                                                            },
+                                                            "cuisine_type": {
+                                                                "type": "string"
+                                                            },
+                                                            "rest_address": {
+                                                                "type": "string"
+                                                            },
+                                                            "status": {
+                                                                "type": "string"
+                                                            },
+                                                            "createdAt": {
+                                                                "type": "string",
+                                                                "format": "date-time"
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "pagination": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "totalRestaurants": {
+                                                            "type": "integer"
+                                                        },
+                                                        "currentPage": {
+                                                            "type": "integer"
+                                                        },
+                                                        "totalPages": {
+                                                            "type": "integer"
+                                                        },
+                                                        "limit": {
+                                                            "type": "integer"
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/restaurants/{id}": {
+            "get": {
+                "tags": [
+                    "Admin - Restaurants"
+                ],
+                "summary": "Get single restaurant details",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Restaurant details fetched successfully"
+                    },
+                    "404": {
+                        "description": "Restaurant not found"
+                    }
+                }
+            }
+        },
+        "/api/admin/restaurants/stats": {
+            "get": {
+                "tags": [
+                    "Admin - Restaurants"
+                ],
+                "summary": "Get restaurant statistics",
+                "responses": {
+                    "200": {
+                        "description": "Statistics fetched successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "totalRestaurants": {
+                                                    "type": "integer"
+                                                },
+                                                "activeRestaurants": {
+                                                    "type": "integer"
+                                                },
+                                                "pendingApproval": {
+                                                    "type": "integer"
+                                                },
+                                                "blockedRestaurants": {
+                                                    "type": "integer"
+                                                },
+                                                "inactiveRestaurants": {
+                                                    "type": "integer"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/restaurants/cuisines": {
+            "get": {
+                "tags": [
+                    "Admin - Restaurants"
+                ],
+                "summary": "Get unique cuisine types for filter",
+                "responses": {
+                    "200": {
+                        "description": "Cuisine types fetched successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/restaurants/{id}/status": {
+            "put": {
+                "tags": [
+                    "Admin - Restaurants"
+                ],
+                "summary": "Update restaurant status (Approve/Block/Unblock)",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "status"
+                                ],
+                                "properties": {
+                                    "status": {
+                                        "type": "string",
+                                        "enum": [
+                                            "active",
+                                            "pending",
+                                            "blocked",
+                                            "inactive"
+                                        ],
+                                        "example": "active"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Restaurant status updated successfully"
+                    },
+                    "400": {
+                        "description": "Invalid status"
+                    },
+                    "404": {
+                        "description": "Restaurant not found"
+                    }
+                }
+            }
+        },
+        "/api/admin/delivery-partners": {
+            "get": {
+                "tags": [
+                    "Admin - Delivery Partners"
+                ],
+                "summary": "Get all delivery partners with filters and pagination",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 10
+                        }
+                    },
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "pending",
+                                "active",
+                                "on-duty",
+                                "inactive",
+                                "blocked"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "vehicleType",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Partners fetched successfully"
+                    }
+                }
+            }
+        },
+        "/api/admin/delivery-partners/{id}": {
+            "get": {
+                "tags": [
+                    "Admin - Delivery Partners"
+                ],
+                "summary": "Get single delivery partner details",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Partner details fetched successfully"
+                    },
+                    "404": {
+                        "description": "Partner not found"
+                    }
+                }
+            }
+        },
+        "/api/admin/delivery-partners/stats": {
+            "get": {
+                "tags": [
+                    "Admin - Delivery Partners"
+                ],
+                "summary": "Get delivery partner statistics",
+                "responses": {
+                    "200": {
+                        "description": "Statistics fetched successfully"
+                    }
+                }
+            }
+        },
+        "/api/admin/delivery-partners/vehicles": {
+            "get": {
+                "tags": [
+                    "Admin - Delivery Partners"
+                ],
+                "summary": "Get unique vehicle types for filter",
+                "responses": {
+                    "200": {
+                        "description": "Vehicle types fetched successfully"
+                    }
+                }
+            }
+        },
+        "/api/admin/delivery-partners/{id}/status": {
+            "put": {
+                "tags": [
+                    "Admin - Delivery Partners"
+                ],
+                "summary": "Update partner status",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "status"
+                                ],
+                                "properties": {
+                                    "status": {
+                                        "type": "string",
+                                        "enum": [
+                                            "pending",
+                                            "active",
+                                            "on-duty",
+                                            "inactive",
+                                            "blocked"
+                                        ],
+                                        "example": "active"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Status updated successfully"
+                    },
+                    "400": {
+                        "description": "Invalid status"
+                    },
+                    "404": {
+                        "description": "Partner not found"
                     }
                 }
             }
@@ -4629,6 +5702,262 @@
                         "format": "date-time"
                     }
                 }
+            },
+            "CustomerListItem": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Jane Smith"
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "example": "jane.smith@example.com"
+                    },
+                    "mobile": {
+                        "type": "string",
+                        "example": "+91 98765 43210"
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "active",
+                            "blocked"
+                        ],
+                        "example": "active"
+                    },
+                    "memberSince": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "totalOrders": {
+                        "type": "integer",
+                        "example": 17
+                    },
+                    "totalSpent": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 24850
+                    },
+                    "lastOrderDate": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                }
+            },
+            "CustomerDetails": {
+                "type": "object",
+                "properties": {
+                    "personalInfo": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            "name": {
+                                "type": "string",
+                                "example": "Jane Smith"
+                            },
+                            "email": {
+                                "type": "string",
+                                "format": "email",
+                                "example": "jane.smith@example.com"
+                            },
+                            "mobile": {
+                                "type": "string",
+                                "example": "+91 98765 43210"
+                            },
+                            "birthday": {
+                                "type": "string",
+                                "format": "date",
+                                "example": "1988-04-12"
+                            },
+                            "anniversary": {
+                                "type": "string",
+                                "format": "date",
+                                "example": "2020-06-20"
+                            },
+                            "status": {
+                                "type": "string",
+                                "enum": [
+                                    "active",
+                                    "blocked"
+                                ],
+                                "example": "active"
+                            },
+                            "memberSince": {
+                                "type": "string",
+                                "format": "date-time"
+                            }
+                        }
+                    },
+                    "accountActivity": {
+                        "type": "object",
+                        "properties": {
+                            "orderSummary": {
+                                "type": "object",
+                                "properties": {
+                                    "totalOrders": {
+                                        "type": "integer",
+                                        "example": 17
+                                    },
+                                    "totalSpent": {
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 24850
+                                    },
+                                    "lastOrderDate": {
+                                        "type": "string",
+                                        "format": "date-time"
+                                    }
+                                }
+                            },
+                            "recentOrders": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "orderId": {
+                                            "type": "string",
+                                            "example": "ORD-7892"
+                                        },
+                                        "amount": {
+                                            "type": "number",
+                                            "format": "float",
+                                            "example": 2450
+                                        },
+                                        "status": {
+                                            "type": "string",
+                                            "enum": [
+                                                "PENDING",
+                                                "CONFIRMED",
+                                                "PREPARING",
+                                                "OUT_FOR_DELIVERY",
+                                                "DELIVERED",
+                                                "CANCELLED"
+                                            ],
+                                            "example": "DELIVERED"
+                                        },
+                                        "date": {
+                                            "type": "string",
+                                            "format": "date-time"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "reviewsAndFeedback": {
+                        "type": "object",
+                        "properties": {
+                            "averageRating": {
+                                "type": "number",
+                                "format": "float",
+                                "example": 4.8,
+                                "minimum": 0,
+                                "maximum": 5
+                            },
+                            "totalReviews": {
+                                "type": "integer",
+                                "example": 5
+                            },
+                            "recentReviews": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "rating": {
+                                            "type": "integer",
+                                            "minimum": 1,
+                                            "maximum": 5,
+                                            "example": 5
+                                        },
+                                        "comment": {
+                                            "type": "string",
+                                            "example": "The food was excellent and delivery was prompt. Will order again!"
+                                        },
+                                        "restaurantName": {
+                                            "type": "string",
+                                            "example": "Pizza Palace"
+                                        },
+                                        "date": {
+                                            "type": "string",
+                                            "format": "date-time"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "savedAddresses": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "id": {
+                                    "type": "string",
+                                    "format": "uuid"
+                                },
+                                "type": {
+                                    "type": "string",
+                                    "example": "Home (Default)"
+                                },
+                                "fullAddress": {
+                                    "type": "string",
+                                    "example": "Flat 123, ABC Apartments, Sector 4, City, State - 123456"
+                                },
+                                "isDefault": {
+                                    "type": "boolean",
+                                    "example": true
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "Pagination": {
+                "type": "object",
+                "properties": {
+                    "totalCustomers": {
+                        "type": "integer",
+                        "example": 143
+                    },
+                    "currentPage": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "totalPages": {
+                        "type": "integer",
+                        "example": 15
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "example": 10
+                    }
+                }
+            },
+            "Error": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Error message"
+                    },
+                    "error": {
+                        "type": "string",
+                        "example": "Detailed error information"
+                    }
+                }
             }
         }
     },
@@ -4654,10 +5983,6 @@
             "description": "Cart management"
         },
         {
-            "name": "Orders",
-            "description": "Checkout and order management"
-        },
-        {
             "name": "Delivery Partner",
             "description": "Partner registration & CRUD operations"
         },
@@ -4672,6 +5997,22 @@
         {
             "name": "Offers",
             "description": "Create and manage restaurant offers/discounts"
+        },
+        {
+            "name": "Orderflow",
+            "description": "Endpoints related to the complete order flow"
+        },
+        {
+            "name": "Admin - Customers",
+            "description": "Customer management endpoints"
+        },
+        {
+            "name": "Admin - Restaurants",
+            "description": "Restaurant management endpoints"
+        },
+        {
+            "name": "Admin - Delivery Partners",
+            "description": "Delivery partner management endpoints"
         }
     ]
 }

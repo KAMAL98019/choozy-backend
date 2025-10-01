@@ -70,7 +70,19 @@ module.exports = (sequelize, DataTypes) => {
     accountNumber: DataTypes.STRING,
     ifsc: DataTypes.STRING,
     idProofFile: DataTypes.STRING,
+
+    status: {
+      type: DataTypes.ENUM("pending", "active", "on-duty", "inactive", "blocked"),
+      allowNull: false,
+      defaultValue: "active"
+    }
+
   });
+
+  // ✅ Add association here
+  Partner.associate = (models) => {
+    Partner.hasMany(models.Order, { foreignKey: "partnerId", as: "orders" });
+  };
 
   return Partner;
 };

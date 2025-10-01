@@ -34,6 +34,11 @@ module.exports = {
       accountNumber: { type: Sequelize.STRING },
       ifsc: { type: Sequelize.STRING },
       idProofFile: { type: Sequelize.STRING },
+      status: {
+        type: Sequelize.ENUM("pending", "active", "on-duty", "inactive", "blocked"),
+        allowNull: false,
+        defaultValue: "active"
+      },
       createdAt: {
         allowNull: false,
         type: Sequelize.DATE,

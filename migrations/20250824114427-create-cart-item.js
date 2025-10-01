@@ -15,6 +15,10 @@ module.exports = {
       foodId: {
         type: Sequelize.UUID
       },
+      orderId: {
+        type: Sequelize.UUID
+      },
+      
       quantity: {
         type: Sequelize.INTEGER
       },

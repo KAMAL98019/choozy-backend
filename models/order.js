@@ -7,52 +7,63 @@ module.exports = (sequelize, DataTypes) => {
       Order.hasMany(models.OrderItem, { foreignKey: 'orderId', as: 'items' });
       Order.belongsTo(models.User, { foreignKey: 'userId', as: 'user' });
       Order.belongsTo(models.Cart, { foreignKey: 'cartId', as: 'cart' });
+      Order.hasOne(models.DeliveryOrder, { foreignKey: 'orderId', as: 'delivery_order' });
+      Order.belongsTo(models.Partner, { foreignKey: 'partnerId', as: 'partner' });
+
+     
+     
     }
   }
 
-  Order.init(
-    {
-      id: {
-        type: DataTypes.UUID,
-        defaultValue: DataTypes.UUIDV4,
-        primaryKey: true
-      },
-      userId: {
-        type: DataTypes.UUID,
-        allowNull: false
-      },
-      cartId: {
-        type: DataTypes.UUID,
-        allowNull: false
-      },
-      address: { 
-        type: DataTypes.STRING, 
-        allowNull: false 
-      },
-      paymentMethod: { 
-        type: DataTypes.ENUM('CASH', 'CARD', 'UPI'), 
-        allowNull: false 
-      },
-
-
-      subtotal: DataTypes.FLOAT,
-      tax: DataTypes.FLOAT,
-      deliveryFee: DataTypes.FLOAT,
-      totalAmount: DataTypes.FLOAT,
-      status: {
-        type: DataTypes.ENUM(
-          'PENDING',
-          'CONFIRMED',
-          'PREPARING',
-          'OUT_FOR_DELIVERY',
-          'DELIVERED',
-          'CANCELLED'
-        ),
-        defaultValue: 'PENDING'
-      }
+ Order.init(
+  {
+    id: {
+      type: DataTypes.UUID,
+      defaultValue: DataTypes.UUIDV4,
+      primaryKey: true
     },
-    { sequelize, modelName: 'Order' }
-  );
+    userId: {
+      type: DataTypes.UUID,
+      allowNull: false
+    },
+    cartId: {
+      type: DataTypes.UUID,
+      allowNull: false
+    },
+    partnerId: {                     // 👈 added
+      type: DataTypes.UUID,
+      allowNull: true
+    },
+    address: { 
+      type: DataTypes.STRING, 
+      allowNull: false 
+    },
+    paymentMethod: { 
+      type: DataTypes.ENUM('CASH', 'CARD', 'UPI'), 
+      allowNull: false 
+    },
+    subtotal: DataTypes.FLOAT,
+    tax: DataTypes.FLOAT,
+    deliveryFee: DataTypes.FLOAT,
+    totalAmount: DataTypes.FLOAT,
+    status: {
+      type: DataTypes.ENUM(
+        'PENDING',
+        'CONFIRMED',
+        'PREPARING',
+        'OUT_FOR_DELIVERY',
+        'DELIVERED',
+        'CANCELLED'
+      ),
+      defaultValue: 'PENDING'
+    }
+  },
+  { 
+    sequelize, 
+    modelName: 'Order',
+    tableName: 'orders',
+  }
+);
 
   return Order;
 };

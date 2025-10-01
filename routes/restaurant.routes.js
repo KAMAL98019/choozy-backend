@@ -9,8 +9,12 @@ router.get('/:id', ctrl.getById);
 router.put('/:id', ctrl.update);
 router.delete('/:id', ctrl.remove);
 
+
 router.post("/login", ctrl.login);
 router.post("/reset-password", ctrl.resetPassword);
+
+
+
 
 
 module.exports = router;

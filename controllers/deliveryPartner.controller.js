@@ -96,19 +96,71 @@ exports.remove = async (req, res) => {
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
-    if (!email || !password) return res.status(400).json({ success: false, message: "Email and password are required" });
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and password are required"
+      });
+    }
 
+    // Find partner by email
     const partner = await Partner.findOne({ where: { email } });
-    if (!partner) return res.status(404).json({ success: false, message: "User not found" });
+    if (!partner) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found"
+      });
+    }
 
+    // Check status (only 'active' and maybe 'on-duty' allowed)
+    if (partner.status === "blocked") {
+      return res.status(403).json({
+        success: false,
+        message: "Your account is blocked. Contact support."
+      });
+    }
+
+    if (partner.status === "pending") {
+      return res.status(403).json({
+        success: false,
+        message: "Your account is pending approval."
+      });
+    }
+
+    if (partner.status === "inactive") {
+      return res.status(403).json({
+        success: false,
+        message: "Your account is inactive. Contact support."
+      });
+    }
+
+    // Password check
     const match = await bcrypt.compare(password, partner.password);
-    if (!match) return res.status(401).json({ success: false, message: "Invalid credentials" });
+    if (!match) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid credentials"
+      });
+    }
 
-    res.json({ success: true, message: "Login successful", partner });
+    // Remove password before sending response
+    const partnerData = partner.toJSON();
+    delete partnerData.password;
+
+    res.json({
+      success: true,
+      message: "Login successful",
+      partner: partnerData
+    });
+
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    res.status(500).json({
+      success: false,
+      error: err.message
+    });
   }
 };
+
 
 // ------------------- Forgot Password -------------------
 exports.forgotPassword = async (req, res) => {
@@ -127,3 +179,5 @@ exports.forgotPassword = async (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 };
+
+

@@ -160,24 +160,34 @@ exports.login = async (req, res) => {
   try {
     const { contact_email, password } = req.body;
 
-    const restaurant = await RestaurantReg.findOne({ where: {contact_email } });
+    const restaurant = await RestaurantReg.findOne({ where: { contact_email } });
     if (!restaurant) {
       return res.status(404).json({ error: "Email not found" });
+    }
+
+    // Check if status is blocked or pending
+    if (restaurant.status === "blocked") {
+      return res.status(403).json({ error: "Your account is blocked. Please contact support." });
+    }
+    if (restaurant.status === "pending") {
+      return res.status(403).json({ error: "Your account is still pending approval by admin." });
     }
 
     const isMatch = await bcrypt.compare(password, restaurant.password);
     if (!isMatch) {
       return res.status(400).json({ error: "Invalid password" });
     }
+
     const restaurantData = restaurant.toJSON();
     delete restaurantData.password;
 
-    res.json({ message: "Login successful",  data: restaurantData });
+    res.json({ message: "Login successful", data: restaurantData });
   } catch (e) {
     console.error("Login Error:", e);
     res.status(500).json({ error: "Login failed" });
   }
 };
+
 
 exports.resetPassword = async (req, res) => {
   try {
@@ -198,3 +208,6 @@ exports.resetPassword = async (req, res) => {
     res.status(500).json({ error: "Password reset failed" });
   }
 };
+
+
+

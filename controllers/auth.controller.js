@@ -125,8 +125,9 @@ exports.verifyOtp = async (req, res) => {
 exports.loginWithEmailPassword = async (req, res) => {
   try {
     const { email, password } = req.body;
-    if (!email || !password)
+    if (!email || !password) {
       return res.status(400).json({ error: "email and password required" });
+    }
 
     const user = await User.findOne({ where: { email } });
     if (!user) {
@@ -136,6 +137,11 @@ exports.loginWithEmailPassword = async (req, res) => {
     const match = await bcrypt.compare(password, user.password || "");
     if (!match) {
       return res.status(400).json({ error: "Invalid email or password" });
+    }
+
+    // ✅ check status
+    if (user.status !== "active") {
+      return res.status(403).json({ error: "Your account is not active. Please contact support." });
     }
 
     return res.json({
@@ -149,6 +155,7 @@ exports.loginWithEmailPassword = async (req, res) => {
     return res.status(500).json({ error: "Login failed" });
   }
 };
+
 
 // ====================
 // Create account after OTP verified
