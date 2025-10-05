@@ -376,3 +376,199 @@ exports.getVehicleTypes = async (req, res) => {
     });
   }
 };
+
+/**
+ * Get partner attendance log with filters
+ */
+exports.getPartnerAttendance = async (req, res) => {
+  try {
+    const { partnerId } = req.params;
+    const { period = 'this-month', startDate, endDate } = req.query;
+
+    // Check if partner exists
+    const partner = await Partner.findByPk(partnerId);
+    if (!partner) {
+      return res.status(404).json({
+        success: false,
+        message: 'Partner not found'
+      });
+    }
+
+    // Calculate date range based on period
+    let dateRange = {};
+    const now = new Date();
+
+    if (period === 'this-month') {
+      dateRange = {
+        [Op.gte]: new Date(now.getFullYear(), now.getMonth(), 1),
+        [Op.lt]: new Date(now.getFullYear(), now.getMonth() + 1, 1)
+      };
+    } else if (period === 'last-month') {
+      dateRange = {
+        [Op.gte]: new Date(now.getFullYear(), now.getMonth() - 1, 1),
+        [Op.lt]: new Date(now.getFullYear(), now.getMonth(), 1)
+      };
+    } else if (period === 'last-quarter') {
+      const quarterStartMonth = Math.floor(now.getMonth() / 3) * 3 - 3;
+      dateRange = {
+        [Op.gte]: new Date(now.getFullYear(), quarterStartMonth, 1),
+        [Op.lt]: new Date(now.getFullYear(), quarterStartMonth + 3, 1)
+      };
+    } else if (period === 'custom' && startDate && endDate) {
+      dateRange = {
+        [Op.gte]: new Date(startDate),
+        [Op.lte]: new Date(endDate)
+      };
+    }
+
+    // Get attendance records
+    const attendanceRecords = await PartnerAttendance.findAll({
+      where: {
+        partnerId,
+        attendanceTime: dateRange
+      },
+      order: [['attendanceTime', 'DESC']],
+      attributes: ['id', 'attendancePhoto', 'status', 'attendanceTime', 'createdAt', 'updatedAt']
+    });
+
+    // Group by date and calculate check-in/check-out
+    const attendanceByDate = {};
+    
+    attendanceRecords.forEach(record => {
+      const date = new Date(record.attendanceTime).toISOString().split('T')[0];
+      
+      if (!attendanceByDate[date]) {
+        attendanceByDate[date] = {
+          date,
+          checkIn: null,
+          checkOut: null,
+          workType: null,
+          photo: null,
+          status: 'absent'
+        };
+      }
+
+      // First record of day is check-in
+      if (!attendanceByDate[date].checkIn) {
+        attendanceByDate[date].checkIn = record.attendanceTime;
+        attendanceByDate[date].photo = record.attendancePhoto;
+        attendanceByDate[date].status = 'present';
+      }
+      // Last record of day is check-out
+      attendanceByDate[date].checkOut = record.attendanceTime;
+    });
+
+    // Convert to array and sort by date
+    const attendanceList = Object.values(attendanceByDate).sort((a, b) => 
+      new Date(b.date) - new Date(a.date)
+    );
+
+    // Calculate statistics
+    const totalDaysPresent = attendanceList.filter(a => a.status === 'present').length;
+    const totalDaysAbsent = attendanceList.filter(a => a.status === 'absent').length;
+    
+    // Calculate late check-ins (after 10:30 AM)
+    const lateCheckIns = attendanceList.filter(a => {
+      if (!a.checkIn) return false;
+      const checkInTime = new Date(a.checkIn);
+      const hours = checkInTime.getHours();
+      const minutes = checkInTime.getMinutes();
+      return hours > 10 || (hours === 10 && minutes > 30);
+    }).length;
+
+    res.status(200).json({
+      success: true,
+      message: 'Attendance log fetched successfully',
+      data: {
+        partner: {
+          id: partner.id,
+          name: partner.fullName
+        },
+        summary: {
+          totalDaysPresent,
+          totalDaysAbsent,
+          lateCheckIns
+        },
+        attendance: attendanceList
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching attendance log:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch attendance log',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Download attendance report (CSV format)
+ */
+exports.downloadAttendanceReport = async (req, res) => {
+  try {
+    const { partnerId } = req.params;
+    const { startDate, endDate } = req.query;
+
+    const partner = await Partner.findByPk(partnerId);
+    if (!partner) {
+      return res.status(404).json({
+        success: false,
+        message: 'Partner not found'
+      });
+    }
+
+    const dateRange = {
+      [Op.gte]: new Date(startDate),
+      [Op.lte]: new Date(endDate)
+    };
+
+    const attendanceRecords = await PartnerAttendance.findAll({
+      where: {
+        partnerId,
+        attendanceTime: dateRange
+      },
+      order: [['attendanceTime', 'ASC']],
+      attributes: ['attendanceTime', 'status']
+    });
+
+    // Generate CSV
+    const csvHeader = 'Date,Day,Check-In Time,Check-Out Time,Status\n';
+    const csvRows = [];
+
+    const attendanceByDate = {};
+    attendanceRecords.forEach(record => {
+      const date = new Date(record.attendanceTime).toISOString().split('T')[0];
+      if (!attendanceByDate[date]) {
+        attendanceByDate[date] = { checkIn: null, checkOut: null };
+      }
+      if (!attendanceByDate[date].checkIn) {
+        attendanceByDate[date].checkIn = record.attendanceTime;
+      }
+      attendanceByDate[date].checkOut = record.attendanceTime;
+    });
+
+    Object.entries(attendanceByDate).forEach(([date, times]) => {
+      const dateObj = new Date(date);
+      const day = dateObj.toLocaleDateString('en-US', { weekday: 'long' });
+      const checkIn = times.checkIn ? new Date(times.checkIn).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : 'N/A';
+      const checkOut = times.checkOut ? new Date(times.checkOut).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : 'N/A';
+      const status = times.checkIn ? 'Present' : 'Absent';
+      
+      csvRows.push(`${date},${day},${checkIn},${checkOut},${status}`);
+    });
+
+    const csvContent = csvHeader + csvRows.join('\n');
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename=attendance_${partner.fullName}_${startDate}_${endDate}.csv`);
+    res.status(200).send(csvContent);
+  } catch (error) {
+    console.error('Error downloading attendance report:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to download attendance report',
+      error: error.message
+    });
+  }
+};

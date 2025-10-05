@@ -13,24 +13,26 @@ exports.create = async (req, res) => {
       id: uuidv4(),
       rest_name: req.body.rest_name,
       rest_address: req.body.rest_address,
-      cuisine_type: req.body.cuisine_type,
       avg_cost_two: Number(req.body.avg_cost_two) || 0,
       rest_logo: req.body.rest_logo,
       contact_person_name: req.body.contact_person_name,
       contact_email: req.body.contact_email,
-      password:hashedPassword,
+      password: hashedPassword,
       contact_number: req.body.contact_number,
       operational_hours: JSON.stringify(req.body.operational_hours || []), // ✅ stringify
       fssai_certificate: req.body.fssai_certificate,
       gst_certificate: req.body.gst_certificate,
       bank_account_name: req.body.bank_account_name,
-     account_number: req.body.Account_number,
+      account_number: req.body.Account_number,
       ifsc_code: req.body.ifsc_code,
       agree_to_terms: !!req.body.agree_to_terms
     };
 
-    if (!payload.rest_name || !payload.rest_address || !payload.cuisine_type || !payload.fssai_certificate) {
-      return res.status(400).json({ error: 'Missing required fields: rest_name, rest_address, cuisine_type, fssai_certificate' });
+    // Removed cuisine_type check
+    if (!payload.rest_name || !payload.rest_address || !payload.fssai_certificate) {
+      return res.status(400).json({ 
+        error: 'Missing required fields: rest_name, rest_address, fssai_certificate' 
+      });
     }
 
     const row = await RestaurantReg.create(payload);
@@ -47,7 +49,6 @@ exports.list = async (req, res) => {
   try {
     const {
       q,                 // full-text-ish search
-      cuisine,           // exact/like on cuisine_type
       minCost, maxCost,  // avg_cost_two range
       page = 1,
       pageSize = 20
@@ -58,13 +59,8 @@ exports.list = async (req, res) => {
     if (q) {
       where[Op.or] = [
         { rest_name: { [Op.like]: `%${q}%` } },
-        { rest_address: { [Op.like]: `%${q}%` } },
-        { cuisine_type: { [Op.like]: `%${q}%` } }
+        { rest_address: { [Op.like]: `%${q}%` } }
       ];
-    }
-
-    if (cuisine) {
-      where.cuisine_type = { [Op.like]: `%${cuisine}%` };
     }
 
     if (minCost || maxCost) {
@@ -116,23 +112,22 @@ exports.update = async (req, res) => {
     const patch = {
       rest_name: req.body.rest_name,
       rest_address: req.body.rest_address,
-      cuisine_type: req.body.cuisine_type,
       avg_cost_two: req.body.avg_cost_two,
       rest_logo: req.body.rest_logo,
       contact_person_name: req.body.contact_person_name,
       contact_email: req.body.contact_email,
-      password:req.body.password,
+      password: req.body.password,
       contact_number: req.body.contact_number,
       operational_hours: req.body.operational_hours,
       fssai_certificate: req.body.fssai_certificate,
       gst_certificate: req.body.gst_certificate,
       bank_account_name: req.body.bank_account_name,
-     account_number: req.body.Account_number,
+      account_number: req.body.Account_number,
       ifsc_code: req.body.ifsc_code,
       agree_to_terms: typeof req.body.agree_to_terms === 'boolean' ? req.body.agree_to_terms : undefined
     };
 
-    // Remove undefined to avoid overwriting with null unintentionally
+    // Remove undefined fields
     Object.keys(patch).forEach(k => patch[k] === undefined && delete patch[k]);
 
     await row.update(patch);
@@ -156,6 +151,7 @@ exports.remove = async (req, res) => {
   }
 };
 
+// Login
 exports.login = async (req, res) => {
   try {
     const { contact_email, password } = req.body;
@@ -165,7 +161,6 @@ exports.login = async (req, res) => {
       return res.status(404).json({ error: "Email not found" });
     }
 
-    // Check if status is blocked or pending
     if (restaurant.status === "blocked") {
       return res.status(403).json({ error: "Your account is blocked. Please contact support." });
     }
@@ -188,12 +183,12 @@ exports.login = async (req, res) => {
   }
 };
 
-
+// Reset Password
 exports.resetPassword = async (req, res) => {
   try {
-    const {contact_email, newPassword } = req.body;
+    const { contact_email, newPassword } = req.body;
 
-    const restaurant = await RestaurantReg.findOne({ where: {contact_email } });
+    const restaurant = await RestaurantReg.findOne({ where: { contact_email } });
     if (!restaurant) {
       return res.status(404).json({ error: "Email not found" });
     }
@@ -208,6 +203,3 @@ exports.resetPassword = async (req, res) => {
     res.status(500).json({ error: "Password reset failed" });
   }
 };
-
-
-

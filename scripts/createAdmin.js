@@ -7,7 +7,7 @@ async function createAdmin() {
     console.log('Database connected!');
 
     const email = 'example@gmail.com';
-    const plainPassword = 'example123';
+    const plainPassword = 'newpass1234';
 
     const existingAdmin = await Admin.findOne({ where: { email } });
     if (existingAdmin) {

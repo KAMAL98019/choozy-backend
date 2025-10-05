@@ -18,5 +18,12 @@ router.get('/delivery-partners/:id', deliveryPartnerController.getPartnerById);
 // Update partner status (Approve/Reject/Block/Activate)
 router.put('/delivery-partners/:id/status', deliveryPartnerController.updatePartnerStatus);
 
+// Get partner attendance log
+router.get('/delivery-partners/:partnerId/attendance', deliveryPartnerController.getPartnerAttendance);
+
+// Download attendance report
+router.get('/delivery-partners/:partnerId/attendance/download', deliveryPartnerController.downloadAttendanceReport);
+
+
 module.exports = router;
 

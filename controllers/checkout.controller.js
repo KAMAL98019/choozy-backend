@@ -1,7 +1,9 @@
-const { sequelize, Cart, CartItem, FoodItem, Order, OrderItem } = require('../models');
+const { sequelize, Cart, CartItem, FoodItem, Order, OrderItem, RestaurantReg, User } = require('../models');
+
+
 
 exports.checkout = async (req, res) => {
-  const { userId, cartId,address, paymentMethod } = req.body;
+  const { userId, cartId, rest_id, address, paymentMethod } = req.body;
 
   // Start a transaction
   const t = await sequelize.transaction();
@@ -11,10 +13,16 @@ exports.checkout = async (req, res) => {
     const cart = await Cart.findOne({
       where: { id: cartId, userId },
       include: [
-        { 
-          model: CartItem, 
-          as: 'items', 
-          include: [{ model: FoodItem, as: 'food' }] 
+        {
+          model: CartItem,
+          as: 'items',
+          include: [
+            {
+              model: FoodItem,
+              as: 'food',
+              include: [{ model: RestaurantReg, as: 'restaurant' }]
+            }
+          ]
         }
       ],
       transaction: t
@@ -43,10 +51,11 @@ exports.checkout = async (req, res) => {
     const deliveryFee = 50;
     const totalAmount = parseFloat((subtotal + tax + deliveryFee).toFixed(2));
 
-    // Create order
+    // Create order using rest_id from request body
     const order = await Order.create({
       userId,
       cartId,
+      rest_id, // from req.body
       address,
       paymentMethod,
       subtotal,
@@ -76,6 +85,10 @@ exports.checkout = async (req, res) => {
     // Clear cart
     await CartItem.destroy({ where: { cartId }, transaction: t });
 
+    // Fetch restaurant and user details for response
+    const restaurant = await RestaurantReg.findByPk(rest_id, { transaction: t });
+    const user = await User.findByPk(userId, { transaction: t });
+
     // Commit transaction
     await t.commit();
 
@@ -85,6 +98,19 @@ exports.checkout = async (req, res) => {
       order: {
         orderId: order.id,
         cartId,
+        rest_id,
+        restaurant: {
+          id: restaurant.id,
+          name: restaurant.rest_name,
+          address: restaurant.address,
+          phone: restaurant.phone
+        },
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          phone: user.mobile
+        },
         subtotal,
         tax,
         deliveryFee,

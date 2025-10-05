@@ -17,9 +17,10 @@ module.exports = (sequelize, DataTypes) => {
       // For universal compatibility, ensure value exists in hook:
       defaultValue: null
     },
+    
+
     rest_name: { type: DataTypes.STRING(255), allowNull: false },
     rest_address: { type: DataTypes.TEXT, allowNull: false },
-    cuisine_type: { type: DataTypes.STRING(255), allowNull: false },
     avg_cost_two: { type: DataTypes.DECIMAL(10, 2), allowNull: true },
     rest_logo: { type: DataTypes.TEXT, allowNull: true },
     contact_person_name: { type: DataTypes.STRING(255), allowNull: true },
@@ -37,7 +38,8 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       allowNull: false,
       defaultValue: 'active'
-    }
+    },
+    
 
   }, {
     sequelize,

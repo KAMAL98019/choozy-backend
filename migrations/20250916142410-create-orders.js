@@ -9,6 +9,11 @@ module.exports = {
         type: Sequelize.UUID,
         defaultValue: Sequelize.UUIDV4
       },
+      orderNumber: {
+        type: Sequelize.STRING,
+        unique: true,
+        allowNull: true
+      },
       userId: {
         type: Sequelize.UUID,
         allowNull: false,
@@ -23,13 +28,25 @@ module.exports = {
         onUpdate: 'CASCADE',
         onDelete: 'CASCADE'
       },
-      address: {
-        type: Sequelize.STRING,
+      partnerId: {
+        type: Sequelize.UUID,
+        allowNull: true,
+        references: { model: 'partners', key: 'id' },
+        onUpdate: 'CASCADE',
+        onDelete: 'SET NULL'
+      },
+      customerName: { type: Sequelize.STRING, allowNull: true },
+      customerPhone: { type: Sequelize.STRING, allowNull: true },
+      address: { type: Sequelize.STRING, allowNull: false },
+      latitude: { type: Sequelize.FLOAT, allowNull: true },
+      longitude: { type: Sequelize.FLOAT, allowNull: true },
+      paymentMethod: {
+        type: Sequelize.ENUM('CASH', 'CARD', 'UPI'),
         allowNull: false
       },
-      paymentMethod: {
-        type: Sequelize.STRING,
-        allowNull: false
+      paymentStatus: {
+        type: Sequelize.ENUM('PENDING', 'PAID', 'FAILED'),
+        defaultValue: 'PENDING'
       },
       subtotal: { type: Sequelize.FLOAT, allowNull: false, defaultValue: 0.0 },
       tax: { type: Sequelize.FLOAT, allowNull: false, defaultValue: 0.0 },
@@ -40,18 +57,32 @@ module.exports = {
           'PENDING',
           'CONFIRMED',
           'PREPARING',
+          'READY',
           'OUT_FOR_DELIVERY',
           'DELIVERED',
           'CANCELLED'
         ),
         defaultValue: 'PENDING'
       },
+      specialInstructions: { type: Sequelize.TEXT, allowNull: true },
+      estimatedPreparationTime: { type: Sequelize.INTEGER, allowNull: true },
+      confirmedAt: { type: Sequelize.DATE, allowNull: true },
+      preparingAt: { type: Sequelize.DATE, allowNull: true },
+      readyAt: { type: Sequelize.DATE, allowNull: true },
+      outForDeliveryAt: { type: Sequelize.DATE, allowNull: true },
+      deliveredAt: { type: Sequelize.DATE, allowNull: true },
+      cancelledAt: { type: Sequelize.DATE, allowNull: true },
+      cancellationReason: { type: Sequelize.TEXT, allowNull: true },
       createdAt: { allowNull: false, type: Sequelize.DATE, defaultValue: Sequelize.NOW },
       updatedAt: { allowNull: false, type: Sequelize.DATE, defaultValue: Sequelize.NOW }
     });
   },
 
   async down(queryInterface, Sequelize) {
+    // Drop ENUMs before dropping the table (important for Postgres)
     await queryInterface.dropTable('orders');
+    await queryInterface.sequelize.query('DROP TYPE IF EXISTS "enum_orders_paymentMethod";');
+    await queryInterface.sequelize.query('DROP TYPE IF EXISTS "enum_orders_paymentStatus";');
+    await queryInterface.sequelize.query('DROP TYPE IF EXISTS "enum_orders_status";');
   }
 };

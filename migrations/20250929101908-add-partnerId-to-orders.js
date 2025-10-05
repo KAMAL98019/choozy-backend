@@ -1,15 +1,21 @@
+'use strict';
+
 module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.addColumn('orders', 'partnerId', {
-  type: Sequelize.UUID,
-  allowNull: true, // temporarily allow NULL
-  references: { model: 'Partners', key: 'id' },
-  onUpdate: 'CASCADE',
-  onDelete: 'SET NULL', // safer for existing data
-});
+    await queryInterface.addConstraint('orders', {
+      fields: ['partnerId'],
+      type: 'foreign key',
+      name: 'fk_orders_partnerId', // custom constraint name
+      references: {
+        table: 'partners',
+        field: 'id'
+      },
+      onUpdate: 'CASCADE',
+      onDelete: 'SET NULL'
+    });
+  },
 
-  },
-  async down(queryInterface) {
-    await queryInterface.removeColumn('orders', 'partnerId');
-  },
+  async down(queryInterface, Sequelize) {
+    await queryInterface.removeConstraint('orders', 'fk_orders_partnerId');
+  }
 };

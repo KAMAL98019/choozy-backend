@@ -48,7 +48,10 @@ app.use('/api',require('./routes/trackingRoutes') );
 app.use('/api',require('./routes/restaurantOrderRoutes')  );
 app.use('/api/admin', require('./routes/admin/userRoutes'));
 app.use('/api/admin', require('./routes/admin/restaurantRoutes'));
-app.use('/api/admin', require('./routes/admin/deliveryPartnerRoutes'))
+app.use('/api/admin', require('./routes/admin/deliveryPartnerRoutes'));
+app.use('/api/admin', require('./routes/admin/orderRoutes'));
+
+
 
 
 

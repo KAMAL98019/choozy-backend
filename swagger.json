@@ -4783,6 +4783,957 @@
                     }
                 }
             }
+        },
+        "/api/admin/delivery-partners/{partnerId}/attendance": {
+            "get": {
+                "tags": [
+                    "Admin - Delivery Partners"
+                ],
+                "summary": "Get partner attendance log",
+                "parameters": [
+                    {
+                        "name": "partnerId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "period",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "this-month",
+                                "last-month",
+                                "last-quarter",
+                                "custom"
+                            ],
+                            "default": "this-month"
+                        }
+                    },
+                    {
+                        "name": "startDate",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        },
+                        "description": "Required if period is 'custom'"
+                    },
+                    {
+                        "name": "endDate",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        },
+                        "description": "Required if period is 'custom'"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Attendance log fetched successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "partner": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "string"
+                                                        },
+                                                        "name": {
+                                                            "type": "string"
+                                                        }
+                                                    }
+                                                },
+                                                "summary": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "totalDaysPresent": {
+                                                            "type": "integer"
+                                                        },
+                                                        "totalDaysAbsent": {
+                                                            "type": "integer"
+                                                        },
+                                                        "lateCheckIns": {
+                                                            "type": "integer"
+                                                        }
+                                                    }
+                                                },
+                                                "attendance": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "date": {
+                                                                "type": "string",
+                                                                "format": "date"
+                                                            },
+                                                            "checkIn": {
+                                                                "type": "string",
+                                                                "format": "date-time"
+                                                            },
+                                                            "checkOut": {
+                                                                "type": "string",
+                                                                "format": "date-time"
+                                                            },
+                                                            "workType": {
+                                                                "type": "string"
+                                                            },
+                                                            "photo": {
+                                                                "type": "string"
+                                                            },
+                                                            "status": {
+                                                                "type": "string",
+                                                                "enum": [
+                                                                    "present",
+                                                                    "absent"
+                                                                ]
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/delivery-partners/{partnerId}/attendance/download": {
+            "get": {
+                "tags": [
+                    "Admin - Delivery Partners"
+                ],
+                "summary": "Download attendance report as CSV",
+                "parameters": [
+                    {
+                        "name": "partnerId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "startDate",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "endDate",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "CSV file download",
+                        "content": {
+                            "text/csv": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/orders": {
+            "get": {
+                "tags": [
+                    "Admin - Orders"
+                ],
+                "summary": "Get all orders with filters and pagination",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 1,
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 10,
+                            "minimum": 1,
+                            "maximum": 100
+                        }
+                    },
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "PENDING",
+                                "CONFIRMED",
+                                "PREPARING",
+                                "OUT_FOR_DELIVERY",
+                                "DELIVERED",
+                                "CANCELLED"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Search by order ID"
+                    },
+                    {
+                        "name": "startDate",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "endDate",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Orders fetched successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Orders fetched successfully"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "orders": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "$ref": "#/components/schemas/OrderListItem"
+                                                    }
+                                                },
+                                                "pagination": {
+                                                    "$ref": "#/components/schemas/PaginationOrder"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                }
+            }
+        },
+        "/api/admin/orders/{orderId}": {
+            "get": {
+                "tags": [
+                    "Admin - Orders"
+                ],
+                "summary": "Get single order details",
+                "parameters": [
+                    {
+                        "name": "orderId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Order details fetched successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Order details fetched successfully"
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/OrderDetails"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                }
+            }
+        },
+        "/api/admin/orders/stats": {
+            "get": {
+                "tags": [
+                    "Admin - Orders"
+                ],
+                "summary": "Get order statistics",
+                "responses": {
+                    "200": {
+                        "description": "Statistics fetched successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Order statistics fetched successfully"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "totalOrders": {
+                                                    "type": "integer",
+                                                    "example": 143
+                                                },
+                                                "activeOrders": {
+                                                    "type": "integer",
+                                                    "example": 45
+                                                },
+                                                "pendingOrders": {
+                                                    "type": "integer",
+                                                    "example": 18
+                                                },
+                                                "deliveredOrders": {
+                                                    "type": "integer",
+                                                    "example": 68
+                                                },
+                                                "cancelledOrders": {
+                                                    "type": "integer",
+                                                    "example": 8
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                }
+            }
+        },
+        "/api/admin/orders/{orderId}/status": {
+            "put": {
+                "tags": [
+                    "Admin - Orders"
+                ],
+                "summary": "Update order status",
+                "parameters": [
+                    {
+                        "name": "orderId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "status"
+                                ],
+                                "properties": {
+                                    "status": {
+                                        "type": "string",
+                                        "enum": [
+                                            "PENDING",
+                                            "CONFIRMED",
+                                            "PREPARING",
+                                            "OUT_FOR_DELIVERY",
+                                            "DELIVERED",
+                                            "CANCELLED"
+                                        ],
+                                        "example": "CONFIRMED"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Status updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Order status updated successfully"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "orderId": {
+                                                    "type": "string",
+                                                    "format": "uuid"
+                                                },
+                                                "status": {
+                                                    "type": "string"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                }
+            }
+        },
+        "/api/all": {
+            "get": {
+                "summary": "Get all orders",
+                "tags": [
+                    "rest-Orders"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "sortBy",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "default": "createdAt"
+                        }
+                    },
+                    {
+                        "name": "order",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "ASC",
+                                "DESC"
+                            ],
+                            "default": "DESC"
+                        }
+                    },
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of orders with status counts",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "success": true,
+                                    "data": {
+                                        "orders": [],
+                                        "statusCounts": {
+                                            "New": 0,
+                                            "Preparing": 0,
+                                            "Ready": 0,
+                                            "Completed": 0,
+                                            "Cancelled": 0
+                                        },
+                                        "total": 0
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/orders/history": {
+            "get": {
+                "summary": "Get order history",
+                "tags": [
+                    "rest-Orders"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "startDate",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "endDate",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "customerId",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Order history",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "success": true,
+                                    "data": {
+                                        "orders": [],
+                                        "total": 0
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/{id}": {
+            "get": {
+                "summary": "Get order details",
+                "tags": [
+                    "rest-Orders"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Order details",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "success": true,
+                                    "data": {
+                                        "id": "uuid",
+                                        "orderNumber": "#ORD12345",
+                                        "orderTime": "2025-10-05T10:00:00Z",
+                                        "paymentStatus": "PENDING",
+                                        "orderType": "Delivery",
+                                        "customer": {
+                                            "name": "John Doe",
+                                            "phone": "9876543210",
+                                            "address": "123 Street"
+                                        },
+                                        "items": [],
+                                        "billBreakdown": {
+                                            "subtotal": 100,
+                                            "deliveryCharge": 20,
+                                            "tax": 10,
+                                            "grandTotal": 130
+                                        },
+                                        "specialInstructions": "No onions",
+                                        "status": "PENDING"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/{id}/accept": {
+            "put": {
+                "summary": "Accept order",
+                "tags": [
+                    "rest-Orders"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "example": {
+                                "estimatedPreparationTime": 15
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Order accepted",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "success": true,
+                                    "message": "Order accepted successfully",
+                                    "data": {}
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/{id}/reject": {
+            "put": {
+                "summary": "Reject order",
+                "tags": [
+                    "rest-Orders"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "example": {
+                                "reason": "Out of stock"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Order rejected",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "success": true,
+                                    "message": "Order rejected",
+                                    "data": {}
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/{id}/status": {
+            "put": {
+                "summary": "Update order status",
+                "tags": [
+                    "rest-Orders"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "example": {
+                                "status": "PREPARING"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Order status updated",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "success": true,
+                                    "message": "Order status updated",
+                                    "data": {}
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/{id}/kot": {
+            "get": {
+                "summary": "Print Kitchen Order Ticket",
+                "tags": [
+                    "rest-Orders"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "KOT data",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "success": true,
+                                    "data": {
+                                        "orderNumber": "#ORD12345",
+                                        "timestamp": "2025-10-05T10:00:00Z",
+                                        "items": [
+                                            {
+                                                "name": "Pizza",
+                                                "quantity": 2
+                                            }
+                                        ],
+                                        "specialInstructions": "Extra cheese"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/{id}/track": {
+            "get": {
+                "summary": "Track order",
+                "tags": [
+                    "rest-Orders"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Tracking data",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "success": true,
+                                    "data": {
+                                        "orderId": "uuid",
+                                        "orderNumber": "#ORD12345",
+                                        "estimatedDeliveryTime": 20,
+                                        "deliveryPartner": {
+                                            "name": "Ravi",
+                                            "phone": "9876543210",
+                                            "vehicle": "Bike - TN01AB1234"
+                                        },
+                                        "restaurantAddress": "456 Partner St",
+                                        "deliveryAddress": "123 Customer St",
+                                        "orderStatus": [
+                                            {
+                                                "status": "ORDER_CONFIRMED",
+                                                "time": "2025-10-05T10:00:00Z",
+                                                "completed": true
+                                            },
+                                            {
+                                                "status": "PREPARING_FOOD",
+                                                "time": null,
+                                                "completed": false
+                                            },
+                                            {
+                                                "status": "ON_THE_WAY",
+                                                "time": null,
+                                                "completed": false
+                                            },
+                                            {
+                                                "status": "DELIVERED",
+                                                "time": null,
+                                                "completed": false
+                                            }
+                                        ],
+                                        "currentStatus": "ORDER_CONFIRMED",
+                                        "orderSummary": {
+                                            "items": [
+                                                {
+                                                    "name": "Pizza",
+                                                    "quantity": 2
+                                                }
+                                            ],
+                                            "subtotal": 100,
+                                            "deliveryFee": 20,
+                                            "total": 120
+                                        },
+                                        "restaurantLocation": {
+                                            "latitude": 40.7128,
+                                            "longitude": -74.0060
+                                        },
+                                        "deliveryLocation": {
+                                            "latitude": 40.7589,
+                                            "longitude": -73.9851
+                                        },
+                                        "currentLocation": {
+                                            "latitude": 40.7228,
+                                            "longitude": -73.9960
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     "components": {
@@ -4885,9 +5836,6 @@
                     "rest_address": {
                         "type": "string"
                     },
-                    "cuisine_type": {
-                        "type": "string"
-                    },
                     "avg_cost_two": {
                         "type": "number",
                         "format": "float",
@@ -4979,8 +5927,7 @@
                 "required": [
                     "Rest_name",
                     "Rest_address",
-                    "cuision_type",
-                    "fssai_certificate"
+                    "fssai_certificate","gst_certificate"
                 ],
                 "properties": {
                     "rest_name": {
@@ -4989,9 +5936,7 @@
                     "rest_address": {
                         "type": "string"
                     },
-                    "cuisine_type": {
-                        "type": "string"
-                    },
+                    
                     "avg_cost_two": {
                         "type": "number",
                         "format": "float"
@@ -5061,9 +6006,7 @@
                     "rest_address": {
                         "type": "string"
                     },
-                    "cuisine_type": {
-                        "type": "string"
-                    },
+                    
                     "avg_cost_two": {
                         "type": "number",
                         "format": "float"
@@ -5400,6 +6343,7 @@
                 "required": [
                     "userId",
                     "cartId",
+                    "rest_id",
                     "address",
                     "paymentMethod"
                 ],
@@ -5411,6 +6355,11 @@
                     "cartId": {
                         "type": "string",
                         "format": "uuid"
+                    },
+                    "rest_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "example": "f47ac10b-58cc-4372-a567-0e02b2c3d479"
                     },
                     "address": {
                         "type": "string",
@@ -5435,7 +6384,82 @@
                         "example": "Checkout successful"
                     },
                     "order": {
-                        "$ref": "#/components/schemas/Order"
+                        "type": "object",
+                        "properties": {
+                            "orderId": {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            "cartId": {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            "rest_id": {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            "restaurant": {
+                                "type": "object",
+                                "properties": {
+                                    "id": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "address": {
+                                        "type": "string"
+                                    },
+                                    "phone": {
+                                        "type": "string"
+                                    }
+                                }
+                            },
+                            "user": {
+                                "type": "object",
+                                "properties": {
+                                    "id": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "email": {
+                                        "type": "string"
+                                    },
+                                    "phone": {
+                                        "type": "string"
+                                    }
+                                }
+                            },
+                            "subtotal": {
+                                "type": "number",
+                                "format": "float"
+                            },
+                            "tax": {
+                                "type": "number",
+                                "format": "float"
+                            },
+                            "deliveryFee": {
+                                "type": "number",
+                                "format": "float"
+                            },
+                            "totalAmount": {
+                                "type": "number",
+                                "format": "float"
+                            },
+                            "status": {
+                                "type": "string"
+                            },
+                            "items": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/OrderItem"
+                                }
+                            }
+                        }
                     }
                 }
             },
@@ -5958,6 +6982,365 @@
                         "example": "Detailed error information"
                     }
                 }
+            },
+            "OrderListItem": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "example": "12345"
+                    },
+                    "userId": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "partnerId": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "address": {
+                        "type": "string"
+                    },
+                    "paymentMethod": {
+                        "type": "string",
+                        "enum": [
+                            "CASH",
+                            "CARD",
+                            "UPI"
+                        ]
+                    },
+                    "totalAmount": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 24.99
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "PENDING",
+                            "CONFIRMED",
+                            "PREPARING",
+                            "OUT_FOR_DELIVERY",
+                            "DELIVERED",
+                            "CANCELLED"
+                        ]
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "user": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            "name": {
+                                "type": "string",
+                                "example": "John Smith"
+                            },
+                            "email": {
+                                "type": "string",
+                                "format": "email"
+                            },
+                            "mobile": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "partner": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            "fullName": {
+                                "type": "string",
+                                "example": "Michael Brown"
+                            },
+                            "mobile": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "OrderDetails": {
+                "type": "object",
+                "properties": {
+                    "orderId": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "PENDING",
+                            "CONFIRMED",
+                            "PREPARING",
+                            "OUT_FOR_DELIVERY",
+                            "DELIVERED",
+                            "CANCELLED"
+                        ]
+                    },
+                    "lastUpdated": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "deliveryTime": {
+                        "type": "string",
+                        "example": "45 minutes"
+                    },
+                    "paymentMethod": {
+                        "type": "string",
+                        "enum": [
+                            "CASH",
+                            "CARD",
+                            "UPI"
+                        ]
+                    },
+                    "orderSummary": {
+                        "type": "object",
+                        "properties": {
+                            "orderPlacement": {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "totalAmount": {
+                                "type": "number",
+                                "format": "float"
+                            },
+                            "paymentMethod": {
+                                "type": "string"
+                            },
+                            "discountApplied": {
+                                "type": "number",
+                                "format": "float",
+                                "nullable": true
+                            }
+                        }
+                    },
+                    "customerInformation": {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string"
+                            },
+                            "customerId": {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            "email": {
+                                "type": "string",
+                                "format": "email"
+                            },
+                            "mobile": {
+                                "type": "string"
+                            },
+                            "deliveryAddress": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "restaurantInformation": {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "example": "Spice Garden"
+                            },
+                            "email": {
+                                "type": "string",
+                                "format": "email"
+                            },
+                            "mobile": {
+                                "type": "string"
+                            },
+                            "address": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "deliveryPartnerInformation": {
+                        "type": "object",
+                        "nullable": true,
+                        "properties": {
+                            "name": {
+                                "type": "string"
+                            },
+                            "partnerId": {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            "mobile": {
+                                "type": "string"
+                            },
+                            "vehicleType": {
+                                "type": "string"
+                            },
+                            "vehicleNumber": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "itemsOrdered": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "quantity": {
+                                    "type": "integer"
+                                },
+                                "name": {
+                                    "type": "string"
+                                },
+                                "addOns": {
+                                    "type": "string",
+                                    "nullable": true
+                                },
+                                "price": {
+                                    "type": "number",
+                                    "format": "float"
+                                }
+                            }
+                        }
+                    },
+                    "priceSummary": {
+                        "type": "object",
+                        "properties": {
+                            "subtotal": {
+                                "type": "number",
+                                "format": "float"
+                            },
+                            "tax": {
+                                "type": "number",
+                                "format": "float"
+                            },
+                            "deliveryFee": {
+                                "type": "number",
+                                "format": "float"
+                            },
+                            "discount": {
+                                "type": "number",
+                                "format": "float"
+                            },
+                            "total": {
+                                "type": "number",
+                                "format": "float"
+                            }
+                        }
+                    },
+                    "orderTimeline": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "status": {
+                                    "type": "string"
+                                },
+                                "timestamp": {
+                                    "type": "string",
+                                    "format": "date-time"
+                                },
+                                "message": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "PaginationOrder": {
+                "type": "object",
+                "properties": {
+                    "totalOrders": {
+                        "type": "integer"
+                    },
+                    "currentPage": {
+                        "type": "integer"
+                    },
+                    "totalPages": {
+                        "type": "integer"
+                    },
+                    "limit": {
+                        "type": "integer"
+                    }
+                }
+            }
+        },
+        "responses": {
+            "BadRequest": {
+                "description": "Bad request",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "success": {
+                                    "type": "boolean",
+                                    "example": false
+                                },
+                                "message": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "NotFound": {
+                "description": "Resource not found",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "success": {
+                                    "type": "boolean",
+                                    "example": false
+                                },
+                                "message": {
+                                    "type": "string",
+                                    "example": "Order not found"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "ServerError": {
+                "description": "Internal server error",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "success": {
+                                    "type": "boolean",
+                                    "example": false
+                                },
+                                "message": {
+                                    "type": "string"
+                                },
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "components": {
+                "securitySchemes": {
+                    "bearerAuth": {
+                        "type": "http",
+                        "scheme": "bearer",
+                        "bearerFormat": "JWT"
+                    }
+                }
             }
         }
     },
@@ -6013,6 +7396,14 @@
         {
             "name": "Admin - Delivery Partners",
             "description": "Delivery partner management endpoints"
+        },
+        {
+            "name": "Admin - Orders",
+            "description": "Order management endpoints"
+        },
+        {
+            "name": "rest-Orders",
+            "description": "Order management endpoints"
         }
     ]
 }

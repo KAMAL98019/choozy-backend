@@ -21,11 +21,7 @@ module.exports = {
         allowNull: false
       },
 
-      cuisine_type: { // keeping your exact field name
-        type: Sequelize.STRING(255),
-        allowNull: false
-      },
-
+      
       avg_cost_two: {
         type: Sequelize.DECIMAL(10, 2),
         allowNull: true
@@ -103,6 +99,7 @@ module.exports = {
         defaultValue: 'active', // default status
 
       },
+      
 
       updatedAt: {
         type: Sequelize.DATE,
@@ -113,8 +110,7 @@ module.exports = {
 
     // Helpful indexes for search
     await queryInterface.addIndex('restaurant_reg', ['Rest_name']);
-    await queryInterface.addIndex('restaurant_reg', ['cuisine_type']);
-    await queryInterface.addIndex('restaurant_reg', ['contact_number']);
+   await queryInterface.addIndex('restaurant_reg', ['contact_number']);
   },
 
   async down(queryInterface) {
