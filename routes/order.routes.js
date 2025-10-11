@@ -6,8 +6,7 @@ const checkoutController = require('../controllers/checkout.controller');
 
 /// Checkout process
 router.post('/checkout', checkoutController.checkout);
-// Restaurant
-router.put('/orders/:orderId/status', orderController.updateOrderStatus);
+
 
 // Partner
 router.post('/delivery/assign', orderController.assignDelivery);

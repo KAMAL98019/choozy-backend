@@ -771,6 +771,108 @@
                 }
             }
         },
+        "/api/restaurants/{id}/delivery-settings": {
+            "put": {
+                "tags": [
+                    "Restaurants"
+                ],
+                "summary": "Update delivery settings for a restaurant",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Restaurant ID"
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "deliveryType": {
+                                        "type": "string",
+                                        "example": "RADIUS",
+                                        "description": "RADIUS or ZONES"
+                                    },
+                                    "deliveryRadius": {
+                                        "type": "number",
+                                        "example": 5,
+                                        "description": "Delivery radius in km (if deliveryType is RADIUS)"
+                                    },
+                                    "deliveryZones": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "example": [
+                                            "Zone 1",
+                                            "Zone 2"
+                                        ],
+                                        "description": "Applicable delivery zones (if deliveryType is ZONES)"
+                                    },
+                                    "restaurantLatitude": {
+                                        "type": "number",
+                                        "example": 12.9716
+                                    },
+                                    "restaurantLongitude": {
+                                        "type": "number",
+                                        "example": 77.5946
+                                    },
+                                    "minOrderAmount": {
+                                        "type": "number",
+                                        "example": 200,
+                                        "description": "Minimum order amount required for delivery"
+                                    },
+                                    "baseDeliveryFee": {
+                                        "type": "number",
+                                        "example": 50,
+                                        "description": "Base delivery fee in currency units"
+                                    }
+                                },
+                                "required": [
+                                    "deliveryType",
+                                    "restaurantLatitude",
+                                    "restaurantLongitude"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Delivery settings updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Delivery settings updated"
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/Restaurant"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Restaurant not found"
+                    },
+                    "500": {
+                        "description": "Failed to update delivery settings"
+                    }
+                }
+            }
+        },
         "/api/restaurants/login": {
             "post": {
                 "summary": "Restaurant login",
@@ -879,242 +981,249 @@
             }
         },
         "/api/food-items": {
-            "get": {
-                "summary": "Get all food items",
-                "tags": [
-                    "Food Items"
-                ],
-                "parameters": [
-                    {
-                        "name": "search",
-                        "in": "query",
-                        "required": false,
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid"
-                        },
-                        "description": "Search term to filter food items by dishname or category"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "List of food items"
-                    },
-                    "500": {
-                        "description": "Server error"
-                    }
+  "get": {
+    "tags": ["Food Items"],
+    "summary": "Get all food items (optionally filter by restaurantId, cuisineId, categoryId, or search)",
+    "parameters": [
+      {
+        "name": "restaurantId",
+        "in": "query",
+        "required": false,
+        "schema": { "type": "string" },
+        "description": "Filter food items by restaurant ID"
+      },
+      {
+        "name": "cuisineId",
+        "in": "query",
+        "required": false,
+        "schema": { "type": "string" },
+        "description": "Filter food items by cuisine ID"
+      },
+      {
+        "name": "categoryId",
+        "in": "query",
+        "required": false,
+        "schema": { "type": "string" },
+        "description": "Filter food items by category ID"
+      },
+      {
+        "name": "search",
+        "in": "query",
+        "required": false,
+        "schema": { "type": "string" },
+        "description": "Search by dishname"
+      }
+    ],
+    "responses": {
+      "200": {
+        "description": "List of food items",
+        "content": {
+          "application/json": {
+            "example": {
+              "success": true,
+              "data": [
+                {
+                  "id": "uuid",
+                  "dishname": "Paneer Butter Masala",
+                  "price": 250,
+                  "veg": true,
+                  "rest_id": "restaurant-uuid",
+                  "cuisine": {
+                    "id": "cuisine-uuid",
+                    "name": "Indian"
+                  },
+                  "category": {
+                    "id": "category-uuid",
+                    "name": "Main Course"
+                  }
                 }
-            },
-            "post": {
-                "summary": "Create a food item",
-                "tags": [
-                    "Food Items"
-                ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "rest_id": {
-                                        "type": "string",
-                                        "format": "uuid",
-                                        "example": "b1a2c3d4-e5f6-7890-1234-56789abcdef0"
-                                    },
-                                    "dishname": {
-                                        "type": "string",
-                                        "example": "Paneer Butter Masala"
-                                    },
-                                    "description": {
-                                        "type": "string",
-                                        "example": "A rich and creamy North Indian curry made with paneer cubes, butter, tomatoes, and spices."
-                                    },
-                                    "price": {
-                                        "type": "number",
-                                        "format": "float",
-                                        "example": 250.0
-                                    },
-                                    "category": {
-                                        "type": "string",
-                                        "example": "Main Course"
-                                    },
-                                    "veg": {
-                                        "type": "boolean",
-                                        "example": true
-                                    },
-                                    "contain_allergens": {
-                                        "type": "boolean",
-                                        "example": true
-                                    },
-                                    "specify_allergence": {
-                                        "type": "string",
-                                        "example": "Contains dairy and cashew nuts"
-                                    },
-                                    "customised_options": {
-                                        "type": "object",
-                                        "example": {
-                                            "spice_level": [
-                                                "Mild",
-                                                "Medium",
-                                                "Spicy"
-                                            ],
-                                            "add_ons": [
-                                                {
-                                                    "name": "Extra Paneer",
-                                                    "price": 50
-                                                },
-                                                {
-                                                    "name": "Butter Naan",
-                                                    "price": 40
-                                                }
-                                            ]
-                                        }
-                                    }
-                                },
-                                "required": [
-                                    "rest_id",
-                                    "dishname",
-                                    "price",
-                                    "category"
-                                ]
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "201": {
-                        "description": "Food item created"
-                    },
-                    "500": {
-                        "description": "Server error"
-                    }
-                }
+              ]
             }
-        },
-        "/api/food-items/{id}": {
-            "get": {
-                "summary": "Get food item by ID",
-                "tags": [
-                    "Food Items"
-                ],
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Single food item"
-                    },
-                    "404": {
-                        "description": "Food item not found"
-                    },
-                    "500": {
-                        "description": "Server error"
-                    }
+          }
+        }
+      },
+      "500": { "description": "Internal server error" }
+    }
+  },
+
+  "post": {
+    "summary": "Create a food item",
+    "tags": ["Food Items"],
+    "requestBody": {
+      "required": true,
+      "content": {
+        "application/json": {
+          "schema": {
+            "type": "object",
+            "properties": {
+              "rest_id": {
+                "type": "string",
+                "format": "uuid",
+                "example": "b1a2c3d4-e5f6-7890-1234-56789abcdef0"
+              },
+              "cuisineId": {
+                "type": "string",
+                "format": "uuid",
+                "example": "c1d2e3f4-g5h6-7890-1234-56789abcdef0"
+              },
+              "categoryId": {
+                "type": "string",
+                "format": "uuid",
+                "example": "cat1d2e3f4-g5h6-7890-1234-56789abcdeff"
+              },
+              "dishname": {
+                "type": "string",
+                "example": "Paneer Butter Masala"
+              },
+              "description": {
+                "type": "string",
+                "example": "A rich and creamy North Indian curry made with paneer cubes, butter, tomatoes, and spices."
+              },
+              "price": {
+                "type": "number",
+                "format": "float",
+                "example": 250.0
+              },
+              "veg": {
+                "type": "boolean",
+                "example": true
+              },
+              "contain_allergens": {
+                "type": "boolean",
+                "example": true
+              },
+              "specify_allergence": {
+                "type": "string",
+                "example": "Contains dairy and cashew nuts"
+              },
+              "customised_options": {
+                "type": "object",
+                "example": {
+                  "spice_level": ["Mild", "Medium", "Spicy"],
+                  "add_ons": [
+                    { "name": "Extra Paneer", "price": 50 },
+                    { "name": "Butter Naan", "price": 40 }
+                  ]
                 }
+              }
             },
-            "put": {
-                "summary": "Update food item",
-                "tags": [
-                    "Food Items"
-                ],
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "dishname": {
-                                        "type": "string"
-                                    },
-                                    "description": {
-                                        "type": "string"
-                                    },
-                                    "price": {
-                                        "type": "number",
-                                        "format": "float"
-                                    },
-                                    "category": {
-                                        "type": "string"
-                                    },
-                                    "veg": {
-                                        "type": "boolean"
-                                    },
-                                    "contain_allergens": {
-                                        "type": "boolean"
-                                    },
-                                    "specify_allergence": {
-                                        "type": "string"
-                                    },
-                                    "customised_options": {
-                                        "type": "object"
-                                    }
-                                }
-                            }
-                        }
-                    }
+            "required": [
+              "rest_id",
+              "dishname",
+              "price",
+              "categoryId",
+              "cuisineId"
+            ]
+          }
+        }
+      }
+    },
+    "responses": {
+      "201": { "description": "Food item created" },
+      "500": { "description": "Server error" }
+    }
+  }
+},
+
+"/api/food-items/{id}": {
+  "get": {
+    "summary": "Get food item by ID",
+    "tags": ["Food Items"],
+    "parameters": [
+      {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "string", "format": "uuid" }
+      }
+    ],
+    "responses": {
+      "200": {
+        "description": "Single food item with cuisine and category",
+        "content": {
+          "application/json": {
+            "example": {
+              "success": true,
+              "data": {
+                "id": "uuid",
+                "dishname": "Paneer Butter Masala",
+                "price": 250,
+                "cuisine": {
+                  "id": "cuisine-uuid",
+                  "name": "Indian"
                 },
-                "responses": {
-                    "200": {
-                        "description": "Updated food item"
-                    },
-                    "404": {
-                        "description": "Food item not found"
-                    },
-                    "500": {
-                        "description": "Server error"
-                    }
+                "category": {
+                  "id": "category-uuid",
+                  "name": "Main Course"
                 }
-            },
-            "delete": {
-                "summary": "Delete food item",
-                "tags": [
-                    "Food Items"
-                ],
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Food item deleted"
-                    },
-                    "404": {
-                        "description": "Food item not found"
-                    },
-                    "500": {
-                        "description": "Server error"
-                    }
-                }
+              }
             }
-        },
+          }
+        }
+      },
+      "404": { "description": "Food item not found" },
+      "500": { "description": "Server error" }
+    }
+  },
+
+  "put": {
+    "summary": "Update food item",
+    "tags": ["Food Items"],
+    "parameters": [
+      {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "string", "format": "uuid" }
+      }
+    ],
+    "requestBody": {
+      "required": true,
+      "content": {
+        "application/json": {
+          "schema": {
+            "type": "object",
+            "properties": {
+              "dishname": { "type": "string" },
+              "description": { "type": "string" },
+              "price": { "type": "number", "format": "float" },
+              "veg": { "type": "boolean" },
+              "contain_allergens": { "type": "boolean" },
+              "specify_allergence": { "type": "string" },
+              "customised_options": { "type": "object" },
+              "cuisineId": { "type": "string", "format": "uuid" },
+              "categoryId": { "type": "string", "format": "uuid" }
+            }
+          }
+        }
+      }
+    },
+    "responses": {
+      "200": { "description": "Updated food item" },
+      "404": { "description": "Food item not found" },
+      "500": { "description": "Server error" }
+    }
+  },
+
+  "delete": {
+    "summary": "Delete food item",
+    "tags": ["Food Items"],
+    "parameters": [
+      {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "string", "format": "uuid" }
+      }
+    ],
+    "responses": {
+      "200": { "description": "Food item deleted" },
+      "404": { "description": "Food item not found" },
+      "500": { "description": "Server error" }
+    }
+  }
+}
+,
         "/api/carts/ensure": {
             "post": {
                 "summary": "Ensure a user has a cart",
@@ -1313,7 +1422,7 @@
             "post": {
                 "summary": "Create an order from cart",
                 "tags": [
-                    "Orderflow"
+                    "Cart"
                 ],
                 "requestBody": {
                     "required": true,
@@ -1359,51 +1468,6 @@
                 }
             }
         },
-        "/api/orders/{orderId}/status": {
-            "put": {
-                "tags": [
-                    "Orderflow"
-                ],
-                "summary": "Restaurant accept/reject order",
-                "parameters": [
-                    {
-                        "name": "orderId",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "status": {
-                                        "type": "string",
-                                        "enum": [
-                                            "ACCEPTED",
-                                            "REJECTED"
-                                        ]
-                                    }
-                                },
-                                "required": [
-                                    "status"
-                                ]
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Order status updated"
-                    }
-                }
-            }
-        },
         "/api/delivery/assign": {
             "post": {
                 "tags": [
@@ -1434,7 +1498,46 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Delivery assignment created"
+                        "description": "Delivery assignment created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "string"
+                                                },
+                                                "orderId": {
+                                                    "type": "string"
+                                                },
+                                                "partnerId": {
+                                                    "type": "string"
+                                                },
+                                                "status": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "PENDING",
+                                                        "ACCEPTED",
+                                                        "REJECTED",
+                                                        "PICKED",
+                                                        "DELIVERED"
+                                                    ]
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -1479,7 +1582,35 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Delivery response updated"
+                        "description": "Delivery response updated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "id": {
+                                            "type": "string"
+                                        },
+                                        "orderId": {
+                                            "type": "string"
+                                        },
+                                        "partnerId": {
+                                            "type": "string"
+                                        },
+                                        "status": {
+                                            "type": "string",
+                                            "enum": [
+                                                "PENDING",
+                                                "ACCEPTED",
+                                                "REJECTED",
+                                                "PICKED",
+                                                "DELIVERED"
+                                            ]
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -1530,7 +1661,41 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Delivery updated with km and earnings"
+                        "description": "Delivery updated with km and earnings",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "id": {
+                                            "type": "string"
+                                        },
+                                        "orderId": {
+                                            "type": "string"
+                                        },
+                                        "partnerId": {
+                                            "type": "string"
+                                        },
+                                        "status": {
+                                            "type": "string",
+                                            "enum": [
+                                                "PENDING",
+                                                "ACCEPTED",
+                                                "REJECTED",
+                                                "PICKED",
+                                                "DELIVERED"
+                                            ]
+                                        },
+                                        "distanceKm": {
+                                            "type": "number"
+                                        },
+                                        "earnings": {
+                                            "type": "number"
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -1543,7 +1708,34 @@
                 "summary": "Get all orders",
                 "responses": {
                     "200": {
-                        "description": "List of all orders"
+                        "description": "List of all orders",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "id": {
+                                                "type": "string"
+                                            },
+                                            "status": {
+                                                "type": "string"
+                                            },
+                                            "items": {
+                                                "type": "array",
+                                                "items": {
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "cart": {
+                                                "type": "object"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -1566,12 +1758,36 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Order details"
+                        "description": "Order details",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "id": {
+                                            "type": "string"
+                                        },
+                                        "status": {
+                                            "type": "string"
+                                        },
+                                        "items": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        },
+                                        "cart": {
+                                            "type": "object"
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
         },
-        "/orders/{orderId}/tracking": {
+        "/api/orders/{orderId}/tracking": {
             "get": {
                 "tags": [
                     "Orderflow"
@@ -1602,8 +1818,8 @@
                                     },
                                     "delivery": {
                                         "status": "OUT_FOR_DELIVERY",
-                                        "lat": 12.97,
-                                        "lng": 77.59
+                                        "currentLatitude": 12.97,
+                                        "currentLongitude": 77.59
                                     }
                                 }
                             }
@@ -1611,57 +1827,6 @@
                     },
                     "404": {
                         "description": "Order not found"
-                    }
-                }
-            }
-        },
-        "/api/delivery/{assignmentId}/trackingStatus": {
-            "put": {
-                "tags": [
-                    "Orderflow"
-                ],
-                "summary": "Update delivery status and partner location",
-                "parameters": [
-                    {
-                        "name": "assignmentId",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "status": {
-                                        "type": "string",
-                                        "example": "ON_ROUTE"
-                                    },
-                                    "lat": {
-                                        "type": "number",
-                                        "example": 12.9716
-                                    },
-                                    "lng": {
-                                        "type": "number",
-                                        "example": 77.5946
-                                    }
-                                }
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Delivery updated successfully"
-                    },
-                    "404": {
-                        "description": "Delivery assignment not found"
                     }
                 }
             }
@@ -1697,14 +1862,6 @@
                                     "notes": {
                                         "type": "string",
                                         "example": "Left at door"
-                                    },
-                                    "lat": {
-                                        "type": "number",
-                                        "example": 12.9716
-                                    },
-                                    "lng": {
-                                        "type": "number",
-                                        "example": 77.5946
                                     }
                                 }
                             }
@@ -5271,21 +5428,31 @@
         },
         "/api/all": {
             "get": {
-                "summary": "Get all orders",
                 "tags": [
                     "rest-Orders"
                 ],
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ],
+                "summary": "Get all orders for a restaurant",
                 "parameters": [
+                    {
+                        "name": "restaurantId",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
                     {
                         "name": "status",
                         "in": "query",
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "enum": [
+                                "New",
+                                "Preparing",
+                                "Ready",
+                                "Completed",
+                                "Cancelled"
+                            ]
                         }
                     },
                     {
@@ -5314,29 +5481,25 @@
                         "schema": {
                             "type": "string"
                         }
+                    },
+                    {
+                        "name": "userId",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Optional partner userId filter"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "List of orders with status counts",
-                        "content": {
-                            "application/json": {
-                                "example": {
-                                    "success": true,
-                                    "data": {
-                                        "orders": [],
-                                        "statusCounts": {
-                                            "New": 0,
-                                            "Preparing": 0,
-                                            "Ready": 0,
-                                            "Completed": 0,
-                                            "Cancelled": 0
-                                        },
-                                        "total": 0
-                                    }
-                                }
-                            }
-                        }
+                        "description": "List of orders with total count"
+                    },
+                    "400": {
+                        "description": "restaurantId is required"
+                    },
+                    "500": {
+                        "description": "Internal server error"
                     }
                 }
             }
@@ -5734,6 +5897,1353 @@
                     }
                 }
             }
+        },
+        "/api/bookings/{restaurantId}": {
+            "get": {
+                "tags": [
+                    "Bookings"
+                ],
+                "summary": "Get all bookings for a restaurant",
+                "parameters": [
+                    {
+                        "name": "restaurantId",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "Pending",
+                                "Verified",
+                                "Confirmed",
+                                "Seated",
+                                "Completed",
+                                "Cancelled"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "date",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "sortBy",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of bookings"
+                    },
+                    "400": {
+                        "description": "Invalid request"
+                    }
+                }
+            }
+        },
+        "/api/bookings/{id}": {
+            "get": {
+                "tags": [
+                    "Bookings"
+                ],
+                "summary": "Get booking details",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "restaurantId",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Booking details"
+                    },
+                    "404": {
+                        "description": "Booking not found"
+                    }
+                }
+            }
+        },
+        "/api/bookings/{id}/accept": {
+            "put": {
+                "tags": [
+                    "Bookings"
+                ],
+                "summary": "Accept a booking",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "restaurantId": {
+                                        "type": "string"
+                                    },
+                                    "tableNumber": {
+                                        "type": "string"
+                                    },
+                                    "staffNotes": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "restaurantId"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Booking accepted"
+                    },
+                    "400": {
+                        "description": "Invalid request"
+                    }
+                }
+            }
+        },
+        "/api/bookings/{id}/reject": {
+            "put": {
+                "tags": [
+                    "Bookings"
+                ],
+                "summary": "Reject a booking",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "restaurantId": {
+                                        "type": "string"
+                                    },
+                                    "reason": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "restaurantId"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Booking rejected"
+                    },
+                    "400": {
+                        "description": "Invalid request"
+                    }
+                }
+            }
+        },
+        "/api/bookings/{id}/seated": {
+            "put": {
+                "tags": [
+                    "Bookings"
+                ],
+                "summary": "Mark a booking as seated",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "restaurantId": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "restaurantId"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Booking marked as seated"
+                    }
+                }
+            }
+        },
+        "/api/bookings/{id}/complete": {
+            "put": {
+                "tags": [
+                    "Bookings"
+                ],
+                "summary": "Complete a booking",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "restaurantId": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "restaurantId"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Booking completed"
+                    }
+                }
+            }
+        },
+        "/api/dining-spaces/{restaurantId}": {
+            "get": {
+                "tags": [
+                    "Dining Spaces"
+                ],
+                "summary": "Get all dining spaces",
+                "parameters": [
+                    {
+                        "name": "restaurantId",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of dining spaces"
+                    }
+                }
+            }
+        },
+        "/api/dining-spaces": {
+            "post": {
+                "tags": [
+                    "Dining Spaces"
+                ],
+                "summary": "Create a dining space",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "restaurantId": {
+                                        "type": "string"
+                                    },
+                                    "areaName": {
+                                        "type": "string"
+                                    },
+                                    "seatingCapacity": {
+                                        "type": "integer"
+                                    },
+                                    "description": {
+                                        "type": "string"
+                                    },
+                                    "photos": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        }
+                                    }
+                                },
+                                "required": [
+                                    "restaurantId",
+                                    "areaName",
+                                    "seatingCapacity"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Dining space created"
+                    }
+                }
+            }
+        },
+        "/api/dining-spaces/{id}": {
+            "put": {
+                "tags": [
+                    "Dining Spaces"
+                ],
+                "summary": "Update dining space",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "areaName": {
+                                        "type": "string"
+                                    },
+                                    "seatingCapacity": {
+                                        "type": "integer"
+                                    },
+                                    "description": {
+                                        "type": "string"
+                                    },
+                                    "photos": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Dining space updated"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Dining Spaces"
+                ],
+                "summary": "Delete dining space",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Dining space deleted"
+                    }
+                }
+            }
+        },
+        "/api/events/{restaurantId}": {
+            "get": {
+                "tags": [
+                    "Events"
+                ],
+                "summary": "Get all events",
+                "parameters": [
+                    {
+                        "name": "restaurantId",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of events"
+                    }
+                }
+            }
+        },
+        "/api/events": {
+            "post": {
+                "tags": [
+                    "Events"
+                ],
+                "summary": "Create an event",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "restaurantId": {
+                                        "type": "string"
+                                    },
+                                    "eventName": {
+                                        "type": "string"
+                                    },
+                                    "eventDescription": {
+                                        "type": "string"
+                                    },
+                                    "frequency": {
+                                        "type": "string",
+                                        "enum": [
+                                            "WEEKLY",
+                                            "MONTHLY",
+                                            "SPECIFIC_DATES"
+                                        ]
+                                    },
+                                    "eventDay": {
+                                        "type": "string"
+                                    },
+                                    "eventDate": {
+                                        "type": "string",
+                                        "format": "date"
+                                    },
+                                    "eventTime": {
+                                        "type": "string"
+                                    },
+                                    "associatedDiningArea": {
+                                        "type": "string"
+                                    },
+                                    "isActive": {
+                                        "type": "boolean"
+                                    }
+                                },
+                                "required": [
+                                    "restaurantId",
+                                    "eventName",
+                                    "frequency",
+                                    "eventTime"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Event created successfully",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "success": true,
+                                    "message": "Event created",
+                                    "data": {
+                                        "id": "uuid",
+                                        "rest_id": "uuid",
+                                        "eventName": "Happy Hour",
+                                        "eventDescription": "Discount on drinks",
+                                        "frequency": "WEEKLY",
+                                        "eventDay": "Friday",
+                                        "eventDate": "2025-10-06",
+                                        "eventTime": "18:00",
+                                        "associatedDiningArea": "uuid",
+                                        "isActive": true,
+                                        "createdAt": "2025-10-06T12:36:12.000Z",
+                                        "updatedAt": "2025-10-06T12:36:12.000Z"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/events/{id}": {
+            "put": {
+                "tags": [
+                    "Events"
+                ],
+                "summary": "Update an event",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "eventName": {
+                                        "type": "string"
+                                    },
+                                    "eventDescription": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "frequency": {
+                                        "type": "string"
+                                    },
+                                    "eventDay": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "eventDate": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "nullable": true
+                                    },
+                                    "eventTime": {
+                                        "type": "string"
+                                    },
+                                    "associatedDiningArea": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "isActive": {
+                                        "type": "boolean",
+                                        "nullable": true
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Event updated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "string"
+                                                },
+                                                "rest_id": {
+                                                    "type": "string"
+                                                },
+                                                "eventName": {
+                                                    "type": "string"
+                                                },
+                                                "eventDescription": {
+                                                    "type": "string",
+                                                    "nullable": true
+                                                },
+                                                "frequency": {
+                                                    "type": "string"
+                                                },
+                                                "eventDay": {
+                                                    "type": "string",
+                                                    "nullable": true
+                                                },
+                                                "eventDate": {
+                                                    "type": "string",
+                                                    "format": "date",
+                                                    "nullable": true
+                                                },
+                                                "eventTime": {
+                                                    "type": "string"
+                                                },
+                                                "associatedDiningArea": {
+                                                    "type": "string",
+                                                    "nullable": true
+                                                },
+                                                "isActive": {
+                                                    "type": "boolean"
+                                                },
+                                                "createdAt": {
+                                                    "type": "string",
+                                                    "format": "date-time"
+                                                },
+                                                "updatedAt": {
+                                                    "type": "string",
+                                                    "format": "date-time"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Event not found"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Events"
+                ],
+                "summary": "Delete event",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Event deleted"
+                    }
+                }
+            }
+        },
+        "/api/customer/restaurants": {
+            "get": {
+                "summary": "Get all restaurants",
+                "tags": [
+                    "Customer Booking"
+                ],
+                "parameters": [
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Search by restaurant name or address"
+                    },
+                    {
+                        "name": "date",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        },
+                        "description": "Optional date to filter restaurants (for available slots)"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of restaurants",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "string"
+                                                    },
+                                                    "rest_name": {
+                                                        "type": "string"
+                                                    },
+                                                    "rest_address": {
+                                                        "type": "string"
+                                                    },
+                                                    "avg_cost_two": {
+                                                        "type": "number"
+                                                    },
+                                                    "rest_logo": {
+                                                        "type": "string"
+                                                    },
+                                                    "contact_number": {
+                                                        "type": "string"
+                                                    },
+                                                    "diningSpaces": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "id": {
+                                                                    "type": "string"
+                                                                },
+                                                                "areaName": {
+                                                                    "type": "string"
+                                                                },
+                                                                "seatingCapacity": {
+                                                                    "type": "integer"
+                                                                }
+                                                            }
+                                                        }
+                                                    },
+                                                    "events": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "id": {
+                                                                    "type": "string"
+                                                                },
+                                                                "eventName": {
+                                                                    "type": "string"
+                                                                },
+                                                                "eventDay": {
+                                                                    "type": "string",
+                                                                    "format": "date"
+                                                                },
+                                                                "eventTime": {
+                                                                    "type": "string"
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/customer/restaurants/{id}": {
+            "get": {
+                "summary": "Get restaurant details",
+                "tags": [
+                    "Customer Booking"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Restaurant details"
+                    },
+                    "404": {
+                        "description": "Restaurant not found"
+                    }
+                }
+            }
+        },
+        "/api/customer/restaurants/{id}/slots": {
+            "get": {
+                "summary": "Get available time slots",
+                "tags": [
+                    "Customer Booking"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "description": "Restaurant UUID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "date",
+                        "in": "query",
+                        "required": true,
+                        "description": "Booking date in YYYY-MM-DD format",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "guests",
+                        "in": "query",
+                        "required": false,
+                        "description": "Number of guests",
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Available slots",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "success": true,
+                                    "data": {
+                                        "date": "2025-10-07",
+                                        "totalCapacity": 50,
+                                        "timeSlots": [
+                                            {
+                                                "time": "17:00",
+                                                "available": true,
+                                                "remainingSeats": 30
+                                            },
+                                            {
+                                                "time": "17:30",
+                                                "available": true,
+                                                "remainingSeats": 28
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Missing restaurant ID or date"
+                    }
+                }
+            }
+        },
+        "/api/customer/bookings": {
+            "post": {
+                "summary": "Create booking",
+                "tags": [
+                    "Customer Booking"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "userId": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "example": "123e4567-e89b-12d3-a456-426614174000"
+                                    },
+                                    "restaurantId": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "example": "9d86eed0-bdb7-4514-bc5a-f79adc90038e"
+                                    },
+                                    "eventId": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "example": "7f9adc90-1234-5678-abcd-9d86eed0bdb7",
+                                        "description": "Optional. Specify if booking is for a specific event"
+                                    },
+                                    "bookingDate": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "2025-10-15"
+                                    },
+                                    "bookingTime": {
+                                        "type": "string",
+                                        "example": "19:30"
+                                    },
+                                    "numberOfGuests": {
+                                        "type": "integer",
+                                        "example": 4
+                                    },
+                                    "specialRequests": {
+                                        "type": "string",
+                                        "example": "Window seat please"
+                                    },
+                                    "purpose": {
+                                        "type": "string",
+                                        "example": "Birthday celebration"
+                                    }
+                                },
+                                "required": [
+                                    "userId",
+                                    "restaurantId",
+                                    "bookingDate",
+                                    "bookingTime",
+                                    "numberOfGuests"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Booking created successfully"
+                    },
+                    "400": {
+                        "description": "Missing required fields or invalid eventId"
+                    }
+                }
+            },
+            "get": {
+                "summary": "Get my bookings",
+                "tags": [
+                    "Customer Booking"
+                ],
+                "parameters": [
+                    {
+                        "name": "userId",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "pageSize",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of customer bookings"
+                    }
+                }
+            }
+        },
+        "/api/customer/bookings/{id}": {
+            "get": {
+                "summary": "Get booking details",
+                "tags": [
+                    "Customer Booking"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "userId",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Booking details"
+                    },
+                    "404": {
+                        "description": "Booking not found"
+                    }
+                }
+            }
+        },
+        "/api/customer/bookings/{id}/cancel": {
+            "put": {
+                "summary": "Cancel booking",
+                "tags": [
+                    "Customer Booking"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "userId": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "example": "123e4567-e89b-12d3-a456-426614174000"
+                                    },
+                                    "reason": {
+                                        "type": "string",
+                                        "example": "Customer not available"
+                                    }
+                                },
+                                "required": [
+                                    "userId"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Booking cancelled successfully"
+                    },
+                    "404": {
+                        "description": "Booking not found"
+                    }
+                }
+            }
+        },
+        "/api/admin/bookings": {
+            "get": {
+                "summary": "Get all bookings (Admin view)",
+                "tags": [
+                    "Admin-Bookings"
+                ],
+                "parameters": [
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "Pending",
+                                "Confirmed",
+                                "Completed",
+                                "Cancelled"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        }
+                    },
+                    {
+                        "name": "pageSize",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 20
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of bookings"
+                    }
+                }
+            }
+        },
+        "/api/admin/bookings/{id}": {
+            "get": {
+                "summary": "Get booking details by ID (Admin view)",
+                "tags": [
+                    "Admin-Bookings"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Booking details"
+                    }
+                }
+            }
+        },
+        "/api/admin/bookings/verify/{eventId}": {
+            "put": {
+                "summary": "Verify booking (Admin approves and sends to restaurant)",
+                "tags": [
+                    "Admin-Bookings"
+                ],
+                "parameters": [
+                    {
+                        "name": "eventId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Booking verified"
+                    }
+                }
+            }
+        },
+        "/api/admin/bookings/{id}/modify": {
+            "put": {
+                "summary": "Modify booking (Admin can edit booking details)",
+                "tags": [
+                    "Admin-Bookings"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "bookingDate": {
+                                        "type": "string",
+                                        "format": "date"
+                                    },
+                                    "bookingTime": {
+                                        "type": "string"
+                                    },
+                                    "numberOfGuests": {
+                                        "type": "integer"
+                                    },
+                                    "specialRequests": {
+                                        "type": "string"
+                                    },
+                                    "staffNotes": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Booking modified successfully"
+                    }
+                }
+            }
+        },
+        "/api/admin/bookings/{id}/cancel": {
+            "put": {
+                "summary": "Cancel booking",
+                "tags": [
+                    "Admin-Bookings"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "reason": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Booking cancelled successfully"
+                    }
+                }
+            }
+        },
+        "/api/admin/bookings/{id}/status": {
+            "put": {
+                "summary": "Change booking status",
+                "tags": [
+                    "Admin-Bookings"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "status": {
+                                        "type": "string",
+                                        "enum": [
+                                            "PENDING",
+                                            "ADMIN_VERIFIED",
+                                            "CONFIRMED",
+                                            "SEATED",
+                                            "COMPLETED",
+                                            "CANCELLED"
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Booking status updated"
+                    }
+                }
+            }
+        },
+        "/api/admin/bookings/stats": {
+            "get": {
+                "summary": "Get booking statistics",
+                "tags": [
+                    "Admin-Bookings"
+                ],
+                "parameters": [
+                    {
+                        "name": "startDate",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "endDate",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Booking statistics"
+                    }
+                }
+            }
         }
     },
     "components": {
@@ -5927,7 +7437,8 @@
                 "required": [
                     "Rest_name",
                     "Rest_address",
-                    "fssai_certificate","gst_certificate"
+                    "fssai_certificate",
+                    "gst_certificate"
                 ],
                 "properties": {
                     "rest_name": {
@@ -5936,7 +7447,6 @@
                     "rest_address": {
                         "type": "string"
                     },
-                    
                     "avg_cost_two": {
                         "type": "number",
                         "format": "float"
@@ -6006,7 +7516,6 @@
                     "rest_address": {
                         "type": "string"
                     },
-                    
                     "avg_cost_two": {
                         "type": "number",
                         "format": "float"
@@ -7402,8 +8911,28 @@
             "description": "Order management endpoints"
         },
         {
+            "name": "Admin-Bookings",
+            "description": "Bookings management endpoints"
+        },
+        {
             "name": "rest-Orders",
             "description": "Order management endpoints"
+        },
+        {
+            "name": "Bookings",
+            "description": "Endpoints for managing bookings"
+        },
+        {
+            "name": "Dining Spaces",
+            "description": "Endpoints for managing dining areas"
+        },
+        {
+            "name": "Events",
+            "description": "Endpoints for managing events"
+        },
+        {
+            "name": "Customer Booking",
+            "description": "Endpoints for Booking management"
         }
     ]
 }

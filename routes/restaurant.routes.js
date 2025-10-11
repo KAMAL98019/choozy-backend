@@ -19,6 +19,11 @@ router.delete('/:id', ctrl.remove);
 router.post("/login", ctrl.login);
 router.post("/reset-password", ctrl.resetPassword);
 
+// PUT - Update delivery settings for a restaurant
+router.put("/restaurants/:id/delivery-settings",ctrl.updateDeliverySettings);
+
+
+
 
 
 

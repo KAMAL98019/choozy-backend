@@ -1,4 +1,5 @@
-const { Cart, CartItem, FoodItem , Order, sequelize } = require('../models');
+const { Cart, CartItem, FoodItem, Order, sequelize, RestaurantReg } = require('../models');
+
 
 exports.getActiveCart = async (req,res)=>{
   try{
@@ -126,43 +127,85 @@ exports.removeItem = async (req,res)=>{
   }catch(e){ console.error(e); res.status(400).json({error:'Remove item failed'}); }
 };
 
-exports.summary = async (req,res)=>{
-  try{
+exports.summary = async (req, res) => {
+  try {
     const { cartId } = req.params;
-    const items = await CartItem.findAll({ 
-      where: { cartId }, 
-      include:[ {model: FoodItem, as: 'food'}] 
+
+    // Fetch items with food info
+    const items = await CartItem.findAll({
+      where: { cartId },
+      include: [{ model: FoodItem, as: 'food' }]
     });
 
-    const subtotal = items.reduce((s,i)=> {
+    if (!items || items.length === 0) {
+      return res.status(400).json({ error: "Cart is empty" });
+    }
+
+    // Get restaurant info from first item
+    const restaurantId = items[0].food.rest_id;
+    const restaurant = await RestaurantReg.findByPk(restaurantId);
+
+    if (!restaurant) {
+      return res.status(404).json({ error: "Restaurant not found" });
+    }
+
+    // Calculate subtotal
+    const subtotal = items.reduce((s, i) => {
       let selectedAddOns = [];
       if (i.selectedAddOns) {
-        if (typeof i.selectedAddOns === "string") {
-          try {
-            selectedAddOns = JSON.parse(i.selectedAddOns);
-          } catch {
-            selectedAddOns = [];
-          }
-        } else {
-          selectedAddOns = i.selectedAddOns;
+        try {
+          selectedAddOns =
+            typeof i.selectedAddOns === "string"
+              ? JSON.parse(i.selectedAddOns)
+              : i.selectedAddOns;
+        } catch {
+          selectedAddOns = [];
         }
       }
 
-      const addOnsTotal = selectedAddOns.reduce((a, addon)=> a + Number(addon.price || 0), 0);
+      const addOnsTotal = selectedAddOns.reduce(
+        (a, addon) => a + Number(addon.price || 0),
+        0
+      );
 
-      // ✅ correct per item calculation
-      const itemTotal = (Number(i.unitPrice) * i.quantity) + (addOnsTotal * i.quantity);
+      const itemTotal =
+        Number(i.unitPrice) * i.quantity + addOnsTotal * i.quantity;
 
-      return s + itemTotal;   // 👈 now correct line
+      return s + itemTotal;
     }, 0);
 
+    // Tax
     const tax = +(subtotal * 0.05).toFixed(2);
-    const deliveryFee = subtotal > 499 ? 0 : 40;
+
+    // Delivery Fee (restaurant-based)
+    let deliveryFee = 0;
+    const minOrderAmount = restaurant.minOrderAmount || 500;
+    const baseDeliveryFee = restaurant.baseDeliveryFee || 40;
+
+    if (subtotal < minOrderAmount) {
+      deliveryFee = baseDeliveryFee;
+    }
+
     const total = +(subtotal + tax + deliveryFee).toFixed(2);
 
-    res.json({ cartId, items, subtotal, tax, deliveryFee, total });
-  }catch(e){
+    return res.json({
+      cartId,
+      items,
+      subtotal,
+      tax,
+      deliveryFee,
+      total,
+      restaurant: {
+        id: restaurant.id,
+        name: restaurant.rest_name,
+        minOrderAmount,
+        baseDeliveryFee
+      }
+    });
+  } catch (e) {
     console.error("Summary Error:", e.message, e.stack);
-    res.status(500).json({ error:'Failed to compute summary', details:e.message });
+    res
+      .status(500)
+      .json({ error: "Failed to compute summary", details: e.message });
   }
 };

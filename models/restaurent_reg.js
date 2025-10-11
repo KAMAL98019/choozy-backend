@@ -5,7 +5,10 @@ const { v4: uuidv4 } = require('uuid');
 module.exports = (sequelize, DataTypes) => {
   class RestaurantReg extends Model {
     static associate(models) {
-      // define associations here if needed later
+      RestaurantReg.hasMany(models.DiningSpace, { foreignKey: 'rest_id', as: 'diningSpaces' });
+      RestaurantReg.hasMany(models.DiningEvent, { foreignKey: 'rest_id', as: 'events' });
+      RestaurantReg.hasMany(models.DiningBooking, { foreignKey: 'rest_id', as: 'bookings' });
+      RestaurantReg.hasMany(models.FoodItem, { foreignKey: 'rest_id', as: 'foodItems' });
     }
   }
 
@@ -14,10 +17,8 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.CHAR(36),
       primaryKey: true,
       allowNull: false,
-      // For universal compatibility, ensure value exists in hook:
       defaultValue: null
     },
-    
 
     rest_name: { type: DataTypes.STRING(255), allowNull: false },
     rest_address: { type: DataTypes.TEXT, allowNull: false },
@@ -25,7 +26,7 @@ module.exports = (sequelize, DataTypes) => {
     rest_logo: { type: DataTypes.TEXT, allowNull: true },
     contact_person_name: { type: DataTypes.STRING(255), allowNull: true },
     contact_email: { type: DataTypes.STRING(255), allowNull: true },
-    password: { type: DataTypes.STRING, allowNull: false, },
+    password: { type: DataTypes.STRING, allowNull: false },
     contact_number: { type: DataTypes.STRING(32), allowNull: true },
     operational_hours: { type: DataTypes.JSON, allowNull: true },
     fssai_certificate: { type: DataTypes.STRING(1024), allowNull: false },
@@ -39,7 +40,19 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
       defaultValue: 'active'
     },
-    
+
+    // 🔹 New Delivery Settings Fields
+    deliveryType: { 
+      type: DataTypes.ENUM('RADIUS', 'ZONE'), 
+      allowNull: false, 
+      defaultValue: 'RADIUS' 
+    },
+    deliveryRadius: { type: DataTypes.FLOAT, allowNull: true },  // in KM
+    deliveryZones: { type: DataTypes.JSON, allowNull: true },   // polygon coords
+    restaurantLatitude: { type: DataTypes.FLOAT, allowNull: true },
+    restaurantLongitude: { type: DataTypes.FLOAT, allowNull: true },
+    minOrderAmount: { type: DataTypes.DECIMAL(10, 2), allowNull: false, defaultValue: 500 },
+    baseDeliveryFee: { type: DataTypes.DECIMAL(10, 2), allowNull: false, defaultValue: 50 },
 
   }, {
     sequelize,
@@ -47,7 +60,6 @@ module.exports = (sequelize, DataTypes) => {
     tableName: 'restaurant_reg'
   });
 
-  // Ensure UUID is set (works regardless of DB engine)
   RestaurantReg.beforeCreate((instance) => {
     if (!instance.id) instance.id = uuidv4();
   });

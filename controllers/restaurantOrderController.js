@@ -2,14 +2,19 @@
 const { Order, OrderItem, User, Partner, FoodItem, RestaurantReg } = require('../models');
 const { Op } = require('sequelize');
 
-// -------------------- Get all orders --------------------
+
+
 async function getAllOrders(req, res) {
   try {
-    const { status, sortBy = 'createdAt', order = 'DESC', search, userId } = req.query;
+    const { restaurantId, status, sortBy = 'createdAt', order = 'DESC', search, userId } = req.query;
 
-    const where = {};
+    if (!restaurantId) {
+      return res.status(400).json({ success: false, message: 'restaurantId is required' });
+    }
 
-    // status mapping
+    const where = { rest_id: restaurantId }; // ✅ use correct attribute
+
+    // Status mapping
     if (status) {
       const map = {
         New: 'PENDING',
@@ -21,7 +26,7 @@ async function getAllOrders(req, res) {
       if (map[status]) where.status = map[status];
     }
 
-    // If partner
+    // If partner user
     if (userId) {
       const user = await User.findByPk(userId);
       if (user?.role === 'PARTNER') {
@@ -29,7 +34,7 @@ async function getAllOrders(req, res) {
       }
     }
 
-    // search by orderNumber / customerName
+    // Search by orderNumber / customerName
     if (search) {
       where[Op.or] = [
         { orderNumber: { [Op.like]: `%${search}%` } },
@@ -49,7 +54,9 @@ async function getAllOrders(req, res) {
               model: FoodItem,
               as: 'food',
               attributes: ['id', 'dishname', 'price'],
-              include: [{ model: RestaurantReg, as: 'restaurant', attributes: ['id', 'rest_name', 'rest_logo'] }]
+              include: [
+                { model: RestaurantReg, as: 'restaurant', attributes: ['id', 'rest_name', 'rest_logo'] }
+              ]
             }
           ]
         },
@@ -64,6 +71,8 @@ async function getAllOrders(req, res) {
     return res.status(500).json({ success: false, message: err.message });
   }
 }
+
+
 
 // -------------------- Get order by ID --------------------
 async function getOrderById(req, res) {

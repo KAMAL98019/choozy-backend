@@ -30,9 +30,10 @@ exports.updateDeliveryStatus = async (req, res) => {
 
     if (status) delivery.status = status;
     if (lat && lng) {
-      delivery.lat = lat;
-      delivery.lng = lng;
+      delivery.currentLatitude = lat;
+      delivery.currentLongitude = lng;
     }
+
 
     await delivery.save();
     res.json({ message: 'Delivery updated', delivery });
@@ -42,6 +43,7 @@ exports.updateDeliveryStatus = async (req, res) => {
 };
 
 // -------------------- Partner: Complete Delivery with Photo & Notes --------------------
+// -------------------- Partner: Complete Delivery with Photo & Notes --------------------
 exports.completeDelivery = async (req, res) => {
   try {
     const { assignmentId } = req.params;
@@ -49,8 +51,11 @@ exports.completeDelivery = async (req, res) => {
 
     const delivery = await DeliveryOrder.findByPk(assignmentId, {
       include: [
-        { model: Order, as: "order" },
-        { model: Partner, as: "partner" }
+        {
+          model: Order,
+          as: "order",
+          attributes: ["id", "status"]
+        }
       ]
     });
 
@@ -58,54 +63,61 @@ exports.completeDelivery = async (req, res) => {
       return res.status(404).json({ message: "Delivery assignment not found" });
     }
 
-    // Update status
-    delivery.status = "delivered";
+    // ✅ Update delivery status
+    delivery.status = "DELIVERED";
+    if (notes) delivery.notes = notes;
 
-    // Optional notes (only if column exists in DB)
-    if (notes && delivery.notes !== undefined) {
-      delivery.notes = notes;
-    }
-
-    // Proof photo
+    // ✅ Proof photo
     if (req.file) {
-      delivery.proofUrl = `/uploads/${req.file.filename}`;
+      delivery.deliveryPhoto = `/uploads/${req.file.filename}`;
     }
 
-    // Calculate distance & earnings (only if columns exist in DB)
+    // ✅ Calculate distance & earnings (from DeliveryOrder coords, not Order)
+    let distance = null;
+    let earnings = null;
+
     if (
       delivery.pickupLatitude &&
       delivery.pickupLongitude &&
       delivery.deliveryLatitude &&
       delivery.deliveryLongitude
     ) {
-      const distance = calculateDistance(
+      distance = calculateDistance(
         delivery.pickupLatitude,
         delivery.pickupLongitude,
         delivery.deliveryLatitude,
         delivery.deliveryLongitude
       );
 
-      if (delivery.distanceKm !== undefined) {
-        delivery.distanceKm = distance;
-      }
-
-      if (delivery.earnings !== undefined) {
-        delivery.earnings = distance * 10; // ₹10 per km
-      }
+      delivery.distanceKm = distance;
+      delivery.earnings = distance * 10; // ₹10/km
+      earnings = delivery.earnings;
     }
 
     await delivery.save();
 
-    // Update order status
+    // ✅ Update Order status
     if (delivery.order) {
-      delivery.order.status = "delivered";
+      delivery.order.status = "DELIVERED";
+      delivery.order.deliveredAt = new Date();
       await delivery.order.save();
     }
 
+    // ✅ Clean Response
     res.json({
       message: "Delivery completed successfully",
-      delivery,
-      order: delivery.order
+      delivery: {
+        id: delivery.id,
+        status: delivery.status,
+        notes: delivery.notes || null,
+        deliveryPhoto: delivery.deliveryPhoto || null,
+        distanceKm: delivery.distanceKm || null,
+        earnings: earnings || null
+      },
+      order: {
+        id: delivery.order?.id,
+        status: delivery.order?.status
+      }
     });
   } catch (err) {
     console.error("❌ Error in completeDelivery:", err);
@@ -113,7 +125,7 @@ exports.completeDelivery = async (req, res) => {
   }
 };
 
-// -------------------- Helper: Haversine Distance --------------------
+// -------------------- Helper --------------------
 function calculateDistance(lat1, lng1, lat2, lng2) {
   const R = 6371; // km
   const dLat = deg2rad(lat2 - lat1);
@@ -123,7 +135,7 @@ function calculateDistance(lat1, lng1, lat2, lng2) {
     Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
     Math.sin(dLng / 2) ** 2;
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
+  return +(R * c).toFixed(2); // 2 decimal points
 }
 
 function deg2rad(deg) {

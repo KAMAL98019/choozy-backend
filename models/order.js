@@ -9,6 +9,8 @@ module.exports = (sequelize, DataTypes) => {
       Order.belongsTo(models.Cart, { foreignKey: 'cartId', as: 'cart' });
       Order.hasOne(models.DeliveryOrder, { foreignKey: 'orderId', as: 'delivery_order' });
       Order.belongsTo(models.Partner, { foreignKey: 'partnerId', as: 'partner' });
+      Order.belongsTo(models.RestaurantReg, { foreignKey: 'rest_id', as: 'restaurant' });
+
     }
   }
 

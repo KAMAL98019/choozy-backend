@@ -18,4 +18,7 @@ router.get('/restaurants/:id', restaurantController.getRestaurantById);
 // Update restaurant status (Approve/Reject/Block/Unblock)
 router.put('/restaurants/:id/status', restaurantController.updateRestaurantStatus);
 
+
+
+
 module.exports = router;

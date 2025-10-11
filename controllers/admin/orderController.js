@@ -101,14 +101,16 @@ exports.getOrderDetails = async (req, res) => {
                 {
                   model: FoodItem,
                   as: "food",
-                  attributes: ["dishname"]
+                  attributes: ["dishname"],
+                  include: [
+                    {
+                      model: RestaurantReg,
+                      as: "restaurant",
+                      attributes: ["rest_name", "contact_email", "contact_number", "rest_address"]
+                    }
+                  ]
                 }
               ]
-            },
-            {
-              model: RestaurantReg,
-              as: "restaurant",
-              attributes: ["rest_name", "contact_email", "contact_number", "rest_address"]
             }
           ]
         },
@@ -132,7 +134,10 @@ exports.getOrderDetails = async (req, res) => {
     const currentTime = new Date();
     const deliveryTimeMinutes = Math.floor((currentTime - orderPlacedTime) / (1000 * 60));
 
-    // Format response matching the screenshot
+    // Get restaurant info from first cart item
+    const firstItem = order.cart?.items?.[0];
+    const restaurant = firstItem?.food?.restaurant;
+
     res.status(200).json({
       success: true,
       message: "Order details fetched successfully",
@@ -142,7 +147,7 @@ exports.getOrderDetails = async (req, res) => {
         lastUpdated: order.updatedAt,
         deliveryTime: `${deliveryTimeMinutes} minutes`,
         paymentMethod: order.paymentMethod,
-        
+
         orderSummary: {
           orderPlacement: order.createdAt,
           totalAmount: order.totalAmount,
@@ -158,12 +163,12 @@ exports.getOrderDetails = async (req, res) => {
           deliveryAddress: order.address
         },
 
-        restaurantInformation: {
-          name: order.cart?.restaurant?.rest_name || "N/A",
-          email: order.cart?.restaurant?.contact_email || "N/A",
-          mobile: order.cart?.restaurant?.contact_number || "N/A",
-          address: order.cart?.restaurant?.rest_address || "N/A"
-        },
+        restaurantInformation: restaurant ? {
+          name: restaurant.rest_name,
+          email: restaurant.contact_email,
+          mobile: restaurant.contact_number,
+          address: restaurant.rest_address
+        } : { name: "N/A", email: "N/A", mobile: "N/A", address: "N/A" },
 
         deliveryPartnerInformation: order.partner ? {
           name: order.partner.fullName,
@@ -196,17 +201,17 @@ exports.getOrderDetails = async (req, res) => {
           },
           {
             status: "Restaurant Accepted",
-            timestamp: order.status === 'CONFIRMED' || order.status === 'PREPARING' || order.status === 'OUT_FOR_DELIVERY' || order.status === 'DELIVERED' ? order.updatedAt : null,
+            timestamp: ['CONFIRMED', 'PREPARING', 'OUT_FOR_DELIVERY', 'DELIVERED'].includes(order.status) ? order.updatedAt : null,
             message: "Restaurant has accepted the order and started preparation."
           },
           {
             status: "Order Prepared",
-            timestamp: order.status === 'PREPARING' || order.status === 'OUT_FOR_DELIVERY' || order.status === 'DELIVERED' ? order.updatedAt : null,
+            timestamp: ['PREPARING', 'OUT_FOR_DELIVERY', 'DELIVERED'].includes(order.status) ? order.updatedAt : null,
             message: "Restaurant has prepared and packaged the order."
           },
           {
             status: "Out for Delivery",
-            timestamp: order.status === 'OUT_FOR_DELIVERY' || order.status === 'DELIVERED' ? order.updatedAt : null,
+            timestamp: ['OUT_FOR_DELIVERY', 'DELIVERED'].includes(order.status) ? order.updatedAt : null,
             message: order.partner ? `${order.partner.fullName} has picked up the order and is on the way to delivery.` : null
           },
           {
@@ -217,6 +222,7 @@ exports.getOrderDetails = async (req, res) => {
         ].filter(item => item.timestamp !== null)
       }
     });
+
   } catch (error) {
     console.error("Error fetching order details:", error);
     res.status(500).json({ 

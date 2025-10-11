@@ -50,8 +50,9 @@ app.use('/api/admin', require('./routes/admin/userRoutes'));
 app.use('/api/admin', require('./routes/admin/restaurantRoutes'));
 app.use('/api/admin', require('./routes/admin/deliveryPartnerRoutes'));
 app.use('/api/admin', require('./routes/admin/orderRoutes'));
-
-
+app.use('/api/admin', require('./routes/admin/bookingRoutes'));
+app.use('/api/customer',require('./routes/customerBookingRoutes') );
+app.use('/api',require('./routes/restaurantBookingRoutes') );
 
 
 
@@ -78,4 +79,4 @@ app.listen(PORT, async () => {
   }
   console.log(`🚀 Server listening on http://localhost:${PORT}`);
   console.log(`📘 Swagger UI: http://localhost:${PORT}/api-docs`);
-});
+ });

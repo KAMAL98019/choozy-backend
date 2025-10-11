@@ -6,8 +6,8 @@ async function createAdmin() {
     await sequelize.authenticate();
     console.log('Database connected!');
 
-    const email = 'example@gmail.com';
-    const plainPassword = 'newpass1234';
+    const email = 'secondadmin@gmail.com';
+    const plainPassword = 'anotherpass123';
 
     const existingAdmin = await Admin.findOne({ where: { email } });
     if (existingAdmin) {

@@ -8,6 +8,14 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: 'rest_id',
         as: 'restaurant'
       });
+      FoodItem.belongsTo(models.Cuisine, {
+        foreignKey: 'cuisineId',
+        as: 'cuisine'
+      });
+      FoodItem.belongsTo(models.Category, {
+        foreignKey: 'categoryId',
+        as: 'category'
+      });
     }
   }
   FoodItem.init({
@@ -29,10 +37,7 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.FLOAT,
       allowNull: false
     },
-    category: {
-      type: DataTypes.STRING,
-      allowNull: false
-    },
+    
     veg: {
       type: DataTypes.BOOLEAN,
       defaultValue: true
@@ -42,7 +47,15 @@ module.exports = (sequelize, DataTypes) => {
       defaultValue: false
     },
     specify_allergence: DataTypes.TEXT,
-    customised_options: DataTypes.JSON
+    customised_options: DataTypes.JSON,
+    cuisineId: {
+      type: DataTypes.UUID,
+      allowNull: true
+    },
+    categoryId: {   // Add this foreign key
+      type: DataTypes.UUID,
+      allowNull: true
+    }
   }, {
     sequelize,
     modelName: 'FoodItem',

@@ -1,6 +1,8 @@
-const { Partner, Order, PartnerAttendance } = require('../../models');
+const { Partner, Order, PartnerAttendance,ReviewCustomerToDelivery } = require('../../models');
 const { Op } = require('sequelize');
 const sequelize = require('../../models').sequelize;
+const { fn, col } = require('sequelize');
+
 
 /**
  * Get all delivery partners with filters and pagination
@@ -59,28 +61,34 @@ exports.getAllPartners = async (req, res) => {
 
     // Calculate rating for each partner (from orders)
     const partnersWithRating = await Promise.all(
-      partners.map(async (partner) => {
-        const orders = await Order.findAll({
-          where: { partnerId: partner.id },
-          attributes: ['id']
-        });
+  partners.map(async (partner) => {
+    // Total orders if needed
+    const orders = await Order.count({ where: { partnerId: partner.id } });
 
-        // For now, return N/A if no rating system
-        // You can add rating calculation from reviews here
-        const rating = 'N/A';
+    // Average rating from reviews
+    const ratingData = await ReviewCustomerToDelivery.findOne({
+      where: { partnerId: partner.id },
+      attributes: [[fn('AVG', col('rating')), 'avgRating']],
+      raw: true
+    });
 
-        return {
-          id: partner.id,
-          fullName: partner.fullName,
-          email: partner.email,
-          mobile: partner.mobile,
-          vehicleType: partner.vehicleType,
-          status: partner.status,
-          registrationDate: partner.createdAt,
-          rating: rating
-        };
-      })
-    );
+    const rating = ratingData && ratingData.avgRating 
+      ? parseFloat(ratingData.avgRating).toFixed(1) 
+      : 'N/A';
+
+    return {
+      id: partner.id,
+      fullName: partner.fullName,
+      email: partner.email,
+      mobile: partner.mobile,
+      vehicleType: partner.vehicleType,
+      status: partner.status,
+      registrationDate: partner.createdAt,
+      totalOrders: orders,
+      rating
+    };
+  })
+);
 
     res.status(200).json({
       success: true,
