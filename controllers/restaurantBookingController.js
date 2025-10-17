@@ -346,17 +346,40 @@ exports.createEvent = async (req, res) => {
       frequency,
       eventDay,
       eventDate,
-      eventTime,
-      associatedDiningArea,
-      isActive
+      eventTimes,          // ✅ changed field name
+      associatedDiningArea
     } = req.body;
 
-    if (!restaurantId || !eventName || !frequency || !eventTime)
-      return res.status(400).json({ success: false, error: 'restaurantId, eventName, frequency, eventTime required' });
+    // ✅ Validation
+    if (!restaurantId || !eventName || !frequency || !eventTimes)
+      return res.status(400).json({
+        success: false,
+        error: 'restaurantId, eventName, frequency, eventTimes are required'
+      });
 
-    const restaurant = await RestaurantReg.findOne({ where: { id: restaurantId, status: 'active' } });
-    if (!restaurant) return res.status(404).json({ success: false, error: 'Restaurant not found or inactive' });
+    // ✅ Ensure eventTimes is an array
+    const formattedTimes = Array.isArray(eventTimes)
+      ? eventTimes
+      : typeof eventTimes === 'string'
+        ? eventTimes.split(',').map(t => t.trim())
+        : [];
 
+    if (formattedTimes.length === 0)
+      return res.status(400).json({
+        success: false,
+        error: 'eventTimes must contain at least one valid time'
+      });
+
+    const restaurant = await RestaurantReg.findOne({
+      where: { id: restaurantId, status: 'active' }
+    });
+    if (!restaurant)
+      return res.status(404).json({
+        success: false,
+        error: 'Restaurant not found or inactive'
+      });
+
+    // ✅ Create new event (inactive until admin verifies)
     const event = await DiningEvent.create({
       rest_id: restaurantId,
       eventName,
@@ -364,20 +387,23 @@ exports.createEvent = async (req, res) => {
       frequency,
       eventDay,
       eventDate,
-      eventTime,
+      eventTimes: formattedTimes, // ✅ Save as array
       associatedDiningArea,
-      isActive: isActive !== undefined ? isActive : true
+      isActive: false,
+      isAdminVerified: false
     });
 
     return res.status(201).json({
       success: true,
-      message: 'Event created',
+      message: 'Event created successfully. Pending admin verification.',
       data: event
     });
-
   } catch (error) {
     console.error('createEvent error:', error);
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({
+      success: false,
+      error: error.message
+    });
   }
 };
 
@@ -385,20 +411,33 @@ exports.createEvent = async (req, res) => {
 exports.updateEvent = async (req, res) => {
   try {
     const { id } = req.params;
-    const event = await DiningEvent.findOne({ where: { id, isActive: true } });
-    if (!event) return res.status(404).json({ success: false, error: 'Event not found' });
 
-    await event.update(req.body);
+    const event = await DiningEvent.findByPk(id);
+    if (!event)
+      return res.status(404).json({ success: false, error: 'Event not found' });
+
+    const updateData = { ...req.body };
+
+    // ✅ Handle eventTimes (allow array or comma-separated string)
+    if (req.body.eventTimes) {
+      updateData.eventTimes = Array.isArray(req.body.eventTimes)
+        ? req.body.eventTimes
+        : req.body.eventTimes.split(',').map(t => t.trim());
+    }
+
+    await event.update(updateData);
 
     return res.status(200).json({
       success: true,
-      message: 'Event updated',
+      message: 'Event updated successfully',
       data: event
     });
-
   } catch (error) {
     console.error('updateEvent error:', error);
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({
+      success: false,
+      error: error.message
+    });
   }
 };
 

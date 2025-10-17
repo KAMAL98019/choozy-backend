@@ -29,13 +29,20 @@ router.put("/partner/:id",upload.fields([
     { name: "rcFile", maxCount: 1 },
     { name: "dlFile", maxCount: 1 },
     { name: "idProofFile", maxCount: 1 },
+    { name: "profilePhoto", maxCount: 1 },
   ]), deliveryPartner.update);
 router.delete("/partner/:id", deliveryPartner.remove);
 
 
 
-router.post("/login",deliveryPartner.login);
-router.post("/forgot-password",deliveryPartner.forgotPassword);
+router.post("/login", deliveryPartner.login);
+router.post("/logout", deliveryPartner.login);
+
+// Forgot password flow routes
+router.post('/forgot-password/send-otp', deliveryPartner.sendOTP);
+router.post('/forgot-password/verify-otp', deliveryPartner.verifyOTP);
+router.post('/forgot-password/reset-password', deliveryPartner.resetPassword);
+router.post('/forgot-password/resend-otp', deliveryPartner.resendOTP);
 
 
 module.exports = router;

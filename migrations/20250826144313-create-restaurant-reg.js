@@ -6,41 +6,41 @@ module.exports = {
     await queryInterface.createTable('restaurant_reg', {
       id: {
         type: Sequelize.UUID,
-        defaultValue: Sequelize.UUIDV4, // Sequelize handles UUID generation
+        defaultValue: Sequelize.UUIDV4,
         allowNull: false,
         primaryKey: true,
       },
 
-      Rest_name: {
+      rest_name: {
         type: Sequelize.STRING(255),
-        allowNull: false
+        allowNull: false,
       },
 
-      Rest_address: {
+      rest_address: {
         type: Sequelize.TEXT,
-        allowNull: false
+        allowNull: false,
       },
 
-      
       avg_cost_two: {
         type: Sequelize.DECIMAL(10, 2),
-        allowNull: true
+        allowNull: true,
       },
 
       rest_logo: {
-        type: Sequelize.TEXT, // store URL/path
-        allowNull: true
+        type: Sequelize.TEXT,
+        allowNull: true,
       },
 
       contact_person_name: {
         type: Sequelize.STRING(255),
-        allowNull: true
+        allowNull: true,
       },
 
       contact_email: {
         type: Sequelize.STRING(255),
-        allowNull: true
+        allowNull: true,
       },
+
       password: {
         type: Sequelize.STRING,
         allowNull: false,
@@ -48,72 +48,127 @@ module.exports = {
 
       contact_number: {
         type: Sequelize.STRING(32),
-        allowNull: true
+        allowNull: true,
       },
 
-      // Array/JSON structure, e.g. [{day:"Mon", from:"09:00", to:"18:00", enabled:true}, ...]
       operational_hours: {
         type: Sequelize.JSON,
-        allowNull: true
+        allowNull: true,
       },
 
       fssai_certificate: {
-        type: Sequelize.STRING(1024), // path/link
-        allowNull: false
+        type: Sequelize.STRING(1024),
+        allowNull: false,
       },
 
       gst_certificate: {
-        type: Sequelize.STRING(1024), // optional path/link
-        allowNull: true
+        type: Sequelize.STRING(1024),
+        allowNull: true,
       },
 
       bank_account_name: {
         type: Sequelize.STRING(255),
-        allowNull: true
+        allowNull: true,
       },
 
       account_number: {
         type: Sequelize.STRING(64),
-        allowNull: true
+        allowNull: true,
       },
 
       ifsc_code: {
         type: Sequelize.STRING(32),
-        allowNull: true
+        allowNull: true,
       },
 
       agree_to_terms: {
         type: Sequelize.BOOLEAN,
         allowNull: false,
-        defaultValue: false
+        defaultValue: false,
+      },
+
+      status: {
+        type: Sequelize.STRING,
+        allowNull: false,
+        defaultValue: 'active',
+      },
+
+      // 🔹 Delivery Settings
+      deliveryType: {
+        type: Sequelize.ENUM('RADIUS', 'ZONE'),
+        allowNull: false,
+        defaultValue: 'RADIUS',
+      },
+
+      deliveryRadius: {
+        type: Sequelize.FLOAT,
+        allowNull: true,
+      },
+
+      deliveryZones: {
+        type: Sequelize.JSON,
+        allowNull: true,
+      },
+
+      restaurantLatitude: {
+        type: Sequelize.FLOAT,
+        allowNull: true,
+      },
+
+      restaurantLongitude: {
+        type: Sequelize.FLOAT,
+        allowNull: true,
+      },
+
+      minOrderAmount: {
+        type: Sequelize.DECIMAL(10, 2),
+        allowNull: false,
+        defaultValue: 500,
+      },
+
+      baseDeliveryFee: {
+        type: Sequelize.DECIMAL(10, 2),
+        allowNull: false,
+        defaultValue: 50,
+      },
+
+      // 🔹 OTP-related fields
+      otp: {
+        type: Sequelize.STRING(6),
+        allowNull: true,
+      },
+
+      otpExpiry: {
+        type: Sequelize.DATE,
+        allowNull: true,
+      },
+
+      otpVerified: {
+        type: Sequelize.BOOLEAN,
+        defaultValue: false,
       },
 
       createdAt: {
         type: Sequelize.DATE,
         allowNull: false,
-        defaultValue: Sequelize.fn('NOW')
+        defaultValue: Sequelize.fn('NOW'),
       },
-      status: {
-        type: Sequelize.STRING,
-        allowNull: false,
-        defaultValue: 'active', // default status
-
-      },
-      
 
       updatedAt: {
         type: Sequelize.DATE,
         allowNull: false,
-        defaultValue: Sequelize.fn('NOW')
-      }
+        defaultValue: Sequelize.fn('NOW'),
+      },
     });
 
-    // Helpful indexes for search
-    await queryInterface.addIndex('restaurant_reg', ['Rest_name']);
-   await queryInterface.addIndex('restaurant_reg', ['contact_number']);
+    // Helpful indexes for searching
+    await queryInterface.addIndex('restaurant_reg', ['rest_name']);
+    await queryInterface.addIndex('restaurant_reg', ['contact_number']);
   },
 
-  async down(queryInterface) {
+  async down(queryInterface, Sequelize) {
     await queryInterface.dropTable('restaurant_reg');
-  }
+    // Drop ENUM types (important for PostgreSQL)
+    await queryInterface.sequelize.query('DROP TYPE IF EXISTS "enum_restaurant_reg_deliveryType";');
+  },
 };

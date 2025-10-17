@@ -28,6 +28,10 @@ module.exports = {
         allowNull: true,
         type: Sequelize.DATE
       },
+      profilePhoto: {
+        type: Sequelize.STRING,
+        allowNull: true
+      },
       status: {
         type: Sequelize.STRING,
         allowNull: false,

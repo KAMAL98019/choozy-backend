@@ -191,7 +191,6 @@ const createBooking = async (req, res) => {
 };
 
 
-
 // -------------------- Get user's bookings --------------------
 const getMyBookings = async (req, res) => {
   try {

@@ -128,11 +128,15 @@ exports.verifyEvent = async (req, res) => {
     if (event.isAdminVerified) 
       return res.status(400).json({ success: false, error: 'Event already verified' });
 
-    await event.update({ isAdminVerified: true });
+    // ✅ Update both admin verification and active status
+    await event.update({ 
+      isAdminVerified: true,
+      isActive: true
+    });
 
     return res.status(200).json({
       success: true,
-      message: 'Event verified. Customers can now book.',
+      message: 'Event verified and activated. Customers can now book.',
       data: event
     });
   } catch (error) {
@@ -140,8 +144,6 @@ exports.verifyEvent = async (req, res) => {
     return res.status(500).json({ success: false, error: error.message });
   }
 };
-
-
 
 
 // Modify booking (Admin)

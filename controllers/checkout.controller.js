@@ -102,6 +102,9 @@ exports.checkout = async (req, res) => {
 
     const totalAmount = +(subtotal + tax + deliveryFee).toFixed(2);
 
+    const paymentStatus = 'PAID';
+
+
     // Create Order
     const order = await Order.create(
       {
@@ -114,7 +117,9 @@ exports.checkout = async (req, res) => {
         tax,
         deliveryFee,
         totalAmount,
-        status: 'PENDING'
+        status: 'PENDING',
+        paymentStatus 
+         
       },
       { transaction: t }
     );
@@ -168,7 +173,8 @@ exports.checkout = async (req, res) => {
         deliveryFee,
         totalAmount,
         paymentMethod,
-        status: order.status
+        status: order.status,
+        paymentStatus: order.paymentStatus
       }
     });
   } catch (err) {
@@ -205,3 +211,61 @@ function isPointInPolygon(point, polygon) {
   }
   return inside;
 }
+
+
+// controllers/order.controller.js
+
+exports.trackOrder = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+
+    const order = await Order.findByPk(orderId, {
+      include: [
+        {
+          model: RestaurantReg,
+          as: 'restaurant',
+          attributes: ['id', 'rest_name', 'restaurantLatitude', 'restaurantLongitude', 'rest_address', 'contact_number']
+        },
+        {
+          model: DeliveryOrder,
+          as: 'delivery_order',
+          include: [
+            { model: Partner, as: 'partner', attributes: ['id', 'fullName', 'mobile', 'status'] }
+          ]
+        }
+      ]
+    });
+
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+
+    // Calculate remaining time
+    let remainingTime = null;
+    if (order.status === 'PREPARING' || order.status === 'READY') {
+      remainingTime = order.estimatedPreparationTime || null; // in minutes
+    }
+
+    // Send tracking info
+    res.json({
+      success: true,
+      data: {
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        status: order.status,
+        estimatedPreparationTime: order.estimatedPreparationTime, // total estimated time
+        remainingTime, // optionally remaining
+        restaurant: order.restaurant,
+        delivery: order.delivery_order ? {
+          status: order.delivery_order.status,
+          partner: order.delivery_order.partner,
+          otp: order.delivery_order.status === 'PICKED_UP' ? order.deliveryOtp : null
+        } : null
+      }
+    });
+
+  } catch (err) {
+    console.error('Error in trackOrder:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};

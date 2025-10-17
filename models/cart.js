@@ -12,19 +12,23 @@ module.exports = (sequelize, DataTypes) => {
      * The `models/index` file will call this method automatically.
      */
     static associate(models) {
-     Cart.belongsTo(models.User, { foreignKey: 'userId', as: 'user' });
-     Cart.hasMany(models.CartItem, { as: 'items', foreignKey: 'cartId' });
-     
-     
+      Cart.belongsTo(models.User, { foreignKey: 'userId', as: 'user' });
+      Cart.hasMany(models.CartItem, { as: 'items', foreignKey: 'cartId' });
+
+
     }
   }
   Cart.init({
-     id: {
+    id: {
       type: DataTypes.UUID,
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true
     },
     userId: DataTypes.UUID,
+    rest_id: {
+      type: DataTypes.UUID,
+      allowNull: false
+    },
     status: DataTypes.STRING
   }, {
     sequelize,

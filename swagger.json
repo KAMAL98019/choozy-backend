@@ -516,19 +516,50 @@
                 "requestBody": {
                     "required": true,
                     "content": {
-                        "application/json": {
+                        "multipart/form-data": {
                             "schema": {
-                                "$ref": "#/components/schemas/UserUpdate"
+                                "type": "object",
+                                "required": [
+                                    "profilePhoto"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email"
+                                    },
+                                    "password": {
+                                        "type": "string"
+                                    },
+                                    "birthday": {
+                                        "type": "string",
+                                        "format": "date"
+                                    },
+                                    "anniversary": {
+                                        "type": "string",
+                                        "format": "date"
+                                    },
+                                    "profilePhoto": {
+                                        "type": "string",
+                                        "format": "binary",
+                                        "description": "Profile photo file is required"
+                                    }
+                                }
                             }
                         }
                     }
                 },
                 "responses": {
                     "200": {
-                        "description": "Updated"
+                        "description": "User updated"
                     },
                     "404": {
-                        "description": "Not found"
+                        "description": "User not found"
+                    },
+                    "400": {
+                        "description": "Validation error"
                     }
                 }
             },
@@ -875,10 +906,10 @@
         },
         "/api/restaurants/login": {
             "post": {
-                "summary": "Restaurant login",
                 "tags": [
-                    "Restaurant Auth"
+                    "RestaurantAuth"
                 ],
+                "summary": "Login restaurant account (Email OR Mobile)",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -886,17 +917,17 @@
                             "schema": {
                                 "type": "object",
                                 "properties": {
-                                    "contact_email": {
+                                    "emailOrMobile": {
                                         "type": "string",
-                                        "example": "restaurant@test.com"
+                                        "example": "demo@restaurant.com"
                                     },
                                     "password": {
                                         "type": "string",
-                                        "example": "secret123"
+                                        "example": "12345678"
                                     }
                                 },
                                 "required": [
-                                    "email",
+                                    "emailOrMobile",
                                     "password"
                                 ]
                             }
@@ -908,20 +939,26 @@
                         "description": "Login successful"
                     },
                     "400": {
-                        "description": "Invalid password"
+                        "description": "Email/Mobile and password are required"
+                    },
+                    "401": {
+                        "description": "Incorrect password"
+                    },
+                    "403": {
+                        "description": "Account blocked or pending approval"
                     },
                     "404": {
-                        "description": "Email not found"
+                        "description": "Email or Mobile number not found"
                     }
                 }
             }
         },
-        "/api/restaurants/reset-password": {
+        "/api/restaurants/logout": {
             "post": {
-                "summary": "Reset password using only email",
                 "tags": [
-                    "Restaurant Auth"
+                    "RestaurantAuth"
                 ],
+                "summary": "Logout restaurant account",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -929,17 +966,133 @@
                             "schema": {
                                 "type": "object",
                                 "properties": {
-                                    "contact_email": {
+                                    "emailOrMobile": {
                                         "type": "string",
-                                        "example": "restaurant@test.com"
-                                    },
-                                    "newPassword": {
-                                        "type": "string",
-                                        "example": "newSecret123"
+                                        "example": "demo@restaurant.com"
                                     }
                                 },
                                 "required": [
-                                    "email",
+                                    "emailOrMobile"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Logout successful"
+                    },
+                    "400": {
+                        "description": "Email or Mobile number is required"
+                    }
+                }
+            }
+        },
+        "/api/restaurants/forgot-password/send-otp": {
+            "post": {
+                "tags": [
+                    "RestaurantAuth"
+                ],
+                "summary": "Send OTP for password reset (Email OR Mobile)",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "emailOrMobile": {
+                                        "type": "string",
+                                        "example": "demo@restaurant.com"
+                                    }
+                                },
+                                "required": [
+                                    "emailOrMobile"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "OTP sent successfully"
+                    },
+                    "400": {
+                        "description": "Email or Mobile number is required"
+                    },
+                    "404": {
+                        "description": "Email or Mobile number not registered"
+                    }
+                }
+            }
+        },
+        "/api/restaurants/forgot-password/verify-otp": {
+            "post": {
+                "tags": [
+                    "RestaurantAuth"
+                ],
+                "summary": "Verify OTP for password reset",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "emailOrMobile": {
+                                        "type": "string",
+                                        "example": "demo@restaurant.com"
+                                    },
+                                    "otp": {
+                                        "type": "string",
+                                        "example": "123456"
+                                    }
+                                },
+                                "required": [
+                                    "emailOrMobile",
+                                    "otp"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "OTP verified successfully"
+                    },
+                    "400": {
+                        "description": "Invalid or expired OTP"
+                    },
+                    "404": {
+                        "description": "Email or Mobile number not found"
+                    }
+                }
+            }
+        },
+        "/api/restaurants/forgot-password/reset-password": {
+            "post": {
+                "tags": [
+                    "RestaurantAuth"
+                ],
+                "summary": "Reset password after OTP verification",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "emailOrMobile": {
+                                        "type": "string",
+                                        "example": "demo@restaurant.com"
+                                    },
+                                    "newPassword": {
+                                        "type": "string",
+                                        "example": "newSecurePassword123"
+                                    }
+                                },
+                                "required": [
+                                    "emailOrMobile",
                                     "newPassword"
                                 ]
                             }
@@ -950,15 +1103,384 @@
                     "200": {
                         "description": "Password reset successful"
                     },
+                    "403": {
+                        "description": "Please verify OTP first"
+                    },
                     "404": {
-                        "description": "Email not found"
+                        "description": "Email or Mobile number not found"
                     }
                 }
             }
         },
-        "/api/carts/active/{userId}": {
+        "/api/restaurants/forgot-password/resend-otp": {
+            "post": {
+                "tags": [
+                    "RestaurantAuth"
+                ],
+                "summary": "Resend OTP for password reset (Email OR Mobile)",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "emailOrMobile": {
+                                        "type": "string",
+                                        "example": "demo@restaurant.com"
+                                    }
+                                },
+                                "required": [
+                                    "emailOrMobile"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "OTP resent successfully"
+                    },
+                    "400": {
+                        "description": "Email or Mobile number is required"
+                    },
+                    "404": {
+                        "description": "Email or Mobile number not registered"
+                    }
+                }
+            }
+        },
+        "/api/food-items": {
             "get": {
-                "summary": "Get active cart for a user",
+                "tags": [
+                    "Food Items"
+                ],
+                "summary": "Get all food items (optionally filter by restaurantId, cuisineId, categoryId, or search)",
+                "parameters": [
+                    {
+                        "name": "restaurantId",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Filter food items by restaurant ID"
+                    },
+                    {
+                        "name": "cuisineId",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Filter food items by cuisine ID"
+                    },
+                    {
+                        "name": "categoryId",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Filter food items by category ID"
+                    },
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Search by dishname"
+                    },
+                    {
+                        "name": "veg",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "boolean"
+                        },
+                        "description": "Filter by Veg (true) or Non-Veg (false)"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of food items",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "success": true,
+                                    "data": [
+                                        {
+                                            "id": "uuid",
+                                            "dishname": "Paneer Butter Masala",
+                                            "price": 250,
+                                            "veg": true,
+                                            "rest_id": "restaurant-uuid",
+                                            "cuisine": {
+                                                "id": "cuisine-uuid",
+                                                "name": "Indian"
+                                            },
+                                            "category": {
+                                                "id": "category-uuid",
+                                                "name": "Main Course"
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error"
+                    }
+                }
+            },
+            "post": {
+                "summary": "Create a food item",
+                "tags": [
+                    "Food Items"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "rest_id": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "example": "b1a2c3d4-e5f6-7890-1234-56789abcdef0"
+                                    },
+                                    "cuisineId": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "example": "c1d2e3f4-g5h6-7890-1234-56789abcdef0"
+                                    },
+                                    "categoryId": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "example": "cat1d2e3f4-g5h6-7890-1234-56789abcdeff"
+                                    },
+                                    "dishname": {
+                                        "type": "string",
+                                        "example": "Paneer Butter Masala"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "example": "A rich and creamy North Indian curry made with paneer cubes, butter, tomatoes, and spices."
+                                    },
+                                    "price": {
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 250.0
+                                    },
+                                    "veg": {
+                                        "type": "boolean",
+                                        "example": true
+                                    },
+                                    "contain_allergens": {
+                                        "type": "boolean",
+                                        "example": true
+                                    },
+                                    "specify_allergence": {
+                                        "type": "string",
+                                        "example": "Contains dairy and cashew nuts"
+                                    },
+                                    "customised_options": {
+                                        "type": "object",
+                                        "example": {
+                                            "spice_level": [
+                                                "Mild",
+                                                "Medium",
+                                                "Spicy"
+                                            ],
+                                            "add_ons": [
+                                                {
+                                                    "name": "Extra Paneer",
+                                                    "price": 50
+                                                },
+                                                {
+                                                    "name": "Butter Naan",
+                                                    "price": 40
+                                                }
+                                            ]
+                                        }
+                                    }
+                                },
+                                "required": [
+                                    "rest_id",
+                                    "dishname",
+                                    "price",
+                                    "categoryId",
+                                    "cuisineId"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Food item created"
+                    },
+                    "500": {
+                        "description": "Server error"
+                    }
+                }
+            }
+        },
+        "/api/food-items/{id}": {
+            "get": {
+                "summary": "Get food item by ID",
+                "tags": [
+                    "Food Items"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Single food item with cuisine and category",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "success": true,
+                                    "data": {
+                                        "id": "uuid",
+                                        "dishname": "Paneer Butter Masala",
+                                        "price": 250,
+                                        "cuisine": {
+                                            "id": "cuisine-uuid",
+                                            "name": "Indian"
+                                        },
+                                        "category": {
+                                            "id": "category-uuid",
+                                            "name": "Main Course"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Food item not found"
+                    },
+                    "500": {
+                        "description": "Server error"
+                    }
+                }
+            },
+            "put": {
+                "summary": "Update food item",
+                "tags": [
+                    "Food Items"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "dishname": {
+                                        "type": "string"
+                                    },
+                                    "description": {
+                                        "type": "string"
+                                    },
+                                    "price": {
+                                        "type": "number",
+                                        "format": "float"
+                                    },
+                                    "veg": {
+                                        "type": "boolean"
+                                    },
+                                    "contain_allergens": {
+                                        "type": "boolean"
+                                    },
+                                    "specify_allergence": {
+                                        "type": "string"
+                                    },
+                                    "customised_options": {
+                                        "type": "object"
+                                    },
+                                    "cuisineId": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    "categoryId": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Updated food item"
+                    },
+                    "404": {
+                        "description": "Food item not found"
+                    },
+                    "500": {
+                        "description": "Server error"
+                    }
+                }
+            },
+            "delete": {
+                "summary": "Delete food item",
+                "tags": [
+                    "Food Items"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Food item deleted"
+                    },
+                    "404": {
+                        "description": "Food item not found"
+                    },
+                    "500": {
+                        "description": "Server error"
+                    }
+                }
+            }
+        },
+        "/api/carts/active/{userId}/{restId}": {
+            "get": {
+                "summary": "Get active cart for a user for a specific restaurant",
                 "tags": [
                     "Cart"
                 ],
@@ -970,263 +1492,36 @@
                         "schema": {
                             "type": "string",
                             "format": "uuid"
-                        }
+                        },
+                        "description": "User ID"
+                    },
+                    {
+                        "name": "restId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "description": "Restaurant ID to fetch the active cart for"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Active cart"
+                        "description": "Active cart returned successfully"
+                    },
+                    "404": {
+                        "description": "No active cart found for this user and restaurant"
+                    },
+                    "400": {
+                        "description": "Invalid or missing parameters"
                     }
                 }
             }
         },
-        "/api/food-items": {
-  "get": {
-    "tags": ["Food Items"],
-    "summary": "Get all food items (optionally filter by restaurantId, cuisineId, categoryId, or search)",
-    "parameters": [
-      {
-        "name": "restaurantId",
-        "in": "query",
-        "required": false,
-        "schema": { "type": "string" },
-        "description": "Filter food items by restaurant ID"
-      },
-      {
-        "name": "cuisineId",
-        "in": "query",
-        "required": false,
-        "schema": { "type": "string" },
-        "description": "Filter food items by cuisine ID"
-      },
-      {
-        "name": "categoryId",
-        "in": "query",
-        "required": false,
-        "schema": { "type": "string" },
-        "description": "Filter food items by category ID"
-      },
-      {
-        "name": "search",
-        "in": "query",
-        "required": false,
-        "schema": { "type": "string" },
-        "description": "Search by dishname"
-      }
-    ],
-    "responses": {
-      "200": {
-        "description": "List of food items",
-        "content": {
-          "application/json": {
-            "example": {
-              "success": true,
-              "data": [
-                {
-                  "id": "uuid",
-                  "dishname": "Paneer Butter Masala",
-                  "price": 250,
-                  "veg": true,
-                  "rest_id": "restaurant-uuid",
-                  "cuisine": {
-                    "id": "cuisine-uuid",
-                    "name": "Indian"
-                  },
-                  "category": {
-                    "id": "category-uuid",
-                    "name": "Main Course"
-                  }
-                }
-              ]
-            }
-          }
-        }
-      },
-      "500": { "description": "Internal server error" }
-    }
-  },
-
-  "post": {
-    "summary": "Create a food item",
-    "tags": ["Food Items"],
-    "requestBody": {
-      "required": true,
-      "content": {
-        "application/json": {
-          "schema": {
-            "type": "object",
-            "properties": {
-              "rest_id": {
-                "type": "string",
-                "format": "uuid",
-                "example": "b1a2c3d4-e5f6-7890-1234-56789abcdef0"
-              },
-              "cuisineId": {
-                "type": "string",
-                "format": "uuid",
-                "example": "c1d2e3f4-g5h6-7890-1234-56789abcdef0"
-              },
-              "categoryId": {
-                "type": "string",
-                "format": "uuid",
-                "example": "cat1d2e3f4-g5h6-7890-1234-56789abcdeff"
-              },
-              "dishname": {
-                "type": "string",
-                "example": "Paneer Butter Masala"
-              },
-              "description": {
-                "type": "string",
-                "example": "A rich and creamy North Indian curry made with paneer cubes, butter, tomatoes, and spices."
-              },
-              "price": {
-                "type": "number",
-                "format": "float",
-                "example": 250.0
-              },
-              "veg": {
-                "type": "boolean",
-                "example": true
-              },
-              "contain_allergens": {
-                "type": "boolean",
-                "example": true
-              },
-              "specify_allergence": {
-                "type": "string",
-                "example": "Contains dairy and cashew nuts"
-              },
-              "customised_options": {
-                "type": "object",
-                "example": {
-                  "spice_level": ["Mild", "Medium", "Spicy"],
-                  "add_ons": [
-                    { "name": "Extra Paneer", "price": 50 },
-                    { "name": "Butter Naan", "price": 40 }
-                  ]
-                }
-              }
-            },
-            "required": [
-              "rest_id",
-              "dishname",
-              "price",
-              "categoryId",
-              "cuisineId"
-            ]
-          }
-        }
-      }
-    },
-    "responses": {
-      "201": { "description": "Food item created" },
-      "500": { "description": "Server error" }
-    }
-  }
-},
-
-"/api/food-items/{id}": {
-  "get": {
-    "summary": "Get food item by ID",
-    "tags": ["Food Items"],
-    "parameters": [
-      {
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": { "type": "string", "format": "uuid" }
-      }
-    ],
-    "responses": {
-      "200": {
-        "description": "Single food item with cuisine and category",
-        "content": {
-          "application/json": {
-            "example": {
-              "success": true,
-              "data": {
-                "id": "uuid",
-                "dishname": "Paneer Butter Masala",
-                "price": 250,
-                "cuisine": {
-                  "id": "cuisine-uuid",
-                  "name": "Indian"
-                },
-                "category": {
-                  "id": "category-uuid",
-                  "name": "Main Course"
-                }
-              }
-            }
-          }
-        }
-      },
-      "404": { "description": "Food item not found" },
-      "500": { "description": "Server error" }
-    }
-  },
-
-  "put": {
-    "summary": "Update food item",
-    "tags": ["Food Items"],
-    "parameters": [
-      {
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": { "type": "string", "format": "uuid" }
-      }
-    ],
-    "requestBody": {
-      "required": true,
-      "content": {
-        "application/json": {
-          "schema": {
-            "type": "object",
-            "properties": {
-              "dishname": { "type": "string" },
-              "description": { "type": "string" },
-              "price": { "type": "number", "format": "float" },
-              "veg": { "type": "boolean" },
-              "contain_allergens": { "type": "boolean" },
-              "specify_allergence": { "type": "string" },
-              "customised_options": { "type": "object" },
-              "cuisineId": { "type": "string", "format": "uuid" },
-              "categoryId": { "type": "string", "format": "uuid" }
-            }
-          }
-        }
-      }
-    },
-    "responses": {
-      "200": { "description": "Updated food item" },
-      "404": { "description": "Food item not found" },
-      "500": { "description": "Server error" }
-    }
-  },
-
-  "delete": {
-    "summary": "Delete food item",
-    "tags": ["Food Items"],
-    "parameters": [
-      {
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": { "type": "string", "format": "uuid" }
-      }
-    ],
-    "responses": {
-      "200": { "description": "Food item deleted" },
-      "404": { "description": "Food item not found" },
-      "500": { "description": "Server error" }
-    }
-  }
-}
-,
         "/api/carts/ensure": {
             "post": {
-                "summary": "Ensure a user has a cart",
+                "summary": "Ensure a user has a cart for a specific restaurant",
                 "tags": [
                     "Cart"
                 ],
@@ -1238,19 +1533,29 @@
                                 "type": "object",
                                 "properties": {
                                     "userId": {
-                                        "type": "string"
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    "restId": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "example": "abc123-rest-uuid"
                                     }
                                 },
                                 "required": [
-                                    "userId"
+                                    "userId",
+                                    "restId"
                                 ]
                             }
                         }
                     }
                 },
                 "responses": {
-                    "200": {
+                    "201": {
                         "description": "Cart ensured"
+                    },
+                    "400": {
+                        "description": "Failed to create/find cart"
                     }
                 }
             }
@@ -1297,7 +1602,6 @@
                                                 }
                                             },
                                             "required": [
-                                                "id",
                                                 "name",
                                                 "price"
                                             ]
@@ -1335,7 +1639,7 @@
         },
         "/api/carts/items/{id}": {
             "put": {
-                "summary": "Update cart item",
+                "summary": "Update cart item quantity",
                 "tags": [
                     "Cart"
                 ],
@@ -1358,7 +1662,8 @@
                                 "type": "object",
                                 "properties": {
                                     "quantity": {
-                                        "type": "integer"
+                                        "type": "integer",
+                                        "example": 3
                                     }
                                 }
                             }
@@ -1368,6 +1673,9 @@
                 "responses": {
                     "200": {
                         "description": "Item updated"
+                    },
+                    "400": {
+                        "description": "Invalid quantity"
                     }
                 }
             },
@@ -1396,7 +1704,7 @@
         },
         "/api/carts/summary/{cartId}": {
             "get": {
-                "summary": "Get cart summary",
+                "summary": "Get cart summary for a specific restaurant",
                 "tags": [
                     "Cart"
                 ],
@@ -1413,23 +1721,76 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Cart summary"
+                        "description": "Cart summary returned"
+                    },
+                    "400": {
+                        "description": "Cart is empty or invalid"
+                    },
+                    "404": {
+                        "description": "Restaurant not found"
                     }
                 }
             }
         },
         "/api/checkout": {
             "post": {
-                "summary": "Create an order from cart",
+                "summary": "Create an order from cart (checkout process)",
                 "tags": [
-                    "Cart"
+                    "Checkout"
                 ],
                 "requestBody": {
                     "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/CheckoutRequest"
+                                "type": "object",
+                                "required": [
+                                    "userId",
+                                    "cartId",
+                                    "rest_id",
+                                    "address",
+                                    "paymentMethod"
+                                ],
+                                "properties": {
+                                    "userId": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "example": "a3f4d02b-4d8b-4b1d-b26d-5c32a11e1f55"
+                                    },
+                                    "cartId": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "example": "b7d1c70c-8571-4f8e-b24c-f8f4b5ef6b3d"
+                                    },
+                                    "rest_id": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "example": "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+                                    },
+                                    "address": {
+                                        "type": "string",
+                                        "example": "123, MG Road, Bangalore"
+                                    },
+                                    "paymentMethod": {
+                                        "type": "string",
+                                        "enum": [
+                                            "CASH",
+                                            "CARD",
+                                            "UPI"
+                                        ],
+                                        "example": "CARD"
+                                    },
+                                    "customerLat": {
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 12.9716
+                                    },
+                                    "customerLng": {
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 77.5946
+                                    }
+                                }
                             }
                         }
                     }
@@ -1440,7 +1801,148 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/CheckoutResponse"
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "order": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "string",
+                                                    "format": "uuid",
+                                                    "example": "9cfcfa2e-9af5-4a74-b9b0-3cf3ac4c6fda"
+                                                },
+                                                "cartId": {
+                                                    "type": "string",
+                                                    "format": "uuid",
+                                                    "example": "b7d1c70c-8571-4f8e-b24c-f8f4b5ef6b3d"
+                                                },
+                                                "restaurant": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "string",
+                                                            "format": "uuid"
+                                                        },
+                                                        "name": {
+                                                            "type": "string",
+                                                            "example": "Spice Garden"
+                                                        },
+                                                        "address": {
+                                                            "type": "string",
+                                                            "example": "No.45, Anna Nagar, Chennai"
+                                                        },
+                                                        "phone": {
+                                                            "type": "string",
+                                                            "example": "+91 9876543210"
+                                                        }
+                                                    }
+                                                },
+                                                "user": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "string",
+                                                            "format": "uuid"
+                                                        },
+                                                        "name": {
+                                                            "type": "string",
+                                                            "example": "John Doe"
+                                                        },
+                                                        "email": {
+                                                            "type": "string",
+                                                            "example": "john@example.com"
+                                                        },
+                                                        "phone": {
+                                                            "type": "string",
+                                                            "example": "+91 9123456789"
+                                                        }
+                                                    }
+                                                },
+                                                "items": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "foodId": {
+                                                                "type": "string",
+                                                                "format": "uuid"
+                                                            },
+                                                            "foodName": {
+                                                                "type": "string",
+                                                                "example": "Paneer Butter Masala"
+                                                            },
+                                                            "quantity": {
+                                                                "type": "integer",
+                                                                "example": 2
+                                                            },
+                                                            "price": {
+                                                                "type": "number",
+                                                                "format": "float",
+                                                                "example": 250.0
+                                                            },
+                                                            "selectedAddOns": {
+                                                                "type": "array",
+                                                                "items": {
+                                                                    "type": "object",
+                                                                    "properties": {
+                                                                        "name": {
+                                                                            "type": "string",
+                                                                            "example": "Extra Cheese"
+                                                                        },
+                                                                        "price": {
+                                                                            "type": "number",
+                                                                            "example": 30
+                                                                        }
+                                                                    }
+                                                                }
+                                                            },
+                                                            "totalPrice": {
+                                                                "type": "number",
+                                                                "format": "float",
+                                                                "example": 530.0
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "subtotal": {
+                                                    "type": "number",
+                                                    "format": "float",
+                                                    "example": 500.0
+                                                },
+                                                "tax": {
+                                                    "type": "number",
+                                                    "format": "float",
+                                                    "example": 25.0
+                                                },
+                                                "deliveryFee": {
+                                                    "type": "number",
+                                                    "format": "float",
+                                                    "example": 30.0
+                                                },
+                                                "totalAmount": {
+                                                    "type": "number",
+                                                    "format": "float",
+                                                    "example": 555.0
+                                                },
+                                                "paymentMethod": {
+                                                    "type": "string",
+                                                    "example": "CARD"
+                                                },
+                                                "status": {
+                                                    "type": "string",
+                                                    "example": "PENDING"
+                                                },
+                                                "paymentStatus": {
+                                                    "type": "string",
+                                                    "example": "UNPAID"
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -1450,7 +1952,13 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "type": "string",
+                                            "example": "Cart is empty or already checked out"
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -1460,7 +1968,17 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "type": "string",
+                                            "example": "Checkout failed"
+                                        },
+                                        "details": {
+                                            "type": "string",
+                                            "example": "Database transaction failed"
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -1468,37 +1986,165 @@
                 }
             }
         },
-        "/api/delivery/assign": {
-            "post": {
+        "/api/orders/track/{orderId}": {
+            "get": {
                 "tags": [
-                    "Orderflow"
+                    "Checkout"
                 ],
-                "summary": "Assign a delivery partner to an order",
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "orderId": {
-                                        "type": "string"
-                                    },
-                                    "partnerId": {
-                                        "type": "string"
+                "summary": "Track customer order",
+                "description": "Customer can track the order status, estimated preparation time, and delivery details.",
+                "parameters": [
+                    {
+                        "name": "orderId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "The ID of the order to track"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Order tracking information",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "orderId": {
+                                                    "type": "string",
+                                                    "example": "uuid"
+                                                },
+                                                "orderNumber": {
+                                                    "type": "string",
+                                                    "example": "#ORD12345"
+                                                },
+                                                "status": {
+                                                    "type": "string",
+                                                    "example": "PREPARING"
+                                                },
+                                                "estimatedPreparationTime": {
+                                                    "type": "integer",
+                                                    "example": 25
+                                                },
+                                                "remainingTime": {
+                                                    "type": "integer",
+                                                    "example": 15
+                                                },
+                                                "restaurant": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "string"
+                                                        },
+                                                        "rest_name": {
+                                                            "type": "string"
+                                                        },
+                                                        "restaurantLatitude": {
+                                                            "type": "number"
+                                                        },
+                                                        "restaurantLongitude": {
+                                                            "type": "number"
+                                                        },
+                                                        "rest_address": {
+                                                            "type": "string"
+                                                        },
+                                                        "contact_number": {
+                                                            "type": "string"
+                                                        }
+                                                    }
+                                                },
+                                                "delivery": {
+                                                    "type": "object",
+                                                    "nullable": true,
+                                                    "properties": {
+                                                        "status": {
+                                                            "type": "string",
+                                                            "example": "PICKED_UP"
+                                                        },
+                                                        "partner": {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "id": {
+                                                                    "type": "string"
+                                                                },
+                                                                "fullName": {
+                                                                    "type": "string"
+                                                                },
+                                                                "mobile": {
+                                                                    "type": "string"
+                                                                },
+                                                                "status": {
+                                                                    "type": "string"
+                                                                }
+                                                            }
+                                                        },
+                                                        "otp": {
+                                                            "type": "string",
+                                                            "example": "123456",
+                                                            "nullable": true
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
                                     }
-                                },
-                                "required": [
-                                    "orderId",
-                                    "partnerId"
-                                ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Order not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Order not found"
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
-                },
+                }
+            }
+        },
+        "/api/delivery/new": {
+            "get": {
+                "tags": [
+                    "DeliveryOrder Flow"
+                ],
+                "summary": "Get new and accepted delivery requests",
+                "description": "Retrieves all delivery requests (PENDING and ACCEPTED) assigned to the currently online partner. Includes an `isNew` flag to indicate PENDING deliveries.",
+                "parameters": [
+                    {
+                        "name": "partnerId",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Partner ID to fetch delivery requests for."
+                    }
+                ],
                 "responses": {
                     "200": {
-                        "description": "Delivery assignment created",
+                        "description": "List of delivery requests",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -1507,345 +2153,245 @@
                                         "success": {
                                             "type": "boolean"
                                         },
-                                        "message": {
-                                            "type": "string"
+                                        "count": {
+                                            "type": "integer"
                                         },
                                         "data": {
-                                            "type": "object",
-                                            "properties": {
-                                                "id": {
-                                                    "type": "string"
-                                                },
-                                                "orderId": {
-                                                    "type": "string"
-                                                },
-                                                "partnerId": {
-                                                    "type": "string"
-                                                },
-                                                "status": {
-                                                    "type": "string",
-                                                    "enum": [
-                                                        "PENDING",
-                                                        "ACCEPTED",
-                                                        "REJECTED",
-                                                        "PICKED",
-                                                        "DELIVERED"
-                                                    ]
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/api/delivery/{assignmentId}/respond": {
-            "put": {
-                "tags": [
-                    "Orderflow"
-                ],
-                "summary": "Partner accept or reject delivery assignment; auto-reassign if rejected",
-                "parameters": [
-                    {
-                        "name": "assignmentId",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "response": {
-                                        "type": "string",
-                                        "enum": [
-                                            "ACCEPT",
-                                            "REJECT"
-                                        ]
-                                    }
-                                },
-                                "required": [
-                                    "response"
-                                ]
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Delivery response updated",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "id": {
-                                            "type": "string"
-                                        },
-                                        "orderId": {
-                                            "type": "string"
-                                        },
-                                        "partnerId": {
-                                            "type": "string"
-                                        },
-                                        "status": {
-                                            "type": "string",
-                                            "enum": [
-                                                "PENDING",
-                                                "ACCEPTED",
-                                                "REJECTED",
-                                                "PICKED",
-                                                "DELIVERED"
-                                            ]
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/api/delivery/{assignmentId}/status": {
-            "put": {
-                "tags": [
-                    "Orderflow"
-                ],
-                "summary": "Update delivery status and earnings",
-                "parameters": [
-                    {
-                        "name": "assignmentId",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "status": {
-                                        "type": "string",
-                                        "enum": [
-                                            "PENDING",
-                                            "ACCEPTED",
-                                            "REJECTED",
-                                            "PICKED",
-                                            "DELIVERED"
-                                        ]
-                                    },
-                                    "distanceKm": {
-                                        "type": "number"
-                                    }
-                                },
-                                "required": [
-                                    "status"
-                                ]
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Delivery updated with km and earnings",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "id": {
-                                            "type": "string"
-                                        },
-                                        "orderId": {
-                                            "type": "string"
-                                        },
-                                        "partnerId": {
-                                            "type": "string"
-                                        },
-                                        "status": {
-                                            "type": "string",
-                                            "enum": [
-                                                "PENDING",
-                                                "ACCEPTED",
-                                                "REJECTED",
-                                                "PICKED",
-                                                "DELIVERED"
-                                            ]
-                                        },
-                                        "distanceKm": {
-                                            "type": "number"
-                                        },
-                                        "earnings": {
-                                            "type": "number"
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/api/orders": {
-            "get": {
-                "tags": [
-                    "Orderflow"
-                ],
-                "summary": "Get all orders",
-                "responses": {
-                    "200": {
-                        "description": "List of all orders",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "type": "object",
-                                        "properties": {
-                                            "id": {
-                                                "type": "string"
-                                            },
-                                            "status": {
-                                                "type": "string"
-                                            },
-                                            "items": {
-                                                "type": "array",
-                                                "items": {
-                                                    "type": "object"
-                                                }
-                                            },
-                                            "cart": {
-                                                "type": "object"
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/api/orders/{id}": {
-            "get": {
-                "tags": [
-                    "Orderflow"
-                ],
-                "summary": "Get details of a single order",
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Order details",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "id": {
-                                            "type": "string"
-                                        },
-                                        "status": {
-                                            "type": "string"
-                                        },
-                                        "items": {
                                             "type": "array",
                                             "items": {
-                                                "type": "object"
+                                                "type": "object",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "string"
+                                                    },
+                                                    "partnerId": {
+                                                        "type": "string"
+                                                    },
+                                                    "status": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                            "PENDING",
+                                                            "ACCEPTED"
+                                                        ]
+                                                    },
+                                                    "isNew": {
+                                                        "type": "boolean"
+                                                    },
+                                                    "order": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "string"
+                                                            },
+                                                            "orderNumber": {
+                                                                "type": "string"
+                                                            },
+                                                            "user": {
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "id": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "name": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "mobile": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "email": {
+                                                                        "type": "string"
+                                                                    }
+                                                                }
+                                                            },
+                                                            "restaurant": {
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "id": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "rest_name": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "contact_email": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "restaurantLatitude": {
+                                                                        "type": "number"
+                                                                    },
+                                                                    "restaurantLongitude": {
+                                                                        "type": "number"
+                                                                    },
+                                                                    "rest_address": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "contact_number": {
+                                                                        "type": "string"
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
                                             }
-                                        },
-                                        "cart": {
-                                            "type": "object"
                                         }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/api/orders/{orderId}/tracking": {
-            "get": {
-                "tags": [
-                    "Orderflow"
-                ],
-                "summary": "Get order tracking details",
-                "parameters": [
-                    {
-                        "name": "orderId",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Order and delivery details retrieved",
-                        "content": {
-                            "application/json": {
-                                "example": {
-                                    "order": {
-                                        "id": "uuid",
-                                        "status": "PENDING",
-                                        "items": [],
-                                        "cart": {}
-                                    },
-                                    "delivery": {
-                                        "status": "OUT_FOR_DELIVERY",
-                                        "currentLatitude": 12.97,
-                                        "currentLongitude": 77.59
                                     }
                                 }
                             }
                         }
                     },
-                    "404": {
-                        "description": "Order not found"
+                    "400": {
+                        "description": "Missing partnerId"
+                    },
+                    "403": {
+                        "description": "Partner is not online"
                     }
                 }
             }
         },
-        "/api/delivery/{assignmentId}/complete": {
+        "/api/delivery/{deliveryId}/accept": {
             "put": {
                 "tags": [
-                    "Orderflow"
+                    "DeliveryOrder Flow"
                 ],
-                "summary": "Complete delivery with optional photo & notes",
+                "summary": "Accept a delivery request",
+                "description": "Partner accepts a pending delivery request. Partner must be online.",
                 "parameters": [
                     {
-                        "name": "assignmentId",
+                        "name": "deliveryId",
                         "in": "path",
                         "required": true,
                         "schema": {
-                            "type": "string",
-                            "format": "uuid"
+                            "type": "string"
+                        },
+                        "description": "The delivery ID to accept"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Delivery accepted successfully"
+                    },
+                    "400": {
+                        "description": "Invalid or already processed delivery"
+                    },
+                    "403": {
+                        "description": "Partner not online"
+                    }
+                }
+            }
+        },
+        "/api/delivery/{deliveryId}/reject": {
+            "put": {
+                "tags": [
+                    "DeliveryOrder Flow"
+                ],
+                "summary": "Reject a delivery request",
+                "description": "Partner rejects a pending delivery request with optional reason.",
+                "parameters": [
+                    {
+                        "name": "deliveryId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "The delivery ID to reject"
+                    }
+                ],
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "reason": {
+                                        "type": "string",
+                                        "example": "Too far from current location"
+                                    }
+                                }
+                            }
                         }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Delivery rejected successfully"
+                    },
+                    "400": {
+                        "description": "Cannot reject processed delivery"
+                    }
+                }
+            }
+        },
+        "/api/delivery/current": {
+            "get": {
+                "tags": [
+                    "DeliveryOrder Flow"
+                ],
+                "summary": "Get partner’s current active delivery",
+                "description": "Fetches the ongoing delivery details for a partner (accepted, picked up, or out for delivery).",
+                "parameters": [
+                    {
+                        "name": "partnerId",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Partner ID to fetch active delivery."
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Active delivery details or message if none."
+                    }
+                }
+            }
+        },
+        "/api/delivery/{deliveryId}/pickedup": {
+            "put": {
+                "tags": [
+                    "DeliveryOrder Flow"
+                ],
+                "summary": "Mark order as picked up",
+                "description": "Partner marks a delivery as picked up from restaurant.",
+                "parameters": [
+                    {
+                        "name": "deliveryId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "The delivery ID to mark as picked up"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Order marked as picked up"
+                    },
+                    "400": {
+                        "description": "Invalid status transition"
+                    }
+                }
+            }
+        },
+        "/api/delivery/{deliveryId}/photo": {
+            "put": {
+                "tags": [
+                    "DeliveryOrder Flow"
+                ],
+                "summary": "Upload delivery photo (before OTP verification)",
+                "description": "Partner uploads photo proof after delivering the order. Marks delivery as 'DELIVERED_PENDING_OTP'.",
+                "parameters": [
+                    {
+                        "name": "deliveryId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "The delivery ID to upload photo for"
                     }
                 ],
                 "requestBody": {
@@ -1857,11 +2403,8 @@
                                 "properties": {
                                     "deliveryPhoto": {
                                         "type": "string",
-                                        "format": "binary"
-                                    },
-                                    "notes": {
-                                        "type": "string",
-                                        "example": "Left at door"
+                                        "format": "binary",
+                                        "description": "Photo proof of delivery"
                                     }
                                 }
                             }
@@ -1870,29 +2413,116 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Delivery completed successfully",
+                        "description": "Delivery photo uploaded successfully. Waiting for OTP verification.",
                         "content": {
                             "application/json": {
                                 "example": {
-                                    "message": "Delivery completed successfully",
-                                    "delivery": {
-                                        "id": "uuid",
-                                        "status": "DELIVERED",
-                                        "notes": "Left at door",
-                                        "deliveryPhoto": "/uploads/1695700000000.jpg",
-                                        "distanceKm": 5.4,
-                                        "earnings": 54
+                                    "success": true,
+                                    "message": "Delivery photo uploaded. Waiting for customer OTP confirmation.",
+                                    "data": {
+                                        "deliveryId": "uuid",
+                                        "status": "DELIVERED_PENDING_OTP"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/delivery/{deliveryId}/verify-otp": {
+            "post": {
+                "tags": [
+                    "DeliveryOrder Flow"
+                ],
+                "summary": "Verify customer OTP to complete delivery",
+                "description": "Customer enters OTP to confirm delivery completion. Once verified, the order and delivery are marked as DELIVERED.",
+                "parameters": [
+                    {
+                        "name": "deliveryId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "The delivery ID to verify OTP for"
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "otp": {
+                                        "type": "string",
+                                        "example": "123456"
                                     },
-                                    "order": {
-                                        "id": "uuid",
+                                    "distanceKm": {
+                                        "type": "number",
+                                        "example": 5
+                                    }
+                                },
+                                "required": [
+                                    "otp"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "OTP verified and delivery completed",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "success": true,
+                                    "message": "OTP verified. Delivery completed successfully!",
+                                    "data": {
+                                        "deliveryId": "uuid",
+                                        "earnings": 50,
                                         "status": "DELIVERED"
                                     }
                                 }
                             }
                         }
                     },
-                    "404": {
-                        "description": "Delivery assignment not found"
+                    "400": {
+                        "description": "Invalid or incorrect OTP",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "success": false,
+                                    "message": "Invalid OTP"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/delivery/history": {
+            "get": {
+                "tags": [
+                    "DeliveryOrder Flow"
+                ],
+                "summary": "Get delivery history for partner",
+                "description": "Retrieves last 50 delivered orders for the specified partner.",
+                "parameters": [
+                    {
+                        "name": "partnerId",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Partner ID to fetch history for."
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of delivered orders"
                     }
                 }
             }
@@ -2296,9 +2926,114 @@
                 "requestBody": {
                     "required": true,
                     "content": {
-                        "application/json": {
+                        "multipart/form-data": {
                             "schema": {
-                                "$ref": "#/components/schemas/Partner"
+                                "type": "object",
+                                "required": [
+                                    "fullName",
+                                    "mobile",
+                                    "email",
+                                    "password",
+                                    "profilePhoto",
+                                    "idProofFile",
+                                    "rcFile",
+                                    "dlFile",
+                                    "licensePlate"
+                                ],
+                                "properties": {
+                                    "fullName": {
+                                        "type": "string"
+                                    },
+                                    "mobile": {
+                                        "type": "string"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email"
+                                    },
+                                    "dob": {
+                                        "type": "string",
+                                        "format": "date"
+                                    },
+                                    "gender": {
+                                        "type": "string"
+                                    },
+                                    "referralCode": {
+                                        "type": "string"
+                                    },
+                                    "password": {
+                                        "type": "string"
+                                    },
+                                    "address": {
+                                        "type": "string"
+                                    },
+                                    "city": {
+                                        "type": "string"
+                                    },
+                                    "state": {
+                                        "type": "string"
+                                    },
+                                    "pincode": {
+                                        "type": "string"
+                                    },
+                                    "emergencyName": {
+                                        "type": "string"
+                                    },
+                                    "emergencyMobile": {
+                                        "type": "string"
+                                    },
+                                    "vehicleType": {
+                                        "type": "string"
+                                    },
+                                    "vehicleModel": {
+                                        "type": "string"
+                                    },
+                                    "licensePlate": {
+                                        "type": "string"
+                                    },
+                                    "rcFile": {
+                                        "type": "string",
+                                        "format": "binary"
+                                    },
+                                    "dlFile": {
+                                        "type": "string",
+                                        "format": "binary"
+                                    },
+                                    "idProofFile": {
+                                        "type": "string",
+                                        "format": "binary"
+                                    },
+                                    "profilePhoto": {
+                                        "type": "string",
+                                        "format": "binary",
+                                        "description": "Profile photo is required"
+                                    },
+                                    "workType": {
+                                        "type": "string",
+                                        "enum": [
+                                            "full-time",
+                                            "part-time",
+                                            "weekend"
+                                        ]
+                                    },
+                                    "breakStart": {
+                                        "type": "string",
+                                        "format": "time"
+                                    },
+                                    "breakEnd": {
+                                        "type": "string",
+                                        "format": "time"
+                                    },
+                                    "bankName": {
+                                        "type": "string"
+                                    },
+                                    "accountNumber": {
+                                        "type": "string"
+                                    },
+                                    "ifsc": {
+                                        "type": "string"
+                                    }
+                                }
                             }
                         }
                     }
@@ -2306,6 +3041,9 @@
                 "responses": {
                     "200": {
                         "description": "Partner updated successfully"
+                    },
+                    "404": {
+                        "description": "Partner not found"
                     }
                 }
             },
@@ -2335,9 +3073,9 @@
         "/api/delivery/login": {
             "post": {
                 "tags": [
-                    "Delivery UserAuth"
+                    "DeliveryPartnerAuth"
                 ],
-                "summary": "Login a user",
+                "summary": "Login delivery partner account (Email OR Mobile)",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -2345,15 +3083,17 @@
                             "schema": {
                                 "type": "object",
                                 "properties": {
-                                    "email": {
-                                        "type": "string"
+                                    "emailOrMobile": {
+                                        "type": "string",
+                                        "example": "partner@example.com"
                                     },
                                     "password": {
-                                        "type": "string"
+                                        "type": "string",
+                                        "example": "12345678"
                                     }
                                 },
                                 "required": [
-                                    "email",
+                                    "emailOrMobile",
                                     "password"
                                 ]
                             }
@@ -2363,16 +3103,28 @@
                 "responses": {
                     "200": {
                         "description": "Login successful"
+                    },
+                    "400": {
+                        "description": "Email/Mobile and password are required"
+                    },
+                    "401": {
+                        "description": "Incorrect password"
+                    },
+                    "403": {
+                        "description": "Account blocked or inactive"
+                    },
+                    "404": {
+                        "description": "Email or Mobile number not found"
                     }
                 }
             }
         },
-        "/api/delivery/forgot-password": {
+        "/api/delivery/logout": {
             "post": {
                 "tags": [
-                    "Delivery UserAuth"
+                    "DeliveryPartnerAuth"
                 ],
-                "summary": "Reset password",
+                "summary": "Logout delivery partner account",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -2380,15 +3132,133 @@
                             "schema": {
                                 "type": "object",
                                 "properties": {
-                                    "email": {
-                                        "type": "string"
-                                    },
-                                    "newPassword": {
-                                        "type": "string"
+                                    "emailOrMobile": {
+                                        "type": "string",
+                                        "example": "partner@example.com"
                                     }
                                 },
                                 "required": [
-                                    "email",
+                                    "emailOrMobile"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Logout successful"
+                    },
+                    "400": {
+                        "description": "Email or Mobile number is required"
+                    }
+                }
+            }
+        },
+        "/api/delivery/forgot-password/send-otp": {
+            "post": {
+                "tags": [
+                    "DeliveryPartnerAuth"
+                ],
+                "summary": "Send OTP for password reset (Step 1)",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "emailOrMobile": {
+                                        "type": "string",
+                                        "example": "partner@example.com"
+                                    }
+                                },
+                                "required": [
+                                    "emailOrMobile"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Verification code sent successfully"
+                    },
+                    "400": {
+                        "description": "Email or Mobile number is required"
+                    },
+                    "404": {
+                        "description": "Email or Mobile number not registered"
+                    }
+                }
+            }
+        },
+        "/api/delivery/forgot-password/verify-otp": {
+            "post": {
+                "tags": [
+                    "DeliveryPartnerAuth"
+                ],
+                "summary": "Verify OTP for password reset (Step 2)",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "emailOrMobile": {
+                                        "type": "string",
+                                        "example": "partner@example.com"
+                                    },
+                                    "otp": {
+                                        "type": "string",
+                                        "example": "123456"
+                                    }
+                                },
+                                "required": [
+                                    "emailOrMobile",
+                                    "otp"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "OTP verified successfully"
+                    },
+                    "400": {
+                        "description": "Invalid or expired OTP"
+                    },
+                    "404": {
+                        "description": "Email or Mobile number not found"
+                    }
+                }
+            }
+        },
+        "/api/delivery/forgot-password/reset-password": {
+            "post": {
+                "tags": [
+                    "DeliveryPartnerAuth"
+                ],
+                "summary": "Reset password after OTP verification (Step 3)",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "emailOrMobile": {
+                                        "type": "string",
+                                        "example": "partner@example.com"
+                                    },
+                                    "newPassword": {
+                                        "type": "string",
+                                        "example": "newStrongPassword123"
+                                    }
+                                },
+                                "required": [
+                                    "emailOrMobile",
                                     "newPassword"
                                 ]
                             }
@@ -2398,361 +3268,50 @@
                 "responses": {
                     "200": {
                         "description": "Password reset successful"
+                    },
+                    "403": {
+                        "description": "Please verify OTP first"
+                    },
+                    "404": {
+                        "description": "Email or Mobile number not found"
                     }
                 }
             }
         },
-        "/api/subscriptions": {
-            "get": {
-                "tags": [
-                    "Subscription"
-                ],
-                "summary": "Get all subscriptions",
-                "responses": {
-                    "200": {
-                        "description": "List of subscriptions",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/components/schemas/Subscription"
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Server error"
-                    }
-                }
-            },
+        "/api/delivery/forgot-password/resend-otp": {
             "post": {
                 "tags": [
-                    "Subscription"
+                    "DeliveryPartnerAuth"
                 ],
-                "summary": "Create a new subscription",
+                "summary": "Resend OTP for password reset",
                 "requestBody": {
                     "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/SubscriptionInput"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "201": {
-                        "description": "Subscription created",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/Subscription"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid input"
-                    },
-                    "500": {
-                        "description": "Server error"
-                    }
-                }
-            }
-        },
-        "/api/subscriptions/{id}": {
-            "get": {
-                "tags": [
-                    "Subscription"
-                ],
-                "summary": "Get a subscription by ID",
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Subscription details",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/Subscription"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Subscription not found"
-                    },
-                    "500": {
-                        "description": "Server error"
-                    }
-                }
-            },
-            "put": {
-                "tags": [
-                    "Subscription"
-                ],
-                "summary": "Update a subscription",
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/SubscriptionInput"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Subscription updated"
-                    },
-                    "400": {
-                        "description": "Invalid input"
-                    },
-                    "404": {
-                        "description": "Subscription not found"
-                    },
-                    "500": {
-                        "description": "Server error"
-                    }
-                }
-            },
-            "delete": {
-                "tags": [
-                    "Subscription"
-                ],
-                "summary": "Delete a subscription",
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Subscription deleted"
-                    },
-                    "404": {
-                        "description": "Subscription not found"
-                    },
-                    "500": {
-                        "description": "Server error"
-                    }
-                }
-            }
-        },
-        "/api/offers": {
-            "post": {
-                "summary": "Create an offer",
-                "tags": [
-                    "Offers"
-                ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/OfferInput"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "201": {
-                        "description": "Offer created",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/Offer"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid input",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Server error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            "get": {
-                "summary": "List offers",
-                "tags": [
-                    "Offers"
-                ],
-                "parameters": [
-                    {
-                        "in": "query",
-                        "name": "restaurantId",
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid"
-                        },
-                        "required": false
-                    },
-                    {
-                        "in": "query",
-                        "name": "status",
-                        "schema": {
-                            "type": "string",
-                            "enum": [
-                                "ACTIVE",
-                                "INACTIVE"
-                            ]
-                        },
-                        "required": false
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "List of offers",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/components/schemas/Offer"
+                                "type": "object",
+                                "properties": {
+                                    "emailOrMobile": {
+                                        "type": "string",
+                                        "example": "partner@example.com"
                                     }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/api/offers/{id}": {
-            "get": {
-                "summary": "Get offer by id",
-                "tags": [
-                    "Offers"
-                ],
-                "parameters": [
-                    {
-                        "in": "path",
-                        "name": "id",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Offer",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/Offer"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Not found"
-                    }
-                }
-            },
-            "put": {
-                "summary": "Update offer",
-                "tags": [
-                    "Offers"
-                ],
-                "parameters": [
-                    {
-                        "in": "path",
-                        "name": "id",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/OfferInput"
+                                },
+                                "required": [
+                                    "emailOrMobile"
+                                ]
                             }
                         }
                     }
                 },
                 "responses": {
                     "200": {
-                        "description": "Updated",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/Offer"
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "summary": "Delete offer",
-                "tags": [
-                    "Offers"
-                ],
-                "parameters": [
-                    {
-                        "in": "path",
-                        "name": "id",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Deleted"
+                        "description": "Verification code resent successfully"
+                    },
+                    "400": {
+                        "description": "Email or Mobile number is required"
+                    },
+                    "404": {
+                        "description": "Email or Mobile number not registered"
                     }
                 }
             }
@@ -3996,155 +4555,6 @@
                                 }
                             }
                         }
-                    }
-                }
-            }
-        },
-        "/api/restaurant/status": {
-            "post": {
-                "tags": [
-                    "Restaurants Flow"
-                ],
-                "summary": "Set or update restaurant status",
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "rest_id": {
-                                        "type": "string",
-                                        "format": "uuid",
-                                        "description": "Unique identifier for the restaurant"
-                                    },
-                                    "status": {
-                                        "type": "string",
-                                        "enum": [
-                                            "ONLINE",
-                                            "OFFLINE"
-                                        ],
-                                        "description": "Current status of the restaurant"
-                                    },
-                                    "reason": {
-                                        "type": "string",
-                                        "description": "Reason for the current status"
-                                    }
-                                },
-                                "required": [
-                                    "restaurantId",
-                                    "status"
-                                ]
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Restaurant status updated successfully"
-                    },
-                    "201": {
-                        "description": "Restaurant status set successfully"
-                    },
-                    "400": {
-                        "description": "Bad request due to missing parameters"
-                    },
-                    "500": {
-                        "description": "Internal server error"
-                    }
-                }
-            }
-        },
-        "/api/order/details/{orderId}": {
-            "get": {
-                "tags": [
-                    "Restaurants Flow"
-                ],
-                "summary": "Get detailed order information",
-                "parameters": [
-                    {
-                        "name": "orderId",
-                        "in": "path",
-                        "required": true,
-                        "description": "Unique identifier for the order",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Order details retrieved successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "orderId": {
-                                            "type": "integer",
-                                            "description": "Unique identifier for the order"
-                                        },
-                                        "customer": {
-                                            "type": "object",
-                                            "properties": {
-                                                "name": {
-                                                    "type": "string",
-                                                    "description": "Name of the customer"
-                                                },
-                                                "address": {
-                                                    "type": "string",
-                                                    "description": "Address of the customer"
-                                                },
-                                                "phone": {
-                                                    "type": "string",
-                                                    "description": "Phone number of the customer"
-                                                }
-                                            }
-                                        },
-                                        "items": {
-                                            "type": "array",
-                                            "items": {
-                                                "type": "object",
-                                                "properties": {
-                                                    "name": {
-                                                        "type": "string",
-                                                        "description": "Name of the item"
-                                                    },
-                                                    "quantity": {
-                                                        "type": "integer",
-                                                        "description": "Quantity of the item"
-                                                    },
-                                                    "price": {
-                                                        "type": "number",
-                                                        "format": "float",
-                                                        "description": "Price of the item"
-                                                    }
-                                                }
-                                            }
-                                        },
-                                        "partner": {
-                                            "type": "object",
-                                            "properties": {
-                                                "name": {
-                                                    "type": "string",
-                                                    "description": "Name of the delivery partner"
-                                                },
-                                                "contact": {
-                                                    "type": "string",
-                                                    "description": "Contact information of the delivery partner"
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Order not found"
-                    },
-                    "500": {
-                        "description": "Internal server error"
                     }
                 }
             }
@@ -5504,17 +5914,12 @@
                 }
             }
         },
-        "/orders/history": {
+        "/api/orders/history": {
             "get": {
-                "summary": "Get order history",
                 "tags": [
                     "rest-Orders"
                 ],
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ],
+                "summary": "Get order history",
                 "parameters": [
                     {
                         "name": "startDate",
@@ -5567,15 +5972,10 @@
         },
         "/api/{id}": {
             "get": {
-                "summary": "Get order details",
                 "tags": [
                     "rest-Orders"
                 ],
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ],
+                "summary": "Get order details for a restaurant",
                 "parameters": [
                     {
                         "name": "id",
@@ -5584,54 +5984,32 @@
                         "schema": {
                             "type": "string"
                         }
+                    },
+                    {
+                        "name": "restaurantId",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Order details",
-                        "content": {
-                            "application/json": {
-                                "example": {
-                                    "success": true,
-                                    "data": {
-                                        "id": "uuid",
-                                        "orderNumber": "#ORD12345",
-                                        "orderTime": "2025-10-05T10:00:00Z",
-                                        "paymentStatus": "PENDING",
-                                        "orderType": "Delivery",
-                                        "customer": {
-                                            "name": "John Doe",
-                                            "phone": "9876543210",
-                                            "address": "123 Street"
-                                        },
-                                        "items": [],
-                                        "billBreakdown": {
-                                            "subtotal": 100,
-                                            "deliveryCharge": 20,
-                                            "tax": 10,
-                                            "grandTotal": 130
-                                        },
-                                        "specialInstructions": "No onions",
-                                        "status": "PENDING"
-                                    }
-                                }
-                            }
-                        }
+                        "description": "Order details"
+                    },
+                    "404": {
+                        "description": "Order not found or does not belong to this restaurant"
                     }
                 }
             }
         },
         "/api/{id}/accept": {
             "put": {
-                "summary": "Accept order",
                 "tags": [
                     "rest-Orders"
                 ],
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ],
+                "summary": "Accept order",
                 "parameters": [
                     {
                         "name": "id",
@@ -5643,41 +6021,41 @@
                     }
                 ],
                 "requestBody": {
+                    "required": true,
                     "content": {
                         "application/json": {
-                            "example": {
-                                "estimatedPreparationTime": 15
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "restaurantId": {
+                                        "type": "string"
+                                    },
+                                    "estimatedPreparationTime": {
+                                        "type": "number",
+                                        "example": 15
+                                    }
+                                },
+                                "required": [
+                                    "restaurantId",
+                                    "estimatedPreparationTime"
+                                ]
                             }
                         }
                     }
                 },
                 "responses": {
                     "200": {
-                        "description": "Order accepted",
-                        "content": {
-                            "application/json": {
-                                "example": {
-                                    "success": true,
-                                    "message": "Order accepted successfully",
-                                    "data": {}
-                                }
-                            }
-                        }
+                        "description": "Order accepted"
                     }
                 }
             }
         },
         "/api/{id}/reject": {
             "put": {
-                "summary": "Reject order",
                 "tags": [
                     "rest-Orders"
                 ],
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ],
+                "summary": "Reject order",
                 "parameters": [
                     {
                         "name": "id",
@@ -5689,41 +6067,41 @@
                     }
                 ],
                 "requestBody": {
+                    "required": true,
                     "content": {
                         "application/json": {
-                            "example": {
-                                "reason": "Out of stock"
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "restaurantId": {
+                                        "type": "string"
+                                    },
+                                    "reason": {
+                                        "type": "string",
+                                        "example": "Out of stock"
+                                    }
+                                },
+                                "required": [
+                                    "restaurantId",
+                                    "reason"
+                                ]
                             }
                         }
                     }
                 },
                 "responses": {
                     "200": {
-                        "description": "Order rejected",
-                        "content": {
-                            "application/json": {
-                                "example": {
-                                    "success": true,
-                                    "message": "Order rejected",
-                                    "data": {}
-                                }
-                            }
-                        }
+                        "description": "Order rejected"
                     }
                 }
             }
         },
         "/api/{id}/status": {
             "put": {
-                "summary": "Update order status",
                 "tags": [
                     "rest-Orders"
                 ],
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ],
+                "summary": "Update order status",
                 "parameters": [
                     {
                         "name": "id",
@@ -5735,41 +6113,45 @@
                     }
                 ],
                 "requestBody": {
+                    "required": true,
                     "content": {
                         "application/json": {
-                            "example": {
-                                "status": "PREPARING"
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "restaurantId": {
+                                        "type": "string"
+                                    },
+                                    "status": {
+                                        "type": "string",
+                                        "example": "PREPARING"
+                                    },
+                                    "additionalPreparationTime": {
+                                        "type": "number",
+                                        "example": 10
+                                    }
+                                },
+                                "required": [
+                                    "restaurantId",
+                                    "status"
+                                ]
                             }
                         }
                     }
                 },
                 "responses": {
                     "200": {
-                        "description": "Order status updated",
-                        "content": {
-                            "application/json": {
-                                "example": {
-                                    "success": true,
-                                    "message": "Order status updated",
-                                    "data": {}
-                                }
-                            }
-                        }
+                        "description": "Order status updated"
                     }
                 }
             }
         },
         "/api/{id}/kot": {
             "get": {
-                "summary": "Print Kitchen Order Ticket",
                 "tags": [
                     "rest-Orders"
                 ],
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ],
+                "summary": "Print Kitchen Order Ticket",
                 "parameters": [
                     {
                         "name": "id",
@@ -5782,40 +6164,17 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "KOT data",
-                        "content": {
-                            "application/json": {
-                                "example": {
-                                    "success": true,
-                                    "data": {
-                                        "orderNumber": "#ORD12345",
-                                        "timestamp": "2025-10-05T10:00:00Z",
-                                        "items": [
-                                            {
-                                                "name": "Pizza",
-                                                "quantity": 2
-                                            }
-                                        ],
-                                        "specialInstructions": "Extra cheese"
-                                    }
-                                }
-                            }
-                        }
+                        "description": "KOT data"
                     }
                 }
             }
         },
         "/api/{id}/track": {
             "get": {
-                "summary": "Track order",
                 "tags": [
                     "rest-Orders"
                 ],
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ],
+                "summary": "Track order",
                 "parameters": [
                     {
                         "name": "id",
@@ -5828,72 +6187,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Tracking data",
-                        "content": {
-                            "application/json": {
-                                "example": {
-                                    "success": true,
-                                    "data": {
-                                        "orderId": "uuid",
-                                        "orderNumber": "#ORD12345",
-                                        "estimatedDeliveryTime": 20,
-                                        "deliveryPartner": {
-                                            "name": "Ravi",
-                                            "phone": "9876543210",
-                                            "vehicle": "Bike - TN01AB1234"
-                                        },
-                                        "restaurantAddress": "456 Partner St",
-                                        "deliveryAddress": "123 Customer St",
-                                        "orderStatus": [
-                                            {
-                                                "status": "ORDER_CONFIRMED",
-                                                "time": "2025-10-05T10:00:00Z",
-                                                "completed": true
-                                            },
-                                            {
-                                                "status": "PREPARING_FOOD",
-                                                "time": null,
-                                                "completed": false
-                                            },
-                                            {
-                                                "status": "ON_THE_WAY",
-                                                "time": null,
-                                                "completed": false
-                                            },
-                                            {
-                                                "status": "DELIVERED",
-                                                "time": null,
-                                                "completed": false
-                                            }
-                                        ],
-                                        "currentStatus": "ORDER_CONFIRMED",
-                                        "orderSummary": {
-                                            "items": [
-                                                {
-                                                    "name": "Pizza",
-                                                    "quantity": 2
-                                                }
-                                            ],
-                                            "subtotal": 100,
-                                            "deliveryFee": 20,
-                                            "total": 120
-                                        },
-                                        "restaurantLocation": {
-                                            "latitude": 40.7128,
-                                            "longitude": -74.0060
-                                        },
-                                        "deliveryLocation": {
-                                            "latitude": 40.7589,
-                                            "longitude": -73.9851
-                                        },
-                                        "currentLocation": {
-                                            "latitude": 40.7228,
-                                            "longitude": -73.9960
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                        "description": "Tracking data"
                     }
                 }
             }
@@ -6369,8 +6663,13 @@
                                         "type": "string",
                                         "format": "date"
                                     },
-                                    "eventTime": {
-                                        "type": "string"
+                                    "eventTimes": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string",
+                                            "example": "18:00"
+                                        },
+                                        "description": "List of event times (24-hour format)"
                                     },
                                     "associatedDiningArea": {
                                         "type": "string"
@@ -6383,8 +6682,23 @@
                                     "restaurantId",
                                     "eventName",
                                     "frequency",
-                                    "eventTime"
+                                    "eventTimes"
                                 ]
+                            },
+                            "example": {
+                                "restaurantId": "8a902ed1-63cc-47cf-97cd-3b456d8a1e51",
+                                "eventName": "Weekend Brunch",
+                                "eventDescription": "Unlimited buffet and drinks",
+                                "frequency": "WEEKLY",
+                                "eventDay": "SUNDAY",
+                                "eventDate": "2025-10-20",
+                                "eventTimes": [
+                                    "10:30",
+                                    "12:30",
+                                    "14:30"
+                                ],
+                                "associatedDiningArea": "b1d3f9aa-6e6d-43a1-932f-92a53a25c61d",
+                                "isActive": false
                             }
                         }
                     }
@@ -6396,20 +6710,25 @@
                             "application/json": {
                                 "example": {
                                     "success": true,
-                                    "message": "Event created",
+                                    "message": "Event created. Pending admin verification.",
                                     "data": {
                                         "id": "uuid",
                                         "rest_id": "uuid",
-                                        "eventName": "Happy Hour",
-                                        "eventDescription": "Discount on drinks",
+                                        "eventName": "Weekend Brunch",
+                                        "eventDescription": "Unlimited buffet and drinks",
                                         "frequency": "WEEKLY",
-                                        "eventDay": "Friday",
-                                        "eventDate": "2025-10-06",
-                                        "eventTime": "18:00",
+                                        "eventDay": "SUNDAY",
+                                        "eventDate": "2025-10-20",
+                                        "eventTimes": [
+                                            "10:30",
+                                            "12:30",
+                                            "14:30"
+                                        ],
                                         "associatedDiningArea": "uuid",
-                                        "isActive": true,
-                                        "createdAt": "2025-10-06T12:36:12.000Z",
-                                        "updatedAt": "2025-10-06T12:36:12.000Z"
+                                        "isActive": false,
+                                        "isAdminVerified": false,
+                                        "createdAt": "2025-10-17T12:36:12.000Z",
+                                        "updatedAt": "2025-10-17T12:36:12.000Z"
                                     }
                                 }
                             }
@@ -6460,8 +6779,13 @@
                                         "format": "date",
                                         "nullable": true
                                     },
-                                    "eventTime": {
-                                        "type": "string"
+                                    "eventTimes": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string",
+                                            "example": "18:00"
+                                        },
+                                        "description": "Updated event times (array format)"
                                     },
                                     "associatedDiningArea": {
                                         "type": "string",
@@ -6472,72 +6796,48 @@
                                         "nullable": true
                                     }
                                 }
+                            },
+                            "example": {
+                                "eventName": "Updated Brunch Event",
+                                "eventDescription": "New dishes added to the menu",
+                                "frequency": "WEEKLY",
+                                "eventDay": "SUNDAY",
+                                "eventDate": "2025-10-27",
+                                "eventTimes": [
+                                    "11:00",
+                                    "13:00",
+                                    "15:00"
+                                ],
+                                "isActive": true
                             }
                         }
                     }
                 },
                 "responses": {
                     "200": {
-                        "description": "Event updated",
+                        "description": "Event updated successfully",
                         "content": {
                             "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "success": {
-                                            "type": "boolean"
-                                        },
-                                        "message": {
-                                            "type": "string"
-                                        },
-                                        "data": {
-                                            "type": "object",
-                                            "properties": {
-                                                "id": {
-                                                    "type": "string"
-                                                },
-                                                "rest_id": {
-                                                    "type": "string"
-                                                },
-                                                "eventName": {
-                                                    "type": "string"
-                                                },
-                                                "eventDescription": {
-                                                    "type": "string",
-                                                    "nullable": true
-                                                },
-                                                "frequency": {
-                                                    "type": "string"
-                                                },
-                                                "eventDay": {
-                                                    "type": "string",
-                                                    "nullable": true
-                                                },
-                                                "eventDate": {
-                                                    "type": "string",
-                                                    "format": "date",
-                                                    "nullable": true
-                                                },
-                                                "eventTime": {
-                                                    "type": "string"
-                                                },
-                                                "associatedDiningArea": {
-                                                    "type": "string",
-                                                    "nullable": true
-                                                },
-                                                "isActive": {
-                                                    "type": "boolean"
-                                                },
-                                                "createdAt": {
-                                                    "type": "string",
-                                                    "format": "date-time"
-                                                },
-                                                "updatedAt": {
-                                                    "type": "string",
-                                                    "format": "date-time"
-                                                }
-                                            }
-                                        }
+                                "example": {
+                                    "success": true,
+                                    "message": "Event updated successfully",
+                                    "data": {
+                                        "id": "uuid",
+                                        "rest_id": "uuid",
+                                        "eventName": "Updated Brunch Event",
+                                        "eventDescription": "New dishes added to the menu",
+                                        "frequency": "WEEKLY",
+                                        "eventDay": "SUNDAY",
+                                        "eventDate": "2025-10-27",
+                                        "eventTimes": [
+                                            "11:00",
+                                            "13:00",
+                                            "15:00"
+                                        ],
+                                        "associatedDiningArea": "uuid",
+                                        "isActive": true,
+                                        "createdAt": "2025-10-17T12:36:12.000Z",
+                                        "updatedAt": "2025-10-17T14:00:45.000Z"
                                     }
                                 }
                             }
@@ -7244,6 +7544,396 @@
                     }
                 }
             }
+        },
+        "/api/restaurant-status": {
+            "post": {
+                "tags": [
+                    "Restaurant Status"
+                ],
+                "summary": "Create a new restaurant status (ONLINE/OFFLINE)",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "rest_id": {
+                                        "type": "string",
+                                        "example": "restaurant-uuid"
+                                    },
+                                    "status": {
+                                        "type": "string",
+                                        "enum": [
+                                            "ONLINE",
+                                            "OFFLINE"
+                                        ],
+                                        "example": "ONLINE"
+                                    },
+                                    "reason": {
+                                        "type": "string",
+                                        "example": "Kitchen closed for maintenance"
+                                    }
+                                },
+                                "required": [
+                                    "rest_id",
+                                    "status"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Status created successfully"
+                    },
+                    "400": {
+                        "description": "Missing required fields"
+                    },
+                    "404": {
+                        "description": "Restaurant not found"
+                    }
+                }
+            }
+        },
+        "/api/restaurant-status/{id}": {
+            "put": {
+                "tags": [
+                    "Restaurant Status"
+                ],
+                "summary": "Update existing restaurant status",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "RestaurantStatus record ID"
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "status": {
+                                        "type": "string",
+                                        "enum": [
+                                            "ONLINE",
+                                            "OFFLINE"
+                                        ],
+                                        "example": "OFFLINE"
+                                    },
+                                    "reason": {
+                                        "type": "string",
+                                        "example": "Maintenance break"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Status updated successfully"
+                    },
+                    "404": {
+                        "description": "Status record not found"
+                    }
+                }
+            }
+        },
+        "/api/admin/offers/create": {
+            "post": {
+                "tags": [
+                    "Admin Offers"
+                ],
+                "summary": "Create a new offer (Admin)",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/OfferCreateRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Offer created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Offer"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/offers/pending": {
+            "get": {
+                "tags": [
+                    "Admin Offers"
+                ],
+                "summary": "Get all pending offers",
+                "responses": {
+                    "200": {
+                        "description": "Pending offers list"
+                    }
+                }
+            }
+        },
+        "/api/admin/offers/{id}/approve": {
+            "put": {
+                "tags": [
+                    "Admin Offers"
+                ],
+                "summary": "Approve an offer",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Offer approved successfully"
+                    }
+                }
+            }
+        },
+        "/api/admin/offers/{id}/reject": {
+            "put": {
+                "tags": [
+                    "Admin Offers"
+                ],
+                "summary": "Reject an offer",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "rejectionReason": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Offer rejected successfully"
+                    }
+                }
+            }
+        },
+        "/api/restaurant/offers": {
+            "post": {
+                "tags": [
+                    "Restaurant Offers"
+                ],
+                "summary": "Create a new restaurant offer",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/OfferCreateRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Offer created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Offer"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "get": {
+                "tags": [
+                    "Restaurant Offers"
+                ],
+                "summary": "Get all offers for a restaurant",
+                "responses": {
+                    "200": {
+                        "description": "List of offers",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Offer"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/restaurant/offers/{id}": {
+            "put": {
+                "tags": [
+                    "Restaurant Offers"
+                ],
+                "summary": "Update restaurant offer",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/OfferUpdateRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Offer updated successfully"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Restaurant Offers"
+                ],
+                "summary": "Delete restaurant offer",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Offer deleted successfully"
+                    }
+                }
+            }
+        },
+        "/api/offers": {
+            "get": {
+                "tags": [
+                    "Customer Offers"
+                ],
+                "summary": "Get all active offers (Customer)",
+                "responses": {
+                    "200": {
+                        "description": "List of active offers",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Offer"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/user/offers/book": {
+            "post": {
+                "tags": [
+                    "Customer Offers"
+                ],
+                "summary": "Book an offer by customer",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "userId": {
+                                        "type": "string"
+                                    },
+                                    "offerId": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "userId",
+                                    "offerId"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Offer booked successfully"
+                    }
+                }
+            }
+        },
+        "/api/user/offers/{id}/cancel": {
+            "put": {
+                "tags": [
+                    "Customer Offers"
+                ],
+                "summary": "Cancel a booked offer",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Offer cancelled successfully"
+                    }
+                }
+            }
         }
     },
     "components": {
@@ -7844,140 +8534,6 @@
                     "updatedAt": {
                         "type": "string",
                         "format": "date-time"
-                    }
-                }
-            },
-            "CheckoutRequest": {
-                "type": "object",
-                "required": [
-                    "userId",
-                    "cartId",
-                    "rest_id",
-                    "address",
-                    "paymentMethod"
-                ],
-                "properties": {
-                    "userId": {
-                        "type": "string",
-                        "format": "uuid"
-                    },
-                    "cartId": {
-                        "type": "string",
-                        "format": "uuid"
-                    },
-                    "rest_id": {
-                        "type": "string",
-                        "format": "uuid",
-                        "example": "f47ac10b-58cc-4372-a567-0e02b2c3d479"
-                    },
-                    "address": {
-                        "type": "string",
-                        "example": "123, MG Road, Bangalore"
-                    },
-                    "paymentMethod": {
-                        "type": "string",
-                        "enum": [
-                            "CASH",
-                            "CARD",
-                            "UPI"
-                        ],
-                        "example": "CARD"
-                    }
-                }
-            },
-            "CheckoutResponse": {
-                "type": "object",
-                "properties": {
-                    "message": {
-                        "type": "string",
-                        "example": "Checkout successful"
-                    },
-                    "order": {
-                        "type": "object",
-                        "properties": {
-                            "orderId": {
-                                "type": "string",
-                                "format": "uuid"
-                            },
-                            "cartId": {
-                                "type": "string",
-                                "format": "uuid"
-                            },
-                            "rest_id": {
-                                "type": "string",
-                                "format": "uuid"
-                            },
-                            "restaurant": {
-                                "type": "object",
-                                "properties": {
-                                    "id": {
-                                        "type": "string",
-                                        "format": "uuid"
-                                    },
-                                    "name": {
-                                        "type": "string"
-                                    },
-                                    "address": {
-                                        "type": "string"
-                                    },
-                                    "phone": {
-                                        "type": "string"
-                                    }
-                                }
-                            },
-                            "user": {
-                                "type": "object",
-                                "properties": {
-                                    "id": {
-                                        "type": "string",
-                                        "format": "uuid"
-                                    },
-                                    "name": {
-                                        "type": "string"
-                                    },
-                                    "email": {
-                                        "type": "string"
-                                    },
-                                    "phone": {
-                                        "type": "string"
-                                    }
-                                }
-                            },
-                            "subtotal": {
-                                "type": "number",
-                                "format": "float"
-                            },
-                            "tax": {
-                                "type": "number",
-                                "format": "float"
-                            },
-                            "deliveryFee": {
-                                "type": "number",
-                                "format": "float"
-                            },
-                            "totalAmount": {
-                                "type": "number",
-                                "format": "float"
-                            },
-                            "status": {
-                                "type": "string"
-                            },
-                            "items": {
-                                "type": "array",
-                                "items": {
-                                    "$ref": "#/components/schemas/OrderItem"
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            "ErrorResponse": {
-                "type": "object",
-                "properties": {
-                    "error": {
-                        "type": "string",
-                        "example": "Cart empty or stock insufficient"
                     }
                 }
             },
@@ -8842,12 +9398,209 @@
                     }
                 }
             },
-            "components": {
-                "securitySchemes": {
-                    "bearerAuth": {
-                        "type": "http",
-                        "scheme": "bearer",
-                        "bearerFormat": "JWT"
+            "Offer": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "restaurantId": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "createdBy": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "offerType": {
+                        "type": "string",
+                        "enum": [
+                            "RESTAURANT",
+                            "ADMIN"
+                        ]
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "discountType": {
+                        "type": "string",
+                        "enum": [
+                            "PERCENTAGE",
+                            "FLAT"
+                        ]
+                    },
+                    "discountValue": {
+                        "type": "number"
+                    },
+                    "minOrderValue": {
+                        "type": "number"
+                    },
+                    "maxUsagePerUser": {
+                        "type": "integer"
+                    },
+                    "totalUsageLimit": {
+                        "type": "integer"
+                    },
+                    "startDate": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "endDate": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "startTime": {
+                        "type": "string"
+                    },
+                    "endTime": {
+                        "type": "string"
+                    },
+                    "applicableItems": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "termsConditions": {
+                        "type": "string"
+                    },
+                    "offerImage": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "ACTIVE",
+                            "INACTIVE"
+                        ]
+                    },
+                    "approvalStatus": {
+                        "type": "string",
+                        "enum": [
+                            "PENDING",
+                            "APPROVED",
+                            "REJECTED",
+                            "CHANGES_REQUESTED"
+                        ]
+                    },
+                    "approvedBy": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "approvalDate": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "rejectionReason": {
+                        "type": "string"
+                    },
+                    "adminComments": {
+                        "type": "string"
+                    }
+                }
+            },
+            "OfferCreateRequest": {
+                "type": "object",
+                "properties": {
+                    "restaurantId": {
+                        "type": "string"
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "discountType": {
+                        "type": "string",
+                        "enum": [
+                            "PERCENTAGE",
+                            "FLAT"
+                        ]
+                    },
+                    "discountValue": {
+                        "type": "number"
+                    },
+                    "minOrderValue": {
+                        "type": "number"
+                    },
+                    "startDate": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "endDate": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "startTime": {
+                        "type": "string"
+                    },
+                    "endTime": {
+                        "type": "string"
+                    },
+                    "applicableItems": {
+                        "type": "string",
+                        "description": "JSON or comma-separated list of item/category names"
+                    },
+                    "termsConditions": {
+                        "type": "string"
+                    },
+                    "offerImage": {
+                        "type": "string",
+                        "format": "binary"
+                    }
+                },
+                "required": [
+                    "title",
+                    "discountType",
+                    "discountValue",
+                    "startDate",
+                    "endDate"
+                ]
+            },
+            "OfferUpdateRequest": {
+                "type": "object",
+                "properties": {
+                    "title": {
+                        "type": "string"
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "discountType": {
+                        "type": "string",
+                        "enum": [
+                            "PERCENTAGE",
+                            "FLAT"
+                        ]
+                    },
+                    "discountValue": {
+                        "type": "number"
+                    },
+                    "minOrderValue": {
+                        "type": "number"
+                    },
+                    "startDate": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "endDate": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "applicableItems": {
+                        "type": "string"
+                    },
+                    "termsConditions": {
+                        "type": "string"
+                    },
+                    "offerImage": {
+                        "type": "string",
+                        "format": "binary"
                     }
                 }
             }
@@ -8867,7 +9620,7 @@
             "description": "Restaurant registration CRUD"
         },
         {
-            "name": "Restaurant Auth",
+            "name": "RestaurantAuth",
             "description": "Restaurant authentication  (Login & Forgot Password)"
         },
         {
@@ -8879,19 +9632,11 @@
             "description": "Partner registration & CRUD operations"
         },
         {
-            "name": "Delivery UserAuth",
+            "name": "DeliveryPartnerAuth",
             "description": "User authentication (Login & Forgot Password)"
         },
         {
-            "name": "Subscription",
-            "description": "Subscription CRUD operations"
-        },
-        {
-            "name": "Offers",
-            "description": "Create and manage restaurant offers/discounts"
-        },
-        {
-            "name": "Orderflow",
+            "name": "DeliveryOrder Flow",
             "description": "Endpoints related to the complete order flow"
         },
         {
@@ -8933,6 +9678,26 @@
         {
             "name": "Customer Booking",
             "description": "Endpoints for Booking management"
+        },
+        {
+            "name": "Checkout",
+            "description": "Checkout and order tracking"
+        },
+        {
+            "name": "Restaurant Status",
+            "description": "Restaurant Status flow"
+        },
+        {
+            "name": "Admin Offers",
+            "description": "APIs for admin to manage, approve, and create offers"
+        },
+        {
+            "name": "Restaurant Offers",
+            "description": "APIs for restaurants to create, update, and manage their offers"
+        },
+        {
+            "name": "Customer Offers",
+            "description": "APIs for customers to view and book active offers"
         }
     ]
 }

@@ -72,7 +72,13 @@ exports.updateUser = async (req, res) => {
     }
 
     let patch = { name, email, birthday, anniversary };
+
     if (password) patch.password = await bcrypt.hash(password, SALT_ROUNDS);
+
+    // 👇 Only update photo if file uploaded
+    if (req.file) {
+      patch.profilePhoto = `/uploads/users/${req.file.filename}`;
+    }
 
     await user.update(patch);
     return res.json({ message: "User updated", user });

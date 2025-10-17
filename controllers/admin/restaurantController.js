@@ -1,6 +1,6 @@
 'use strict';
 const db = require('../../models');
-const { RestaurantReg, FoodItem, Cuisine, sequelize } = db;
+const { RestaurantReg, FoodItem, Cuisine, Category,sequelize } = db;
 const { Op } = require('sequelize');
 
 /**
@@ -114,15 +114,17 @@ exports.getRestaurantById = async (req, res) => {
 
     const restaurant = await RestaurantReg.findByPk(id, {
       include: [
-        {
-          model: FoodItem,
-          as: 'foodItems',
-          attributes: ['id', 'dishname', 'category', 'price', 'veg'],
-          include: [
-            { model: Cuisine, as: 'cuisine', attributes: ['id', 'name'] }
-          ]
-        }
-      ]
+  {
+    model: FoodItem,
+    as: 'foodItems',
+    attributes: ['id', 'dishname', 'price', 'veg'],
+    include: [
+      { model: Cuisine, as: 'cuisine', attributes: ['id', 'name'] },
+      { model: Category, as: 'category', attributes: ['id', 'name'] } // ✅
+    ]
+  }
+]
+
     });
 
     if (!restaurant) return res.status(404).json({ success: false, message: 'Restaurant not found' });

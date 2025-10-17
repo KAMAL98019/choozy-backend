@@ -17,10 +17,16 @@ router.delete('/:id', ctrl.remove);
 
 
 router.post("/login", ctrl.login);
-router.post("/reset-password", ctrl.resetPassword);
+router.post("/logout", ctrl.login);
+
+// Forgot password flow routes
+router.post('/forgot-password/send-otp', ctrl.sendOTP);
+router.post('/forgot-password/verify-otp', ctrl.verifyOTP);
+router.post('/forgot-password/reset-password', ctrl.resetPassword);
+router.post('/forgot-password/resend-otp', ctrl.resendOTP);
 
 // PUT - Update delivery settings for a restaurant
-router.put("/restaurants/:id/delivery-settings",ctrl.updateDeliverySettings);
+router.put("/:id/delivery-settings",ctrl.updateDeliverySettings);
 
 
 

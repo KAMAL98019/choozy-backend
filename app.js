@@ -34,7 +34,6 @@ app.use('/api/cuisines', require('./routes/cuisine.routes'));
 app.use("/api/delivery", require("./routes/deliveryPartner.routes"));
 app.use("/api", require("./routes/order.routes"));
 app.use("/api/subscriptions", require("./routes/subscription.routes"));
-app.use('/api', require('./routes/offer.routes'));
 app.use('/api',require('./routes/address.routes') );
 app.use("/api/notifications",require ('./routes/notification.routes'));
 app.use("/api/partner", require ('./routes/partnerAttendance.routes'));
@@ -44,15 +43,18 @@ app.use('/api/reviews/delivery-to-customer', require('./routes/reviewDeliveryToC
 app.use('/api/reviews/restaurant-to-delivery', require('./routes/reviewRestaurantToDeliveryRoutes'));
 app.use("/api",require('./routes/deliverySummaryRoutes') );
 app.use('/api/admin',require('./routes/adminRoutes') );
-app.use('/api',require('./routes/trackingRoutes') );
 app.use('/api',require('./routes/restaurantOrderRoutes')  );
 app.use('/api/admin', require('./routes/admin/userRoutes'));
 app.use('/api/admin', require('./routes/admin/restaurantRoutes'));
 app.use('/api/admin', require('./routes/admin/deliveryPartnerRoutes'));
 app.use('/api/admin', require('./routes/admin/orderRoutes'));
 app.use('/api/admin', require('./routes/admin/bookingRoutes'));
+app.use('/api', require('./routes/admin/offerRoutes'));
 app.use('/api/customer',require('./routes/customerBookingRoutes') );
 app.use('/api',require('./routes/restaurantBookingRoutes') );
+app.use('/api',require('./routes/offerRoutes') );
+app.use('/api',require('./routes/restaurantStatus.routes') );
+
 
 
 

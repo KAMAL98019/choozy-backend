@@ -1,191 +1,54 @@
-'use strict';
+// controllers/order.controller.js
+const { 
+  sequelize, 
+  Order, 
+  OrderItem,
+  DeliveryOrder, 
+  Partner, 
+  RestaurantReg, 
+  PartnerAttendance, 
+  Earnings, 
+  User 
+} = require('../models');
+const { Op } = require('sequelize');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+const geolib = require('geolib');
+const { sendSMS } = require('../utils/twilio');
 
-const { sequelize, Order, OrderItem, DeliveryOrder, Partner, RestaurantReg, User } = require('../models');
-
-/**
- * Assign a delivery partner to an order.
- * - order must exist and be CONFIRMED
- * - partner must exist and be online
- * - sets DeliveryOrder with pickup/delivery coords
- */
-exports.assignDelivery = async (req, res) => {
-  const t = await sequelize.transaction();
-  try {
-    const { orderId, partnerId } = req.body;
-    if (!orderId || !partnerId) {
-      await t.rollback();
-      return res.status(400).json({ success: false, message: 'orderId and partnerId are required' });
-    }
-
-    const order = await Order.findByPk(orderId, {
-      include: [{ model: RestaurantReg, as: 'restaurant' }],
-      transaction: t,
-      lock: t.LOCK.UPDATE
-    });
-    if (!order) {
-      await t.rollback();
-      return res.status(404).json({ success: false, message: 'Order not found' });
-    }
-
-    if (order.status !== 'CONFIRMED') {
-      await t.rollback();
-      return res.status(400).json({ success: false, message: 'Order not confirmed by restaurant yet.' });
-    }
-
-    const partner = await Partner.findByPk(partnerId, { transaction: t });
-    if (!partner || partner.status !== 'online') {
-      await t.rollback();
-      return res.status(400).json({ success: false, message: 'Partner not found or not online' });
-    }
-
-    // create assignment
-    const delivery = await DeliveryOrder.create({
-      orderId,
-      partnerId,
-      status: 'PENDING',
-      pickupLatitude: order.restaurant?.restaurantLatitude || null,
-      pickupLongitude: order.restaurant?.restaurantLongitude || null,
-      deliveryLatitude: order.latitude || null,
-      deliveryLongitude: order.longitude || null
-    }, { transaction: t });
-
-    await t.commit();
-    return res.status(200).json({ success: true, message: 'Delivery partner assigned', data: delivery });
-  } catch (err) {
-    if (t && !t.finished) await t.rollback();
-    console.error('Error in assignDelivery:', err);
-    return res.status(500).json({ success: false, message: err.message });
-  }
-};
-
-/**
- * Partner responds to assignment (ACCEPT / REJECT).
- * If REJECT, auto reassigns to next available partner (simple example).
- */
-exports.respondToDelivery = async (req, res) => {
-  const t = await sequelize.transaction();
-  try {
-    const { assignmentId } = req.params;
-    const { response } = req.body;
-    if (!assignmentId || !response) {
-      await t.rollback();
-      return res.status(400).json({ message: 'assignmentId and response are required' });
-    }
-
-    const assignment = await DeliveryOrder.findByPk(assignmentId, { transaction: t, lock: t.LOCK.UPDATE });
-    if (!assignment) {
-      await t.rollback();
-      return res.status(404).json({ message: 'Assignment not found' });
-    }
-
-    if (response === 'ACCEPT') {
-      assignment.status = 'ACCEPTED';
-      assignment.acceptedAt = new Date();
-      await assignment.save({ transaction: t });
-      await t.commit();
-      return res.json({ success: true, message: 'Assignment accepted', data: assignment });
-    } else if (response === 'REJECT') {
-      // mark current assignment rejected
-      assignment.status = 'REJECTED';
-      assignment.rejectedAt = new Date();
-      await assignment.save({ transaction: t });
-
-      // Try to find another partner (exclude this partner; simple fallback strategy)
-      const alternate = await Partner.findOne({
-        where: { status: 'online', id: { [sequelize.Op.ne]: assignment.partnerId } },
-        order: [['id', 'ASC']],
-        transaction: t
-      });
-
-      if (alternate) {
-        const newAssign = await DeliveryOrder.create({
-          orderId: assignment.orderId,
-          partnerId: alternate.id,
-          status: 'PENDING',
-          pickupLatitude: assignment.pickupLatitude,
-          pickupLongitude: assignment.pickupLongitude,
-          deliveryLatitude: assignment.deliveryLatitude,
-          deliveryLongitude: assignment.deliveryLongitude
-        }, { transaction: t });
-
-        await t.commit();
-        return res.json({ success: true, message: 'Assignment rejected and re-assigned', data: newAssign });
-      } else {
-        // no alternate found
-        await t.commit();
-        return res.json({ success: true, message: 'Assignment rejected - no alternate partner available' });
+// ------------------- Multer Setup for Delivery Photo -------------------
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    try {
+      const uploadPath = path.join(__dirname, '..', 'uploads', 'delivery');
+      if (!fs.existsSync(uploadPath)) {
+        fs.mkdirSync(uploadPath, { recursive: true });
       }
-    } else {
-      await t.rollback();
-      return res.status(400).json({ message: 'Invalid response. Use ACCEPT or REJECT' });
+      cb(null, uploadPath);
+    } catch (err) {
+      console.error('❌ Failed to create upload path:', err);
+      cb(err, null);
     }
-  } catch (err) {
-    if (t && !t.finished) await t.rollback();
-    console.error('Error in respondToDelivery:', err);
-    return res.status(500).json({ error: err.message });
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + path.extname(file.originalname));
   }
-};
+});
+const upload = multer({ storage });
+exports.uploadDeliveryPhoto = upload.single('deliveryPhoto');
 
-/**
- * Partner updates delivery status (PICKED_UP, OUT_FOR_DELIVERY, DELIVERED, etc).
- * If DELIVERED, update order.status to DELIVERED too.
- */
-exports.updateDeliveryStatus = async (req, res) => {
-  const t = await sequelize.transaction();
-  try {
-    const { assignmentId } = req.params;
-    const { status, distanceKm } = req.body;
-    if (!assignmentId || !status) {
-      await t.rollback();
-      return res.status(400).json({ message: 'assignmentId and status required' });
-    }
-
-    const delivery = await DeliveryOrder.findByPk(assignmentId, { transaction: t, lock: t.LOCK.UPDATE });
-    if (!delivery) {
-      await t.rollback();
-      return res.status(404).json({ message: 'Delivery not found' });
-    }
-
-    delivery.status = status;
-    if (distanceKm !== undefined) {
-      delivery.distanceKm = distanceKm;
-      delivery.earnings = Number(distanceKm) * 10; // example rate
-    }
-
-    if (status === 'DELIVERED') {
-      delivery.deliveredAt = new Date();
-      // also update order
-      const order = await Order.findByPk(delivery.orderId, { transaction: t, lock: t.LOCK.UPDATE });
-      if (order) {
-        order.status = 'DELIVERED';
-        order.deliveredAt = new Date();
-        await order.save({ transaction: t });
-      }
-    }
-
-    await delivery.save({ transaction: t });
-    await t.commit();
-    return res.json({ success: true, data: delivery });
-  } catch (err) {
-    if (t && !t.finished) await t.rollback();
-    console.error('Error in updateDeliveryStatus:', err);
-    return res.status(500).json({ error: err.message });
-  }
-};
-
-/**
- * Get deliveries/orders for admin/partner use.
- * We return orders with items, partner and restaurant.
- */
+// ------------------- Get Orders -------------------
 exports.getOrders = async (req, res) => {
   try {
     const orders = await Order.findAll({
       include: [
-        { model: OrderItem, as: 'items', include: [{ model: sequelize.models.FoodItem, as: 'food' }] },
-        { model: RestaurantReg, as: 'restaurant', attributes: ['id', 'rest_name', 'restaurantLatitude', 'restaurantLongitude'] },
-        { model: Partner, as: 'partner', attributes: ['id', 'fullName', 'mobile', 'status'] }
+        { model: OrderItem, as: 'items' },
+        { model: RestaurantReg, as: 'restaurant', attributes: ['id','rest_name','restaurantLatitude','restaurantLongitude'] },
+        { model: Partner, as: 'partner', attributes: ['id','fullName','mobile','status'] },
+        { model: User, as: 'user', attributes: ['id','name','mobile','email'] }
       ],
-      order: [['createdAt', 'DESC']]
+      order: [['createdAt','DESC']]
     });
     res.json({ success: true, data: orders });
   } catch (err) {
@@ -194,14 +57,15 @@ exports.getOrders = async (req, res) => {
   }
 };
 
+// ------------------- Get Order by ID -------------------
 exports.getOrder = async (req, res) => {
   try {
     const order = await Order.findByPk(req.params.id, {
       include: [
-        { model: OrderItem, as: 'items', include: [{ model: sequelize.models.FoodItem, as: 'food' }] },
-        { model: RestaurantReg, as: 'restaurant', attributes: ['id', 'rest_name', 'restaurantLatitude', 'restaurantLongitude'] },
-        { model: Partner, as: 'partner', attributes: ['id', 'fullName', 'mobile'] },
-        { model: User, as: 'user', attributes: ['id', 'name', 'mobile', 'email'] }
+        { model: OrderItem, as: 'items' },
+        { model: RestaurantReg, as: 'restaurant', attributes: ['id','rest_name','restaurantLatitude','restaurantLongitude'] },
+        { model: Partner, as: 'partner', attributes: ['id','fullName','mobile'] },
+        { model: User, as: 'user', attributes: ['id','name','mobile','email'] }
       ]
     });
     if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
@@ -209,5 +73,273 @@ exports.getOrder = async (req, res) => {
   } catch (err) {
     console.error('Error in getOrder:', err);
     res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ------------------- AUTO-ASSIGN Partner -------------------
+const autoAssignPartner = async (orderId, transaction) => {
+  try {
+    const order = await Order.findByPk(orderId, { include: [{ model: RestaurantReg, as: 'restaurant' }], transaction });
+    if (!order) throw new Error('Order not found');
+    const restaurant = order.restaurant;
+    if (!restaurant) throw new Error('Restaurant not found');
+
+    const onlineAttendances = await PartnerAttendance.findAll({
+      where: { status: 'ONLINE' },
+      attributes: ['partnerId'],
+      order: [['attendanceTime','DESC']],
+      transaction
+    });
+    if (onlineAttendances.length === 0) return null;
+
+    const onlinePartnerIds = [...new Set(onlineAttendances.map(a => a.partnerId))];
+
+    const busyPartners = await DeliveryOrder.findAll({
+      where: { partnerId: onlinePartnerIds, status: { [Op.in]: ['PENDING','ACCEPTED','PICKED_UP'] } },
+      attributes: ['partnerId'],
+      transaction
+    });
+
+    const busyPartnerIds = busyPartners.map(d => d.partnerId);
+    let availablePartnerIds = onlinePartnerIds.filter(id => !busyPartnerIds.includes(id));
+    if (availablePartnerIds.length === 0) return null;
+
+    const partnerRecords = await Partner.findAll({
+      where: { id: { [Op.in]: availablePartnerIds }, status: 'active' },
+      transaction
+    });
+
+    let filteredPartnerIds = partnerRecords.map(p => p.id);
+
+    // 🔹 RADIUS filter
+    if (restaurant.deliveryType === 'RADIUS' && restaurant.deliveryRadius && restaurant.restaurantLatitude && restaurant.restaurantLongitude) {
+      const checks = await Promise.all(partnerRecords.map(async (partner) => {
+        if (!partner.latitude || !partner.longitude) return false;
+        const distance = geolib.getDistance(
+          { latitude: restaurant.restaurantLatitude, longitude: restaurant.restaurantLongitude },
+          { latitude: partner.latitude, longitude: partner.longitude }
+        ) / 1000;
+        return distance <= restaurant.deliveryRadius;
+      }));
+      filteredPartnerIds = partnerRecords.filter((_, i) => checks[i]).map(p => p.id);
+    }
+
+    // 🔹 ZONE filter
+    if (restaurant.deliveryType === 'ZONE' && restaurant.deliveryZones && restaurant.deliveryZones.length > 0) {
+      const checks = await Promise.all(partnerRecords.map(async (partner) => {
+        if (!partner.latitude || !partner.longitude) return false;
+        return geolib.isPointInPolygon(
+          { latitude: partner.latitude, longitude: partner.longitude },
+          restaurant.deliveryZones
+        );
+      }));
+      filteredPartnerIds = partnerRecords.filter((_, i) => checks[i]).map(p => p.id);
+    }
+
+    if (filteredPartnerIds.length === 0) return null;
+
+    const availablePartner = await Partner.findOne({
+      where: { id: { [Op.in]: filteredPartnerIds }, status: 'active' },
+      order: [['id','ASC']],
+      transaction
+    });
+    if (!availablePartner) return null;
+
+    const deliveryOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    await order.update({ deliveryOtp }, { transaction });
+
+    const delivery = await DeliveryOrder.create({
+      orderId: order.id,
+      partnerId: availablePartner.id,
+      status: 'ASSIGNED',
+      pickupLatitude: restaurant?.restaurantLatitude || null,
+      pickupLongitude: restaurant?.restaurantLongitude || null,
+      deliveryLatitude: order.latitude || null,
+      deliveryLongitude: order.longitude || null
+    }, { transaction });
+
+    return delivery;
+  } catch (err) {
+    console.error('❌ Error in autoAssignPartner:', err);
+    return null;
+  }
+};
+exports.autoAssignPartner = autoAssignPartner;
+
+// ------------------- Get New Delivery Requests -------------------
+exports.getNewDeliveryRequests = async (req, res) => {
+  try {
+    const { partnerId } = req.query;
+    if (!partnerId) return res.status(400).json({ success: false, message: 'Partner ID is required' });
+
+    const attendance = await PartnerAttendance.findOne({
+      where: { partnerId, status: 'ONLINE' },
+      order: [['attendanceTime','DESC']]
+    });
+    if (!attendance) return res.status(403).json({ success: false, message: 'You must be online to receive delivery requests' });
+
+    const deliveries = await DeliveryOrder.findAll({
+      where: { partnerId, status: { [Op.in]: ['ASSIGNED','PICKED_UP'] } },
+      include: [{
+        model: Order,
+        as: 'order',
+        include: [
+          { model: RestaurantReg, as: 'restaurant', attributes: ['id','rest_name','contact_email','restaurantLatitude','restaurantLongitude','rest_address','contact_number'] },
+          { model: User, as: 'user', attributes: ['id','name','mobile','email'] }
+        ]
+      }],
+      order: [['createdAt','DESC']]
+    });
+
+    const formatted = deliveries.map(d => ({ ...d.toJSON(), isNew: d.status === 'ASSIGNED' }));
+    return res.json({ success: true, count: formatted.length, data: formatted });
+  } catch (err) {
+    console.error('Error in getNewDeliveryRequests:', err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+// ------------------- ACCEPT DELIVERY -------------------
+exports.acceptDelivery = async (req, res) => {
+  try {
+    const { deliveryId, partnerId } = req.body;
+    if (!deliveryId || !partnerId) return res.status(400).json({ success: false, message: 'Missing required fields' });
+
+    const delivery = await DeliveryOrder.findByPk(deliveryId, { include: [{ model: Order, as: 'order' }] });
+    if (!delivery) return res.status(404).json({ success: false, message: 'Delivery not found' });
+    if (delivery.status !== 'ASSIGNED') return res.status(400).json({ success: false, message: 'Already accepted or not available' });
+
+    await delivery.update({ status: 'ACCEPTED' });
+    await delivery.order.update({ status: 'ACCEPTED' });
+
+    return res.json({ success: true, message: 'Delivery accepted successfully', data: delivery });
+  } catch (err) {
+    console.error('Error in acceptDelivery:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ------------------- REJECT DELIVERY -------------------
+exports.rejectDelivery = async (req, res) => {
+  try {
+    const { deliveryId } = req.body;
+    if (!deliveryId) return res.status(400).json({ success: false, message: 'Delivery ID required' });
+
+    const delivery = await DeliveryOrder.findByPk(deliveryId);
+    if (!delivery) return res.status(404).json({ success: false, message: 'Delivery not found' });
+
+    await delivery.update({ status: 'REJECTED' });
+    return res.json({ success: true, message: 'Delivery rejected' });
+  } catch (err) {
+    console.error('Error in rejectDelivery:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ------------------- MARK PICKED UP -------------------
+exports.markPickedUp = async (req, res) => {
+  try {
+    const { deliveryId } = req.body;
+    if (!deliveryId) return res.status(400).json({ success: false, message: 'Delivery ID required' });
+
+    const delivery = await DeliveryOrder.findByPk(deliveryId, { include: [{ model: Order, as: 'order' }] });
+    if (!delivery) return res.status(404).json({ success: false, message: 'Delivery not found' });
+
+    await delivery.update({ status: 'PICKED_UP' });
+    await delivery.order.update({ status: 'OUT_FOR_DELIVERY' });
+
+    return res.json({ success: true, message: 'Order marked as picked up' });
+  } catch (err) {
+    console.error('Error in markPickedUp:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ------------------- VERIFY DELIVERY OTP -------------------
+exports.verifyDeliveryOtp = async (req, res) => {
+  try {
+    const { deliveryId, otp } = req.body;
+    if (!deliveryId || !otp) return res.status(400).json({ success: false, message: 'Missing required fields' });
+
+    const delivery = await DeliveryOrder.findByPk(deliveryId, { include: [{ model: Order, as: 'order' }] });
+    if (!delivery) return res.status(404).json({ success: false, message: 'Delivery not found' });
+
+    if (delivery.order.deliveryOtp !== otp)
+      return res.status(400).json({ success: false, message: 'Invalid OTP' });
+
+    await sequelize.transaction(async (t) => {
+      await delivery.update({ status: 'DELIVERED' }, { transaction: t });
+      await delivery.order.update({ status: 'DELIVERED' }, { transaction: t });
+
+      await Earnings.create({
+        partnerId: delivery.partnerId,
+        orderId: delivery.orderId,
+        amount: delivery.order.deliveryCharge || 0,
+        type: 'DELIVERY',
+        status: 'COMPLETED'
+      }, { transaction: t });
+    });
+
+    return res.json({ success: true, message: 'Order delivered successfully' });
+  } catch (err) {
+    console.error('Error in verifyDeliveryOtp:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ------------------- UPLOAD DELIVERY PROOF -------------------
+exports.uploadDeliveryProof = async (req, res) => {
+  try {
+    const { deliveryId } = req.body;
+    if (!deliveryId) return res.status(400).json({ success: false, message: 'Delivery ID required' });
+    if (!req.file) return res.status(400).json({ success: false, message: 'Proof photo is required' });
+
+    const photoUrl = `/uploads/delivery/${req.file.filename}`;
+    await DeliveryOrder.update({ proofPhoto: photoUrl }, { where: { id: deliveryId } });
+    return res.json({ success: true, message: 'Proof photo uploaded', photoUrl });
+  } catch (err) {
+    console.error('Error in uploadDeliveryProof:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ------------------- GET CURRENT DELIVERY -------------------
+exports.getCurrentDelivery = async (req, res) => {
+  try {
+    const { partnerId } = req.query;
+    if (!partnerId) return res.status(400).json({ success: false, message: 'Partner ID required' });
+
+    const delivery = await DeliveryOrder.findOne({
+      where: { partnerId, status: { [Op.in]: ['ASSIGNED','ACCEPTED','PICKED_UP'] } },
+      include: [{ model: Order, as: 'order', include: [{ model: User, as: 'user' }, { model: RestaurantReg, as: 'restaurant' }] }],
+      order: [['createdAt','DESC']]
+    });
+    if (!delivery) return res.json({ success: true, data: null });
+
+    return res.json({ success: true, data: delivery });
+  } catch (err) {
+    console.error('Error in getCurrentDelivery:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ------------------- DELIVERY HISTORY -------------------
+exports.getDeliveryHistory = async (req, res) => {
+  try {
+    const { partnerId } = req.query;
+    if (!partnerId) return res.status(400).json({ success: false, message: 'Partner ID required' });
+
+    const history = await DeliveryOrder.findAll({
+      where: { partnerId, status: 'DELIVERED' },
+      include: [
+        { model: Order, as: 'order', include: [{ model: User, as: 'user' }, { model: RestaurantReg, as: 'restaurant' }] }
+      ],
+      order: [['createdAt','DESC']]
+    });
+
+    return res.json({ success: true, data: history });
+  } catch (err) {
+    console.error('Error in getDeliveryHistory:', err);
+    return res.status(500).json({ success: false, message: err.message });
   }
 };

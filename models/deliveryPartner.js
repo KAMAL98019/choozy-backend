@@ -1,6 +1,5 @@
 module.exports = (sequelize, DataTypes) => {
   const Partner = sequelize.define("Partner", {
-
     id: {
       type: DataTypes.UUID,
       defaultValue: DataTypes.UUIDV4,
@@ -42,6 +41,12 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
     },
 
+    // ✅ Add this new field
+    profilePhoto: {
+      type: DataTypes.STRING, // file path or URL
+      allowNull: true,
+    },
+
     // ---------------- Address + Emergency ----------------
     address: DataTypes.STRING,
     city: DataTypes.STRING,
@@ -75,13 +80,26 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.ENUM("pending", "active", "on-duty", "inactive", "blocked"),
       allowNull: false,
       defaultValue: "active"
+    },
+    otp: {
+      type: DataTypes.STRING(6),
+      allowNull: true
+    },
+    otpExpiry: {
+      type: DataTypes.DATE,
+      allowNull: true
+    },
+    otpVerified: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false
     }
 
   });
 
-  // ✅ Add association here
   Partner.associate = (models) => {
     Partner.hasMany(models.Order, { foreignKey: "partnerId", as: "orders" });
+    Partner.hasMany(models.DeliveryOrder, { foreignKey: "partnerId", as: "deliveries" });
+
   };
 
   return Partner;

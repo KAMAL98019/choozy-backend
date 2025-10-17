@@ -1,9 +1,11 @@
 // controllers/restaurantOrderController.js
-const { Order, OrderItem, User, Partner, FoodItem, RestaurantReg } = require('../models');
+const { Order, OrderItem, User, Partner, FoodItem,  DeliveryOrder, RestaurantReg } = require('../models');
+const { sequelize } = require('../models');
 const { Op } = require('sequelize');
+const { autoAssignPartner } = require('./order.controller'); // adjust path if needed
 
 
-
+// -------------------- Get all orders --------------------
 async function getAllOrders(req, res) {
   try {
     const { restaurantId, status, sortBy = 'createdAt', order = 'DESC', search, userId } = req.query;
@@ -12,7 +14,7 @@ async function getAllOrders(req, res) {
       return res.status(400).json({ success: false, message: 'restaurantId is required' });
     }
 
-    const where = { rest_id: restaurantId }; // ✅ use correct attribute
+    const where = { rest_id: restaurantId };
 
     // Status mapping
     if (status) {
@@ -26,15 +28,13 @@ async function getAllOrders(req, res) {
       if (map[status]) where.status = map[status];
     }
 
-    // If partner user
+    // Partner filter
     if (userId) {
       const user = await User.findByPk(userId);
-      if (user?.role === 'PARTNER') {
-        where.partnerId = user.partnerId;
-      }
+      if (user?.role === 'PARTNER') where.partnerId = user.partnerId;
     }
 
-    // Search by orderNumber / customerName
+    // Search filter
     if (search) {
       where[Op.or] = [
         { orderNumber: { [Op.like]: `%${search}%` } },
@@ -50,14 +50,7 @@ async function getAllOrders(req, res) {
           model: OrderItem,
           as: 'items',
           include: [
-            {
-              model: FoodItem,
-              as: 'food',
-              attributes: ['id', 'dishname', 'price'],
-              include: [
-                { model: RestaurantReg, as: 'restaurant', attributes: ['id', 'rest_name', 'rest_logo'] }
-              ]
-            }
+            { model: FoodItem, as: 'food', attributes: ['id', 'dishname', 'price'], include: [{ model: RestaurantReg, as: 'restaurant', attributes: ['id', 'rest_name', 'rest_logo'] }] }
           ]
         },
         { model: Partner, as: 'partner', attributes: ['id', 'fullName', 'mobile', 'address'] }
@@ -72,8 +65,6 @@ async function getAllOrders(req, res) {
   }
 }
 
-
-
 // -------------------- Get order by ID --------------------
 async function getOrderById(req, res) {
   try {
@@ -82,26 +73,13 @@ async function getOrderById(req, res) {
     const order = await Order.findOne({
       where: { id },
       include: [
-        {
-          model: OrderItem,
-          as: 'items',
-          include: [
-            {
-              model: FoodItem,
-              as: 'food',
-              attributes: ['id', 'dishname', 'price'],
-              include: [{ model: RestaurantReg, as: 'restaurant', attributes: ['id', 'rest_name', 'rest_logo'] }]
-            }
-          ]
-        },
+        { model: OrderItem, as: 'items', include: [{ model: FoodItem, as: 'food', attributes: ['id', 'dishname', 'price'], include: [{ model: RestaurantReg, as: 'restaurant', attributes: ['id', 'rest_name', 'rest_logo'] }] }] },
         { model: User, as: 'user', attributes: ['id', 'name', 'mobile', 'email'] },
         { model: Partner, as: 'partner', attributes: ['id', 'fullName', 'mobile', 'address'] }
       ]
     });
 
-    if (!order) {
-      return res.status(404).json({ success: false, message: 'Order not found' });
-    }
+    if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
 
     return res.status(200).json({ success: true, data: order });
   } catch (err) {
@@ -110,36 +88,117 @@ async function getOrderById(req, res) {
   }
 }
 
-// -------------------- Accept order --------------------
 async function acceptOrder(req, res) {
+  const t = await sequelize.transaction();
   try {
     const { id } = req.params;
-    const { estimatedPreparationTime } = req.body;
+    const { estimatedPreparationTime, restaurantId } = req.body;
 
-    const order = await Order.findByPk(id);
-    if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+    if (!restaurantId) {
+      await t.rollback();
+      return res.status(400).json({ success: false, message: 'restaurantId is required' });
+    }
 
-    await order.update({
-      status: 'CONFIRMED',
-      confirmedAt: new Date(),
-      estimatedPreparationTime: estimatedPreparationTime || 15
+    // Fetch the order with transaction lock
+    const order = await Order.findByPk(id, { transaction: t, lock: t.LOCK.UPDATE });
+    if (!order) {
+      await t.rollback();
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+
+    if (order.rest_id !== restaurantId) {
+      await t.rollback();
+      return res.status(403).json({ success: false, message: 'Cannot accept order for another restaurant' });
+    }
+
+    if (order.status === 'CONFIRMED') {
+      await t.rollback();
+      return res.status(400).json({ success: false, message: 'Order is already accepted' });
+    }
+    if (order.status === 'CANCELLED') {
+      await t.rollback();
+      return res.status(400).json({ success: false, message: 'Cannot accept a rejected order' });
+    }
+
+    if (order.paymentStatus !== 'PAID') {
+      await t.rollback();
+      return res.status(400).json({ success: false, message: 'Cannot accept order. Payment not confirmed.' });
+    }
+
+    // Update order status and estimated time
+    const newEstimatedTime = (order.estimatedPreparationTime || 0) + (Number(estimatedPreparationTime) || 0);
+    await order.update(
+      {
+        status: 'CONFIRMED',
+        confirmedAt: new Date(),
+        estimatedPreparationTime: newEstimatedTime
+      },
+      { transaction: t }
+    );
+
+    // 🔹 AUTO-ASSIGN DELIVERY PARTNER
+    const deliveryAssignment = await autoAssignPartner(order.id, t);
+
+    let deliveryWithPartner = null;
+
+    if (deliveryAssignment) {
+      deliveryWithPartner = await DeliveryOrder.findOne({
+        where: { id: deliveryAssignment.id },
+        include: [
+          {
+            model: Partner,
+            as: 'partner',
+            attributes: ['id', 'fullName', 'mobile', 'status', 'address']
+          }
+        ],
+        transaction: t
+      });
+    }
+
+    await t.commit();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Order accepted',
+      data: {
+        order,
+        delivery: deliveryWithPartner
+      }
     });
 
-    return res.status(200).json({ success: true, message: 'Order accepted', data: order });
   } catch (err) {
+    if (!t.finished) await t.rollback();
     console.error('Error in acceptOrder:', err);
     return res.status(500).json({ success: false, message: err.message });
   }
 }
 
-// -------------------- Reject order --------------------
+
+
 async function rejectOrder(req, res) {
   try {
     const { id } = req.params;
-    const { reason } = req.body;
+    const { reason, restaurantId } = req.body;
+
+    if (!restaurantId) {
+      return res.status(400).json({ success: false, message: 'restaurantId is required' });
+    }
 
     const order = await Order.findByPk(id);
     if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+
+    // Ensure restaurant owns this order
+    if (order.rest_id !== restaurantId) {
+      return res.status(403).json({ success: false, message: 'Cannot reject order for another restaurant' });
+    }
+
+    // Check current status
+    if (order.status === 'CANCELLED') {
+      return res.status(400).json({ success: false, message: 'Order is already rejected' });
+    }
+    if (order.status === 'CONFIRMED') {
+      return res.status(400).json({ success: false, message: 'Cannot reject an accepted order' });
+    }
 
     await order.update({
       status: 'CANCELLED',
@@ -154,14 +213,23 @@ async function rejectOrder(req, res) {
   }
 }
 
+
 // -------------------- Update order status --------------------
 async function updateOrderStatus(req, res) {
   try {
     const { id } = req.params;
-    const { status } = req.body;
+    const { status, restaurantId, additionalPreparationTime } = req.body; // Add optional additionalPreparationTime
+
+    if (!restaurantId) {
+      return res.status(400).json({ success: false, message: 'restaurantId is required' });
+    }
 
     const order = await Order.findByPk(id);
     if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+
+    if (order.rest_id !== restaurantId) {
+      return res.status(403).json({ success: false, message: 'Cannot update order status for another restaurant' });
+    }
 
     const timestampMap = {
       CONFIRMED: 'confirmedAt',
@@ -175,6 +243,11 @@ async function updateOrderStatus(req, res) {
     const updateData = { status };
     if (timestampMap[status]) updateData[timestampMap[status]] = new Date();
 
+    // Add additionalPreparationTime to existing estimatedPreparationTime
+    if (additionalPreparationTime) {
+      updateData.estimatedPreparationTime = (order.estimatedPreparationTime || 0) + Number(additionalPreparationTime);
+    }
+
     await order.update(updateData);
 
     return res.status(200).json({ success: true, message: 'Order status updated', data: order });
@@ -184,6 +257,7 @@ async function updateOrderStatus(req, res) {
   }
 }
 
+
 // -------------------- Print KOT --------------------
 async function printKOT(req, res) {
   try {
@@ -192,11 +266,7 @@ async function printKOT(req, res) {
     const order = await Order.findOne({
       where: { id },
       include: [
-        {
-          model: OrderItem,
-          as: 'items',
-          include: [{ model: FoodItem, as: 'food', attributes: ['dishname'] }]
-        }
+        { model: OrderItem, as: 'items', include: [{ model: FoodItem, as: 'food', attributes: ['dishname'] }] }
       ]
     });
 
@@ -224,11 +294,7 @@ async function trackOrder(req, res) {
     const order = await Order.findOne({
       where: { id },
       include: [
-        {
-          model: OrderItem,
-          as: 'items',
-          include: [{ model: FoodItem, as: 'food', attributes: ['dishname'] }]
-        },
+        { model: OrderItem, as: 'items', include: [{ model: FoodItem, as: 'food', attributes: ['dishname'] }] },
         { model: Partner, as: 'partner', attributes: ['id', 'fullName', 'mobile', 'address'] },
         { model: User, as: 'user', attributes: ['id', 'name', 'mobile'] }
       ]
@@ -240,14 +306,8 @@ async function trackOrder(req, res) {
       orderId: order.id,
       orderNumber: order.orderNumber,
       status: order.status,
-      customer: {
-        name: order.customerName || order.user?.name,
-        phone: order.customerPhone || order.user?.mobile,
-        address: order.address
-      },
-      partner: order.partner
-        ? { name: order.partner.fullName, phone: order.partner.mobile, address: order.partner.address }
-        : null,
+      customer: { name: order.customerName || order.user?.name, phone: order.customerPhone || order.user?.mobile, address: order.address },
+      partner: order.partner ? { name: order.partner.fullName, phone: order.partner.mobile, address: order.partner.address } : null,
       items: order.items.map(i => ({ name: i.food?.dishname, quantity: i.quantity })),
       timestamps: {
         confirmedAt: order.confirmedAt,
@@ -268,7 +328,7 @@ async function trackOrder(req, res) {
 
 module.exports = {
   getAllOrders,
-  getOrderHistory: getAllOrders, // reuse
+  getOrderHistory: getAllOrders,
   getOrderById,
   acceptOrder,
   rejectOrder,

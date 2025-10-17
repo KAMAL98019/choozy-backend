@@ -22,17 +22,21 @@ exports.create = async (req, res) => {
 // 🧩 Get All Food Items
 exports.getAll = async (req, res) => {
   try {
-    const { restaurantId, cuisineId, categoryId, search } = req.query;
+    const { restaurantId, cuisineId, categoryId, search, veg } = req.query; // <-- added veg
     const condition = {};
 
     if (restaurantId) condition.rest_id = restaurantId;
     if (cuisineId) condition.cuisineId = cuisineId;
     if (categoryId) condition.categoryId = categoryId;
 
+    if (veg !== undefined) {
+      condition.veg = veg === 'true'; // string to boolean
+    }
+
     if (search) {
       condition[Op.or] = [
-        { dishname: { [Op.like]: `%${search}%` } },
-        // search by cuisine or category name
+        { dishname: { [Op.like]: `%${search}%` } }
+        // you can extend search by cuisine/category name if needed
       ];
     }
 
@@ -50,6 +54,7 @@ exports.getAll = async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 };
+
 
 // 🧩 Get Food Item by ID
 exports.getById = async (req, res) => {

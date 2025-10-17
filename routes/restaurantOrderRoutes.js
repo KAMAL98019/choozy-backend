@@ -3,7 +3,7 @@ const express = require('express');
 const router = express.Router();
 const restaurantOrderController = require('../controllers/restaurantOrderController');
 
-// Get all orders (with optional status filter)
+// Get all orders
 router.get('/all', restaurantOrderController.getAllOrders);
 
 // Get order history

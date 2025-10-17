@@ -12,7 +12,7 @@ module.exports = {
         type: Sequelize.UUID,
         allowNull: false,
         references: {
-          model: 'restaurant_reg', // Table name of Restaurant
+          model: 'restaurant_reg',
           key: 'id'
         },
         onUpdate: 'CASCADE',
@@ -30,10 +30,27 @@ module.exports = {
         type: Sequelize.FLOAT,
         allowNull: false
       },
-      category: {
-        type: Sequelize.STRING,
-        allowNull: false
+      categoryId: {
+        type: Sequelize.UUID,
+        allowNull: true,
+        references: {
+          model: 'categories', // ✅ lowercase
+          key: 'id'
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'SET NULL'
       },
+      cuisineId: {
+        type: Sequelize.UUID,
+        allowNull: true,
+        references: {
+          model: 'cuisines', // ✅ lowercase
+          key: 'id'
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'SET NULL'
+      },
+
       veg: {
         type: Sequelize.BOOLEAN,
         defaultValue: true
