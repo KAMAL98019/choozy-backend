@@ -23,7 +23,5 @@ logs/
 .vscode/
 
 
-# .gitignore
-config/serviceAccount.json
-.env
+
 
