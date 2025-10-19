@@ -24,6 +24,6 @@ logs/
 
 
 # .gitignore
-config/firebaseServiceKey.json
+config/serviceAccount.json
 .env
 
