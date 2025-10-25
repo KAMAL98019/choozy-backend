@@ -30,7 +30,7 @@ module.exports = (sequelize, DataTypes) => {
     },
     eventDay: DataTypes.STRING,
     eventDate: DataTypes.DATEONLY,
-     eventTimes: {
+    eventTimes: {
       type: DataTypes.JSON,
       allowNull: false,
       comment: 'Array of times for multiple sessions, e.g. ["18:30", "21:00"]'

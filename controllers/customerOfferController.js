@@ -6,68 +6,88 @@ exports.getActiveOffers = async (req, res) => {
   try {
     const { restaurantId } = req.query;
     const now = new Date();
-    
-    const whereClause = {
-      approvalStatus: 'APPROVED',
-      status: 'ACTIVE',
-      startDate: { [Op.lte]: now },
-      endDate: { [Op.gte]: now }
-    };
-    
-    if (restaurantId) {
-      whereClause.restaurantId = restaurantId;
-    }
-    
+
+    // Base filter
+    let whereClause = {};
+    if (restaurantId) whereClause.restaurantId = restaurantId;
+
     const offers = await Offer.findAll({
       where: whereClause,
       include: [
         {
           model: RestaurantReg,
           as: 'restaurant',
-          attributes: ['id', 'restaurantName', 'address', 'mobile']
+          attributes: ['id', 'rest_name', 'rest_logo', 'contact_email', 'contact_number', 'rest_address']
         }
       ],
       order: [['createdAt', 'DESC']]
     });
-    
-    res.json({ success: true, count: offers.length, data: offers });
+
+    const filteredOffers = offers.filter(offer => {
+      const reasons = [];
+      if (offer.approvalStatus !== 'APPROVED') reasons.push('Not approved');
+      if (offer.status !== 'ACTIVE') reasons.push('Not active');
+      if (new Date(offer.startDate) > now) reasons.push('Not started yet');
+      if (new Date(offer.endDate) < now) reasons.push('Expired');
+
+      offer.debugReasons = reasons; // attach reasons
+      return reasons.length === 0;  // keep only valid offers
+    });
+
+    res.json({
+      success: true,
+      totalOffers: offers.length,
+      validOffers: filteredOffers.length,
+      data: filteredOffers,
+      debug: offers.map(o => ({ id: o.id, debugReasons: o.debugReasons }))
+    });
+
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// Get Single Offer Details (for customers)
 exports.getOfferDetails = async (req, res) => {
   try {
     const { id } = req.params;
     const now = new Date();
-    
-    const offer = await Offer.findOne({
-      where: {
-        id,
-        approvalStatus: 'APPROVED',
-        status: 'ACTIVE',
-        startDate: { [Op.lte]: now },
-        endDate: { [Op.gte]: now }
-      },
+
+    const offer = await Offer.findByPk(id, {
       include: [
         {
           model: RestaurantReg,
           as: 'restaurant',
-          attributes: ['id', 'restaurantName', 'address', 'mobile']
+          attributes: ['id', 'rest_name', 'rest_logo', 'contact_email', 'contact_number', 'rest_address']
         }
       ]
     });
-    
+
     if (!offer) {
-      return res.status(404).json({ success: false, message: 'Offer not found or not available' });
+      return res.status(404).json({ success: false, message: 'Offer not found in DB' });
     }
-    
+
+    // Check each condition
+    const debugReasons = [];
+    if (offer.approvalStatus !== 'APPROVED') debugReasons.push('Not approved');
+    if (offer.status !== 'ACTIVE') debugReasons.push('Not active');
+    if (new Date(offer.startDate) > now) debugReasons.push('Not started yet');
+    if (new Date(offer.endDate) < now) debugReasons.push('Expired');
+
+    if (debugReasons.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Offer found but not available',
+        debugReasons
+      });
+    }
+
     res.json({ success: true, data: offer });
+
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
 
 
 
@@ -172,7 +192,7 @@ exports.getUserBookedOffers = async (req, res) => {
             {
               model: RestaurantReg,
               as: 'restaurant',
-              attributes: ['id', 'restaurantName', 'address']
+              attributes: ['id', 'rest_name', 'rest_logo', 'contact_email', 'contact_number', 'rest_address']
             }
           ]
         }
@@ -181,58 +201,6 @@ exports.getUserBookedOffers = async (req, res) => {
     });
     
     res.json({ success: true, count: bookings.length, data: bookings });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-// Use offer (when placing order)
-exports.useOffer = async (req, res) => {
-  try {
-    const { id } = req.params; // UserOffer id
-    const { orderId } = req.body;
-    
-    const booking = await UserOffer.findByPk(id, {
-      include: [
-        {
-          model: Offer,
-          as: 'offer'
-        }
-      ]
-    });
-    
-    if (!booking) {
-      return res.status(404).json({ success: false, message: 'Booking not found' });
-    }
-    
-    if (booking.status !== 'BOOKED') {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'This offer has already been used or expired' 
-      });
-    }
-    
-    // Check if offer is still valid
-    const now = new Date();
-    if (new Date(booking.offer.endDate) < now) {
-      await booking.update({ status: 'EXPIRED' });
-      return res.status(400).json({ 
-        success: false, 
-        message: 'This offer has expired' 
-      });
-    }
-    
-    await booking.update({
-      status: 'USED',
-      usedAt: new Date(),
-      orderId
-    });
-    
-    res.json({ 
-      success: true, 
-      message: 'Offer applied successfully', 
-      data: booking 
-    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

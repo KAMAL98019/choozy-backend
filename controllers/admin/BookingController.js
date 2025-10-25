@@ -3,19 +3,22 @@
 const { DiningBooking, RestaurantReg, DiningSpace, User, sequelize,DiningEvent } = require('../../models');
 const { Op } = require('sequelize');
 
+/**
+ * ✅ Get All Bookings (Admin)
+ */
 exports.getAllBookings = async (req, res) => {
   try {
     const { status, search, dateRange, page = 1, pageSize = 20 } = req.query;
 
     const where = {};
 
-    // ✅ Status filter
+    // 🔹 Status Filter
     if (status) {
       const statusMap = {
-        Pending: "PENDING",
-        Confirmed: ["ADMIN_VERIFIED", "CONFIRMED"],
-        Completed: "COMPLETED",
-        Cancelled: "CANCELLED",
+        Pending: 'PENDING',
+        Confirmed: ['ADMIN_VERIFIED', 'CONFIRMED'],
+        Completed: 'COMPLETED',
+        Cancelled: 'CANCELLED',
       };
       const mappedStatus = statusMap[status];
       if (Array.isArray(mappedStatus)) {
@@ -25,51 +28,80 @@ exports.getAllBookings = async (req, res) => {
       }
     }
 
-    // ✅ Search filter
+    // 🔹 Search Filter
     if (search) {
       where[Op.or] = [
-        { bookingNumber: { [Op.like]: `%${search}%` } },
-        { customerName: { [Op.like]: `%${search}%` } },
-        { customerPhone: { [Op.like]: `%${search}%` } },
+        { bookingId: { [Op.like]: `%${search}%` } },
+        { '$user.name$': { [Op.like]: `%${search}%` } },
+        { '$user.mobile$': { [Op.like]: `%${search}%` } },
+        { '$restaurant.rest_name$': { [Op.like]: `%${search}%` } },
       ];
     }
 
-    // ✅ Date range filter
+    // 🔹 Date Range Filter
     if (dateRange) {
-      const [start, end] = dateRange.split(",");
+      const [start, end] = dateRange.split(',');
       if (start && end) {
-        where.bookingDate = {
-          [Op.between]: [new Date(start), new Date(end)],
-        };
+        where.bookingDate = { [Op.between]: [new Date(start), new Date(end)] };
       }
     }
 
     const limit = Math.min(Number(pageSize) || 20, 100);
     const offset = (Math.max(Number(page) || 1, 1) - 1) * limit;
 
-    const { count, rows: bookings } = await DiningBooking.findAndCountAll({
+    const { count, rows } = await DiningBooking.findAndCountAll({
       where,
       include: [
         {
           model: User,
-          as: "user",
-          attributes: ["id", "name", "mobile", "email"],
+          as: 'user',
+          attributes: ['id', 'name', 'mobile', 'email'],
         },
         {
           model: RestaurantReg,
-          as: "restaurant",
-          attributes: ["id", "rest_name", "rest_address", "contact_number"],
+          as: 'restaurant',
+          attributes: ['id', 'rest_name', 'rest_address', 'contact_number'],
+        },
+        {
+          model: DiningSpace,
+          as: 'diningArea',
+          attributes: ['id', 'areaName'],
+          required: false,
+        },
+        {
+          model: DiningEvent,
+          as: 'event',
+          attributes: ['id', 'eventName'],
+          required: false,
         },
       ],
-      order: [["createdAt", "DESC"]],
+      order: [['createdAt', 'DESC']],
       limit,
       offset,
     });
 
+    // 🔹 Format clean data for frontend
+    const formattedBookings = rows.map((b) => ({
+      id: b.id,
+      bookingId: b.bookingId || b.id,
+      customerName: b.user ? b.user.name : 'N/A',
+      restaurantName: b.restaurant ? b.restaurant.rest_name : 'N/A',
+      dateTime: `${b.bookingDate || ''} ${b.bookingTime || ''}`,
+      guests: b.numberOfGuests || 0,
+      status:
+        b.status === 'PENDING'
+          ? 'Pending'
+          : b.status === 'ADMIN_VERIFIED' || b.status === 'CONFIRMED'
+          ? 'Confirmed'
+          : b.status === 'COMPLETED'
+          ? 'Completed'
+          : 'Cancelled',
+    }));
+
     return res.status(200).json({
       success: true,
       data: {
-        bookings,
+        bookings: formattedBookings,
         total: count,
         page: Number(page),
         pageSize: limit,
@@ -77,10 +109,11 @@ exports.getAllBookings = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Error in getAllBookings:", error);
-    return res
-      .status(500)
-      .json({ success: false, error: error.message || "Failed to fetch bookings" });
+    console.error('Error in getAllBookings:', error);
+    return res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to fetch bookings',
+    });
   }
 };
 

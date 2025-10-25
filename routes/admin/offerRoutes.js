@@ -13,10 +13,11 @@ router.put('/admin/offers/:id/reject', adminOfferController.rejectOffer);
 router.put('/admin/offers/:id/request-changes', adminOfferController.requestChanges);
 
 // ============ ADMIN CREATES OFFERS DIRECTLY ============
-router.post('/admin/offers/create',upload.single('offerImage'), adminOfferController.createOfferByAdmin);
-router.get('/admin/offers/admin-created', adminOfferController.getAdminOffers);
-router.put('/admin/offers/admin-created/:id',upload.single('offerImage'), adminOfferController.updateAdminOffer);
+router.post('/admin/offers/admin-create', upload.single('offerImage'), adminOfferController.createOfferByAdmin);
+router.get('/admin/offers/admin-created/:id', adminOfferController.getAdminOffers);
+router.put('/admin/offers/admin-created/:id', upload.single('offerImage'), adminOfferController.updateAdminOffer);
 router.delete('/admin/offers/admin-created/:id', adminOfferController.deleteAdminOffer);
+
 
 
 module.exports = router;

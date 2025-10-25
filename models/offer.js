@@ -4,25 +4,24 @@ const { Model } = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
   class Offer extends Model {
     static associate(models) {
-      Offer.belongsTo(models.RestaurantReg, { 
-        foreignKey: 'restaurantId', 
-        as: 'restaurant' 
+      Offer.belongsTo(models.RestaurantReg, {
+        foreignKey: 'restaurantId',
+        as: 'restaurant',
       });
-      
-      Offer.belongsTo(models.Admin, { 
-        foreignKey: 'createdBy', 
-        as: 'creator' 
+
+      Offer.belongsTo(models.Admin, {
+        foreignKey: 'createdBy',
+        as: 'creator',
       });
-      
-      Offer.belongsTo(models.Admin, { 
-        foreignKey: 'approvedBy', 
-        as: 'approver' 
+
+      Offer.belongsTo(models.Category, {
+        foreignKey: 'categoryId',
+        as: 'category',
       });
-      
-      // Offer bookings by users
+
       Offer.hasMany(models.UserOffer, {
         foreignKey: 'offerId',
-        as: 'bookings'
+        as: 'bookings',
       });
     }
   }
@@ -32,41 +31,43 @@ module.exports = (sequelize, DataTypes) => {
       id: {
         type: DataTypes.UUID,
         defaultValue: DataTypes.UUIDV4,
-        primaryKey: true
+        primaryKey: true,
       },
       restaurantId: {
         type: DataTypes.UUID,
-        allowNull: true // Can be null for admin-created offers
+        allowNull: true,
+      },
+      categoryId: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        references: {
+          model: 'categories',
+          key: 'id',
+        },
       },
       createdBy: {
         type: DataTypes.UUID,
-        allowNull: true, // Admin who created the offer
+        allowNull: true,
         references: {
           model: 'admins',
-          key: 'id'
-        }
+          key: 'id',
+        },
       },
       offerType: {
         type: DataTypes.ENUM('RESTAURANT', 'ADMIN'),
         defaultValue: 'RESTAURANT',
-        allowNull: false
+        allowNull: false,
       },
       title: { type: DataTypes.STRING, allowNull: false },
       description: DataTypes.TEXT,
       discountType: {
         type: DataTypes.ENUM('PERCENTAGE', 'FLAT'),
-        defaultValue: 'PERCENTAGE'
+        defaultValue: 'PERCENTAGE',
       },
       discountValue: { type: DataTypes.FLOAT, defaultValue: 0 },
       minOrderValue: { type: DataTypes.FLOAT, defaultValue: 0 },
-      maxUsagePerUser: {
-        type: DataTypes.INTEGER,
-        defaultValue: 1 // How many times one user can use
-      },
-      totalUsageLimit: {
-        type: DataTypes.INTEGER,
-        allowNull: true // Total number of users who can use this offer
-      },
+      maxUsagePerUser: { type: DataTypes.INTEGER, defaultValue: 1 },
+      totalUsageLimit: { type: DataTypes.INTEGER, allowNull: true },
       startDate: DataTypes.DATE,
       endDate: DataTypes.DATE,
       startTime: DataTypes.STRING,
@@ -74,39 +75,48 @@ module.exports = (sequelize, DataTypes) => {
       applicableItems: DataTypes.JSON,
       termsConditions: DataTypes.TEXT,
       offerImage: DataTypes.STRING,
+      isCommissionAuto: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true,
+      },
+      adminCommission: {
+        type: DataTypes.FLOAT,
+        defaultValue: 0,
+      },
       status: {
         type: DataTypes.ENUM('ACTIVE', 'INACTIVE'),
-        defaultValue: 'ACTIVE'
+        defaultValue: 'ACTIVE',
       },
       approvalStatus: {
-        type: DataTypes.ENUM('PENDING', 'APPROVED', 'REJECTED', 'CHANGES_REQUESTED'),
-        defaultValue: 'PENDING'
+        type: DataTypes.ENUM(
+          'PENDING',
+          'APPROVED',
+          'REJECTED',
+          'CHANGES_REQUESTED'
+        ),
+        defaultValue: 'PENDING',
       },
       approvedBy: {
-        type: DataTypes.UUID,
+        type: DataTypes.STRING,
         allowNull: true,
-        references: {
-          model: 'admins',
-          key: 'id'
-        }
       },
       approvalDate: {
         type: DataTypes.DATE,
-        allowNull: true
+        allowNull: true,
       },
       rejectionReason: {
         type: DataTypes.TEXT,
-        allowNull: true
+        allowNull: true,
       },
       adminComments: {
         type: DataTypes.TEXT,
-        allowNull: true
-      }
+        allowNull: true,
+      },
     },
     {
       sequelize,
       modelName: 'Offer',
-      tableName: 'offers'
+      tableName: 'offers',
     }
   );
 

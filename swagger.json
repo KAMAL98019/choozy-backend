@@ -11,7 +11,6 @@
         }
     ],
     "paths": {
-    
         "/api/users": {
             "get": {
                 "summary": "List users",
@@ -7284,12 +7283,29 @@
                         "schema": {
                             "type": "string"
                         },
-                        "required": true
+                        "required": true,
+                        "description": "Offer ID"
                     }
                 ],
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "comments": {
+                                        "type": "string",
+                                        "example": "Approved for launch"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
                 "responses": {
                     "200": {
-                        "description": "Offer approved"
+                        "description": "Offer approved successfully"
                     }
                 }
             }
@@ -7300,21 +7316,6 @@
                     "Admin Offers"
                 ],
                 "summary": "Reject a restaurant-created offer",
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "rejectionReason": {
-                                        "type": "string"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                },
                 "parameters": [
                     {
                         "in": "path",
@@ -7322,12 +7323,32 @@
                         "schema": {
                             "type": "string"
                         },
-                        "required": true
+                        "required": true,
+                        "description": "Offer ID"
                     }
                 ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "reason"
+                                ],
+                                "properties": {
+                                    "reason": {
+                                        "type": "string",
+                                        "example": "Offer terms not clear"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
                 "responses": {
                     "200": {
-                        "description": "Offer rejected"
+                        "description": "Offer rejected successfully"
                     }
                 }
             }
@@ -7338,21 +7359,6 @@
                     "Admin Offers"
                 ],
                 "summary": "Request changes for an offer",
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "adminComments": {
-                                        "type": "string"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                },
                 "parameters": [
                     {
                         "in": "path",
@@ -7360,22 +7366,42 @@
                         "schema": {
                             "type": "string"
                         },
-                        "required": true
+                        "required": true,
+                        "description": "Offer ID"
                     }
                 ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "comments"
+                                ],
+                                "properties": {
+                                    "comments": {
+                                        "type": "string",
+                                        "example": "Please update the image"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
                 "responses": {
                     "200": {
-                        "description": "Change request submitted"
+                        "description": "Changes requested successfully"
                     }
                 }
             }
         },
-        "/api/admin/offers/create": {
+        "/api/admin/offers/admin-create": {
             "post": {
                 "tags": [
                     "Admin Offers"
                 ],
-                "summary": "Create a new offer directly by Admin",
+                "summary": "Create offer directly by Admin",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -7383,47 +7409,49 @@
                             "schema": {
                                 "type": "object",
                                 "properties": {
-                                    "title": {
-                                        "type": "string"
+                                    "restaurantId": {
+                                        "type": "string",
+                                        "example": "uuid-12345"
                                     },
-                                    "description": {
-                                        "type": "string"
+                                    "categoryId": {
+                                        "type": "string",
+                                        "example": "uuid-67890"
+                                    },
+                                    "offerName": {
+                                        "type": "string",
+                                        "example": "Diwali Special Offer"
+                                    },
+                                    "offerDescription": {
+                                        "type": "string",
+                                        "example": "Flat 20% off on all items"
                                     },
                                     "discountType": {
                                         "type": "string",
                                         "enum": [
                                             "PERCENTAGE",
                                             "FLAT"
-                                        ]
+                                        ],
+                                        "example": "PERCENTAGE"
                                     },
                                     "discountValue": {
-                                        "type": "number"
-                                    },
-                                    "minOrderValue": {
-                                        "type": "number"
+                                        "type": "number",
+                                        "example": 20
                                     },
                                     "startDate": {
                                         "type": "string",
-                                        "format": "date"
+                                        "example": "2025-10-23"
                                     },
                                     "endDate": {
                                         "type": "string",
-                                        "format": "date"
+                                        "example": "2025-11-01"
                                     },
-                                    "startTime": {
-                                        "type": "string"
+                                    "isCommissionAuto": {
+                                        "type": "boolean",
+                                        "example": true
                                     },
-                                    "endTime": {
-                                        "type": "string"
-                                    },
-                                    "applicableItems": {
-                                        "type": "array",
-                                        "items": {
-                                            "type": "string"
-                                        }
-                                    },
-                                    "termsConditions": {
-                                        "type": "string"
+                                    "adminCommission": {
+                                        "type": "number",
+                                        "example": 5
                                     },
                                     "offerImage": {
                                         "type": "string",
@@ -7437,23 +7465,15 @@
                 "responses": {
                     "201": {
                         "description": "Offer created successfully"
+                    },
+                    "500": {
+                        "description": "Internal server error"
                     }
                 }
             }
+            
         },
-        "/api/admin/offers/admin-created": {
-            "get": {
-                "tags": [
-                    "Admin Offers"
-                ],
-                "summary": "Get all offers created by admin",
-                "responses": {
-                    "200": {
-                        "description": "List of admin offers"
-                    }
-                }
-            }
-        },
+        
         "/api/admin/offers/admin-created/{id}": {
             "put": {
                 "tags": [
@@ -7462,12 +7482,12 @@
                 "summary": "Update admin-created offer",
                 "parameters": [
                     {
-                        "in": "path",
                         "name": "id",
+                        "in": "path",
+                        "required": true,
                         "schema": {
                             "type": "string"
-                        },
-                        "required": true
+                        }
                     }
                 ],
                 "requestBody": {
@@ -7477,47 +7497,33 @@
                             "schema": {
                                 "type": "object",
                                 "properties": {
-                                    "title": {
-                                        "type": "string"
+                                    "offerName": {
+                                        "type": "string",
+                                        "example": "Updated Offer"
                                     },
-                                    "description": {
-                                        "type": "string"
+                                    "offerDescription": {
+                                        "type": "string",
+                                        "example": "Flat 25% off"
                                     },
                                     "discountType": {
                                         "type": "string",
                                         "enum": [
                                             "PERCENTAGE",
                                             "FLAT"
-                                        ]
+                                        ],
+                                        "example": "FLAT"
                                     },
                                     "discountValue": {
-                                        "type": "number"
+                                        "type": "number",
+                                        "example": 50
                                     },
-                                    "minOrderValue": {
-                                        "type": "number"
+                                    "isCommissionAuto": {
+                                        "type": "boolean",
+                                        "example": false
                                     },
-                                    "startDate": {
-                                        "type": "string",
-                                        "format": "date"
-                                    },
-                                    "endDate": {
-                                        "type": "string",
-                                        "format": "date"
-                                    },
-                                    "startTime": {
-                                        "type": "string"
-                                    },
-                                    "endTime": {
-                                        "type": "string"
-                                    },
-                                    "applicableItems": {
-                                        "type": "array",
-                                        "items": {
-                                            "type": "string"
-                                        }
-                                    },
-                                    "termsConditions": {
-                                        "type": "string"
+                                    "adminCommission": {
+                                        "type": "number",
+                                        "example": 10
                                     },
                                     "offerImage": {
                                         "type": "string",
@@ -7531,6 +7537,9 @@
                 "responses": {
                     "200": {
                         "description": "Offer updated successfully"
+                    },
+                    "404": {
+                        "description": "Offer not found"
                     }
                 }
             },
@@ -7541,17 +7550,34 @@
                 "summary": "Delete admin-created offer",
                 "parameters": [
                     {
-                        "in": "path",
                         "name": "id",
+                        "in": "path",
+                        "required": true,
                         "schema": {
                             "type": "string"
-                        },
-                        "required": true
+                        }
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "Offer deleted successfully"
+                    },
+                    "404": {
+                        "description": "Offer not found"
+                    }
+                }
+            },
+            "get": {
+                "tags": [
+                    "Admin Offers"
+                ],
+                "summary": "Get all admin-created offers",
+                "responses": {
+                    "200": {
+                        "description": "List of admin offers"
+                    },
+                    "500": {
+                        "description": "Internal server error"
                     }
                 }
             }
@@ -7634,6 +7660,31 @@
                     "Restaurant Offers"
                 ],
                 "summary": "Get offers created by restaurant",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "restaurantId",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Restaurant UUID"
+                    },
+                    {
+                        "in": "query",
+                        "name": "statusFilter",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "active",
+                                "pending",
+                                "expired"
+                            ]
+                        },
+                        "description": "Filter offers by status"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "List of restaurant offers"
@@ -7654,7 +7705,17 @@
                         "required": true,
                         "schema": {
                             "type": "string"
-                        }
+                        },
+                        "description": "Offer ID"
+                    },
+                    {
+                        "in": "query",
+                        "name": "restaurantId",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Restaurant UUID"
                     }
                 ],
                 "responses": {
@@ -7675,15 +7736,21 @@
                         "required": true,
                         "schema": {
                             "type": "string"
-                        }
+                        },
+                        "description": "Offer ID"
                     }
                 ],
                 "requestBody": {
+                    "required": true,
                     "content": {
                         "multipart/form-data": {
                             "schema": {
                                 "type": "object",
                                 "properties": {
+                                    "restaurantId": {
+                                        "type": "string",
+                                        "description": "Restaurant UUID"
+                                    },
                                     "title": {
                                         "type": "string"
                                     },
@@ -7730,7 +7797,10 @@
                                         "type": "string",
                                         "format": "binary"
                                     }
-                                }
+                                },
+                                "required": [
+                                    "restaurantId"
+                                ]
                             }
                         }
                     }
@@ -7753,9 +7823,29 @@
                         "required": true,
                         "schema": {
                             "type": "string"
-                        }
+                        },
+                        "description": "Offer ID"
                     }
                 ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "restaurantId": {
+                                        "type": "string",
+                                        "description": "Restaurant UUID"
+                                    }
+                                },
+                                "required": [
+                                    "restaurantId"
+                                ]
+                            }
+                        }
+                    }
+                },
                 "responses": {
                     "200": {
                         "description": "Offer deleted successfully"
@@ -7764,47 +7854,183 @@
             }
         },
         "/api/offers": {
-            "get": {
-                "tags": [
-                    "Customer Offers"
-                ],
-                "summary": "Get all active offers (customer view)",
-                "responses": {
-                    "200": {
-                        "description": "List of active offers"
-                    }
+      "get": {
+        "tags": ["Customer Offers"],
+        "summary": "Get all active offers (customer view)",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "restaurantId",
+            "schema": { "type": "string" },
+            "required": false,
+            "description": "Filter offers by restaurant ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of active offers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "count": { "type": "integer" },
+                    "data": { "type": "array", "items": { "type": "object" } }
+                  }
                 }
+              }
             }
+          }
+        }
+      }
+    },
+    "/api/offers/{id}": {
+      "get": {
+        "tags": ["Customer Offers"],
+        "summary": "Get offer details for customer",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Offer ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Offer details",
+            "content": {
+              "application/json": {
+                "schema": { "type": "object" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/user/offers/book": {
+      "post": {
+        "tags": ["Customer Offers"],
+        "summary": "Book an offer",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "userId": { "type": "string" },
+                  "offerId": { "type": "string" }
+                },
+                "required": ["userId", "offerId"]
+              }
+            }
+          }
         },
-        "/api/offers/{id}": {
-            "get": {
-                "tags": [
-                    "Customer Offers"
-                ],
-                "summary": "Get offer details for customer",
-                "parameters": [
-                    {
-                        "in": "path",
-                        "name": "id",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Offer details"
-                    }
+        "responses": {
+          "201": {
+            "description": "Offer booked successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "message": { "type": "string" },
+                    "data": { "type": "object" }
+                  }
                 }
+              }
             }
+          }
+        }
+      }
+    },
+    "/api/user/offers": {
+      "get": {
+        "tags": ["Customer Offers"],
+        "summary": "Get offers booked by user",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "userId",
+            "schema": { "type": "string" },
+            "required": true,
+            "description": "User ID"
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": { "type": "string", "enum": ["BOOKED", "USED", "EXPIRED"] },
+            "required": false,
+            "description": "Filter by booking status"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of user's booked offers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "count": { "type": "integer" },
+                    "data": { "type": "array", "items": { "type": "object" } }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+
+    "/api/user/offers/{id}/cancel": {
+      "put": {
+        "tags": ["Customer Offers"],
+        "summary": "Cancel booked offer",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "UserOffer booking ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": { "userId": { "type": "string" } },
+                "required": ["userId"]
+              }
+            }
+          }
         },
-        "/api/user/offers/book": {
+        "responses": {
+          "200": {
+            "description": "Offer booking cancelled",
+            "content": {
+              "application/json": {
+                "schema": { "type": "object" }
+              }
+            }
+          }
+        }
+      }
+    },
+        "/api/users/auth/send-mobile-otp": {
             "post": {
+                "summary": "Send OTP to Mobile",
                 "tags": [
-                    "Customer Offers"
+                    "Authentication"
                 ],
-                "summary": "Book an offer",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -7812,295 +8038,330 @@
                             "schema": {
                                 "type": "object",
                                 "properties": {
-                                    "userId": {
-                                        "type": "string"
-                                    },
-                                    "offerId": {
-                                        "type": "string"
+                                    "mobile": {
+                                        "type": "string",
+                                        "example": "9876543210"
                                     }
-                                }
+                                },
+                                "required": [
+                                    "mobile"
+                                ]
                             }
                         }
                     }
                 },
                 "responses": {
-                    "201": {
-                        "description": "Offer booked successfully"
-                    }
-                }
-            }
-        },
-        "/api/user/offers": {
-            "get": {
-                "tags": [
-                    "Customer Offers"
-                ],
-                "summary": "Get offers booked by user",
-                "responses": {
                     "200": {
-                        "description": "List of user's booked offers"
+                        "description": "OTP sent successfully"
+                    },
+                    "400": {
+                        "description": "Mobile number required"
                     }
                 }
             }
         },
-        "/api/user/offers/{id}/use": {
-            "put": {
+        "/api/users/auth/verify-mobile-otp": {
+            "post": {
+                "summary": "Verify OTP sent to mobile",
                 "tags": [
-                    "Customer Offers"
+                    "Authentication"
                 ],
-                "summary": "Mark offer as used by user",
-                "parameters": [
-                    {
-                        "in": "path",
-                        "name": "id",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "mobile": {
+                                        "type": "string",
+                                        "example": "9876543210"
+                                    },
+                                    "otp": {
+                                        "type": "string",
+                                        "example": "123456"
+                                    }
+                                },
+                                "required": [
+                                    "mobile",
+                                    "otp"
+                                ]
+                            }
                         }
                     }
-                ],
+                },
                 "responses": {
                     "200": {
-                        "description": "Offer marked as used"
+                        "description": "OTP verified successfully"
+                    },
+                    "400": {
+                        "description": "Invalid or expired OTP"
                     }
                 }
             }
         },
-        "/api/user/offers/{id}/cancel": {
-            "put": {
+        "/api/users/auth/complete-registration": {
+            "post": {
+                "summary": "Complete registration for new user after OTP verification",
                 "tags": [
-                    "Customer Offers"
+                    "Authentication"
                 ],
-                "summary": "Cancel booked offer",
-                "parameters": [
-                    {
-                        "in": "path",
-                        "name": "id",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "mobile": {
+                                        "type": "string",
+                                        "example": "9876543210"
+                                    },
+                                    "name": {
+                                        "type": "string",
+                                        "example": "John Doe"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "example": "john@example.com"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "example": "Password123!"
+                                    },
+                                    "birthday": {
+                                        "type": "string",
+                                        "example": "1990-05-10"
+                                    },
+                                    "anniversary": {
+                                        "type": "string",
+                                        "example": "2015-02-14"
+                                    }
+                                },
+                                "required": [
+                                    "mobile",
+                                    "name"
+                                ]
+                            }
                         }
                     }
-                ],
+                },
                 "responses": {
                     "200": {
-                        "description": "Offer booking cancelled"
+                        "description": "Registration completed successfully"
+                    },
+                    "403": {
+                        "description": "OTP not verified"
                     }
                 }
             }
         },
-        "/api/users/auth/send-mobile-otp": {
-      "post": {
-        "summary": "Send OTP to Mobile",
-        "tags": ["Authentication"],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "mobile": { "type": "string", "example": "9876543210" }
+        "/api/users/auth/login": {
+            "post": {
+                "summary": "Login using email or mobile with password",
+                "tags": [
+                    "Authentication"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "emailOrMobile": {
+                                        "type": "string",
+                                        "example": "john@example.com"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "example": "Password123!"
+                                    }
+                                },
+                                "required": [
+                                    "emailOrMobile",
+                                    "password"
+                                ]
+                            }
+                        }
+                    }
                 },
-                "required": ["mobile"]
-              }
+                "responses": {
+                    "200": {
+                        "description": "Login successful"
+                    },
+                    "401": {
+                        "description": "Incorrect password"
+                    },
+                    "404": {
+                        "description": "User not found"
+                    }
+                }
             }
-          }
         },
-        "responses": {
-          "200": { "description": "OTP sent successfully" },
-          "400": { "description": "Mobile number required" }
-        }
-      }
-    },
-    "/api/users/auth/verify-mobile-otp": {
-      "post": {
-        "summary": "Verify OTP sent to mobile",
-        "tags": ["Authentication"],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "mobile": { "type": "string", "example": "9876543210" },
-                  "otp": { "type": "string", "example": "123456" }
+        "/api/users/auth/forgot-password/send-otp": {
+            "post": {
+                "summary": "Send OTP for password reset",
+                "tags": [
+                    "Authentication"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "emailOrMobile": {
+                                        "type": "string",
+                                        "example": "john@example.com"
+                                    }
+                                },
+                                "required": [
+                                    "emailOrMobile"
+                                ]
+                            }
+                        }
+                    }
                 },
-                "required": ["mobile", "otp"]
-              }
+                "responses": {
+                    "200": {
+                        "description": "Password reset OTP sent successfully"
+                    },
+                    "404": {
+                        "description": "User not found"
+                    }
+                }
             }
-          }
         },
-        "responses": {
-          "200": { "description": "OTP verified successfully" },
-          "400": { "description": "Invalid or expired OTP" }
-        }
-      }
-    },
-    "/api/users/auth/complete-registration": {
-      "post": {
-        "summary": "Complete registration for new user after OTP verification",
-        "tags": ["Authentication"],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "mobile": { "type": "string", "example": "9876543210" },
-                  "name": { "type": "string", "example": "John Doe" },
-                  "email": { "type": "string", "example": "john@example.com" },
-                  "password": { "type": "string", "example": "Password123!" },
-                  "birthday": { "type": "string", "example": "1990-05-10" },
-                  "anniversary": { "type": "string", "example": "2015-02-14" }
+        "/api/users/auth/forgot-password/verify-otp": {
+            "post": {
+                "summary": "Verify OTP for password reset",
+                "tags": [
+                    "Authentication"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "emailOrMobile": {
+                                        "type": "string",
+                                        "example": "john@example.com"
+                                    },
+                                    "otp": {
+                                        "type": "string",
+                                        "example": "123456"
+                                    }
+                                },
+                                "required": [
+                                    "emailOrMobile",
+                                    "otp"
+                                ]
+                            }
+                        }
+                    }
                 },
-                "required": ["mobile", "name"]
-              }
+                "responses": {
+                    "200": {
+                        "description": "OTP verified successfully"
+                    },
+                    "400": {
+                        "description": "Invalid OTP"
+                    }
+                }
             }
-          }
         },
-        "responses": {
-          "200": { "description": "Registration completed successfully" },
-          "403": { "description": "OTP not verified" }
-        }
-      }
-    },
-    "/api/users/auth/login": {
-      "post": {
-        "summary": "Login using email or mobile with password",
-        "tags": ["Authentication"],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "emailOrMobile": { "type": "string", "example": "john@example.com" },
-                  "password": { "type": "string", "example": "Password123!" }
+        "/api/users/auth/forgot-password/reset-password": {
+            "post": {
+                "summary": "Reset password after verifying OTP",
+                "tags": [
+                    "Authentication"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "emailOrMobile": {
+                                        "type": "string",
+                                        "example": "john@example.com"
+                                    },
+                                    "newPassword": {
+                                        "type": "string",
+                                        "example": "NewPass123!"
+                                    }
+                                },
+                                "required": [
+                                    "emailOrMobile",
+                                    "newPassword"
+                                ]
+                            }
+                        }
+                    }
                 },
-                "required": ["emailOrMobile", "password"]
-              }
+                "responses": {
+                    "200": {
+                        "description": "Password reset successful"
+                    },
+                    "403": {
+                        "description": "OTP not verified"
+                    }
+                }
             }
-          }
         },
-        "responses": {
-          "200": { "description": "Login successful" },
-          "401": { "description": "Incorrect password" },
-          "404": { "description": "User not found" }
-        }
-      }
-    },
-    "/api/users/auth/forgot-password/send-otp": {
-      "post": {
-        "summary": "Send OTP for password reset",
-        "tags": ["Authentication"],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "emailOrMobile": { "type": "string", "example": "john@example.com" }
+        "/api/users/auth/resend-otp": {
+            "post": {
+                "summary": "Resend OTP to mobile",
+                "tags": [
+                    "Authentication"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "mobile": {
+                                        "type": "string",
+                                        "example": "9876543210"
+                                    }
+                                },
+                                "required": [
+                                    "mobile"
+                                ]
+                            }
+                        }
+                    }
                 },
-                "required": ["emailOrMobile"]
-              }
+                "responses": {
+                    "200": {
+                        "description": "OTP resent successfully"
+                    },
+                    "404": {
+                        "description": "Mobile not registered"
+                    }
+                }
             }
-          }
         },
-        "responses": {
-          "200": { "description": "Password reset OTP sent successfully" },
-          "404": { "description": "User not found" }
-        }
-      }
-    },
-    "/api/users/auth/forgot-password/verify-otp": {
-      "post": {
-        "summary": "Verify OTP for password reset",
-        "tags": ["Authentication"],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "emailOrMobile": { "type": "string", "example": "john@example.com" },
-                  "otp": { "type": "string", "example": "123456" }
-                },
-                "required": ["emailOrMobile", "otp"]
-              }
+        "/api/users/auth/logout": {
+            "post": {
+                "summary": "Logout user",
+                "tags": [
+                    "Authentication"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Logout successful"
+                    }
+                }
             }
-          }
-        },
-        "responses": {
-          "200": { "description": "OTP verified successfully" },
-          "400": { "description": "Invalid OTP" }
         }
-      }
-    },
-    "/api/users/auth/forgot-password/reset-password": {
-      "post": {
-        "summary": "Reset password after verifying OTP",
-        "tags": ["Authentication"],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "emailOrMobile": { "type": "string", "example": "john@example.com" },
-                  "newPassword": { "type": "string", "example": "NewPass123!" }
-                },
-                "required": ["emailOrMobile", "newPassword"]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": { "description": "Password reset successful" },
-          "403": { "description": "OTP not verified" }
-        }
-      }
-    },
-    "/api/users/auth/resend-otp": {
-      "post": {
-        "summary": "Resend OTP to mobile",
-        "tags": ["Authentication"],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "mobile": { "type": "string", "example": "9876543210" }
-                },
-                "required": ["mobile"]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": { "description": "OTP resent successfully" },
-          "404": { "description": "Mobile not registered" }
-        }
-      }
-    },
-    "/api/users/auth/logout": {
-      "post": {
-        "summary": "Logout user",
-        "tags": ["Authentication"],
-        "responses": {
-          "200": { "description": "Logout successful" }
-        }
-      }
-    }
-  
     },
     "components": {
         "schemas": {

@@ -36,7 +36,7 @@ const getRestaurants = async (req, res) => {
           as: 'events',
           where: { isActive: true },
           required: false,
-          attributes: ['id', 'eventName', 'eventDay', 'eventTime']
+          attributes: ['id', 'eventName', 'eventDay', 'eventTimes']
         }
       ]
     });
@@ -72,7 +72,7 @@ const getRestaurantDetails = async (req, res) => {
           as: 'events',
           where: { isActive: true },
           required: false,
-          attributes: ['id', 'eventName', 'eventDay', 'eventTime']
+          attributes: ['id', 'eventName', 'eventDay', 'eventTimes']
         }
       ]
     });

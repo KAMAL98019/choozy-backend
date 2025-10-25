@@ -2,47 +2,52 @@ const { User, Address, Order, ReviewDeliveryToCustomer, Partner } = require('../
 const { Op } = require('sequelize');
 
 /**
- * Get all customers with pagination and search
+ * Get all customers with pagination, search, and status filter
  */
 exports.getAllCustomers = async (req, res) => {
   try {
-    const { page = 1, limit = 10, search } = req.query;
+    const { page = 1, limit = 10, search, status } = req.query;
     const offset = (page - 1) * limit;
 
     const whereClause = {};
 
-    // Search by name, email, or mobile
+    // ✅ Filter by status (Active / Blocked)
+    if (status && status !== "All") {
+      whereClause.status = status;
+    }
+
+    // ✅ Search by name, email, or mobile
     if (search) {
       whereClause[Op.or] = [
         { name: { [Op.like]: `%${search}%` } },
         { email: { [Op.like]: `%${search}%` } },
-        { mobile: { [Op.like]: `%${search}%` } }
+        { mobile: { [Op.like]: `%${search}%` } },
       ];
     }
 
     const { count, rows: customers } = await User.findAndCountAll({
       where: whereClause,
-      attributes: ['id', 'name', 'email', 'mobile', 'status', 'createdAt'],
+      attributes: ["id", "name", "email", "mobile", "status", "createdAt"],
       include: [
         {
           model: Order,
-          as: 'orders',
-          attributes: ['id', 'totalAmount', 'status'],
+          as: "orders",
+          attributes: ["id", "totalAmount", "status", "createdAt"],
           separate: true,
           limit: 1,
-          order: [['createdAt', 'DESC']]
-        }
+          order: [["createdAt", "DESC"]],
+        },
       ],
-      order: [['createdAt', 'DESC']],
+      order: [["createdAt", "DESC"]],
       limit: parseInt(limit),
-      offset: parseInt(offset)
+      offset: parseInt(offset),
     });
 
-    // Calculate total orders and spent for each customer
     const customersWithStats = await Promise.all(
       customers.map(async (customer) => {
         const totalOrders = await Order.count({ where: { userId: customer.id } });
-        const totalSpent = await Order.sum('totalAmount', { where: { userId: customer.id } }) || 0;
+        const totalSpent =
+          (await Order.sum("totalAmount", { where: { userId: customer.id } })) || 0;
         const lastOrder = customer.orders[0];
 
         return {
@@ -51,36 +56,37 @@ exports.getAllCustomers = async (req, res) => {
           email: customer.email,
           mobile: customer.mobile,
           status: customer.status,
-          memberSince: customer.createdAt,
+          createdAt: customer.createdAt,
           totalOrders,
           totalSpent,
-          lastOrderDate: lastOrder ? lastOrder.createdAt : null
+          lastOrderDate: lastOrder ? lastOrder.createdAt : null,
         };
       })
     );
 
     res.status(200).json({
       success: true,
-      message: 'Customers fetched successfully',
+      message: "Customers fetched successfully",
       data: {
         customers: customersWithStats,
         pagination: {
           totalCustomers: count,
           currentPage: parseInt(page),
           totalPages: Math.ceil(count / limit),
-          limit: parseInt(limit)
-        }
-      }
+          limit: parseInt(limit),
+        },
+      },
     });
   } catch (error) {
-    console.error('Error fetching customers:', error);
+    console.error("Error fetching customers:", error);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch customers',
-      error: error.message
+      message: "Failed to fetch customers",
+      error: error.message,
     });
   }
 };
+
 
 /**
  * Get single customer details with all information

@@ -19,7 +19,6 @@ router.get('/offers', customerOfferController.getActiveOffers);
 router.get('/offers/:id', customerOfferController.getOfferDetails);
 router.post('/user/offers/book', customerOfferController.bookOffer);
 router.get('/user/offers', customerOfferController.getUserBookedOffers);
-router.put('/user/offers/:id/use',customerOfferController.useOffer);
 router.put('/user/offers/:id/cancel', customerOfferController.cancelBookedOffer);
 
 module.exports = router;

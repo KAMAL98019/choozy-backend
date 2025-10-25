@@ -1,4 +1,4 @@
-const { Offer, RestaurantReg, Admin } = require('../../models');
+const { Offer, RestaurantReg, Category } = require('../../models');
 const { Op } = require('sequelize');
 
 /** -----------------------------
@@ -9,14 +9,12 @@ const { Op } = require('sequelize');
 exports.getPendingOffers = async (req, res) => {
   try {
     const offers = await Offer.findAll({
-      where: {
-        approvalStatus: { [Op.in]: ['PENDING', 'CHANGES_REQUESTED'] },
-      },
+      where: { approvalStatus: { [Op.in]: ['PENDING', 'CHANGES_REQUESTED'] } },
       include: [
         {
           model: RestaurantReg,
           as: 'restaurant',
-          attributes: ['id', 'restaurantName', 'email', 'mobile', 'address'],
+          attributes: ['id', 'rest_name', 'rest_logo', 'contact_email', 'contact_number', 'rest_address'],
         },
       ],
       order: [['createdAt', 'ASC']],
@@ -43,7 +41,7 @@ exports.getAllOffers = async (req, res) => {
         {
           model: RestaurantReg,
           as: 'restaurant',
-          attributes: ['id', 'restaurantName', 'email', 'mobile'],
+          attributes: ['id', 'rest_name', 'rest_logo', 'contact_email', 'contact_number', 'rest_address'],
         },
       ],
       order: [['createdAt', 'DESC']],
@@ -59,91 +57,96 @@ exports.getAllOffers = async (req, res) => {
 exports.approveOffer = async (req, res) => {
   try {
     const { id } = req.params;
-    const { adminId, comments } = req.body;
-
-    if (!adminId)
-      return res.status(400).json({ success: false, message: 'adminId is required' });
+    const { comments } = req.body;
 
     const offer = await Offer.findByPk(id, {
-      include: [{ model: RestaurantReg, as: 'restaurant', attributes: ['restaurantName'] }],
+      include: [{ model: RestaurantReg, as: 'restaurant', attributes: ['rest_name'] }],
     });
 
-    if (!offer) return res.status(404).json({ success: false, message: 'Offer not found' });
+    if (!offer)
+      return res.status(404).json({ success: false, message: 'Offer not found' });
+
     if (offer.approvalStatus === 'APPROVED')
-      return res.status(400).json({ success: false, message: 'Offer is already approved' });
+      return res.status(400).json({ success: false, message: 'Offer already approved' });
 
     await offer.update({
       approvalStatus: 'APPROVED',
       status: 'ACTIVE',
-      approvedBy: adminId,
+      approvedBy: 'SYSTEM',
       approvalDate: new Date(),
       rejectionReason: null,
       adminComments: comments || null,
     });
 
-    res.json({ success: true, message: 'Offer approved successfully', data: offer });
+    res.json({
+      success: true,
+      message: 'Offer approved successfully',
+      data: offer,
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// 🔹 Reject an offer
+// 🔹 Reject Offer
 exports.rejectOffer = async (req, res) => {
   try {
     const { id } = req.params;
-    const { adminId, reason } = req.body;
+    const { reason } = req.body;
 
-    if (!adminId)
-      return res.status(400).json({ success: false, message: 'adminId is required' });
     if (!reason)
       return res.status(400).json({ success: false, message: 'Rejection reason is required' });
 
-    const offer = await Offer.findByPk(id, {
-      include: [{ model: RestaurantReg, as: 'restaurant', attributes: ['restaurantName'] }],
-    });
-
-    if (!offer) return res.status(404).json({ success: false, message: 'Offer not found' });
-    if (offer.approvalStatus === 'REJECTED')
-      return res.status(400).json({ success: false, message: 'Offer already rejected' });
+    const offer = await Offer.findByPk(id);
+    if (!offer)
+      return res.status(404).json({ success: false, message: 'Offer not found' });
 
     await offer.update({
       approvalStatus: 'REJECTED',
       status: 'INACTIVE',
-      approvedBy: adminId,
+      approvedBy: 'SYSTEM',
       approvalDate: new Date(),
       rejectionReason: reason,
       adminComments: null,
     });
 
-    res.json({ success: true, message: 'Offer rejected', data: offer });
+    res.json({
+      success: true,
+      message: 'Offer rejected successfully',
+      data: offer,
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// 🔹 Request changes
+// 🔹 Request Changes for Offer
 exports.requestChanges = async (req, res) => {
   try {
     const { id } = req.params;
-    const { adminId, comments } = req.body;
+    const { comments } = req.body;
 
-    if (!adminId || !comments)
-      return res.status(400).json({ success: false, message: 'adminId and comments are required' });
+    if (!comments)
+      return res.status(400).json({ success: false, message: 'Comments are required' });
 
     const offer = await Offer.findByPk(id);
-
-    if (!offer) return res.status(404).json({ success: false, message: 'Offer not found' });
+    if (!offer)
+      return res.status(404).json({ success: false, message: 'Offer not found' });
 
     await offer.update({
       approvalStatus: 'CHANGES_REQUESTED',
       status: 'INACTIVE',
-      approvedBy: adminId,
+      approvedBy: 'SYSTEM',
       approvalDate: new Date(),
       adminComments: comments,
       rejectionReason: null,
     });
 
-    res.json({ success: true, message: 'Changes requested successfully', data: offer });
+    res.json({
+      success: true,
+      message: 'Changes requested successfully',
+      data: offer,
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -156,8 +159,7 @@ exports.getOfferDetails = async (req, res) => {
 
     const offer = await Offer.findByPk(id, {
       include: [
-        { model: RestaurantReg, as: 'restaurant', attributes: ['id', 'restaurantName', 'email', 'mobile', 'address'] },
-        { model: Admin, as: 'approver', attributes: ['id', 'name', 'email'] },
+        { model: RestaurantReg, as: 'restaurant', attributes: ['id', 'rest_name', 'rest_logo', 'contact_email', 'contact_number', 'rest_address'] },
       ],
     });
 
@@ -169,26 +171,41 @@ exports.getOfferDetails = async (req, res) => {
   }
 };
 
-/** -----------------------------
- *  Admin Direct Offers
- * ----------------------------- */
-// Create offer directly by admin
+// 🔹 Create Offer directly by Admin
 exports.createOfferByAdmin = async (req, res) => {
   try {
-    const { adminId, restaurantId } = req.body;
-    if (!adminId)
-      return res.status(400).json({ success: false, message: 'adminId is required' });
+    const {
+      restaurantId,
+      categoryId,
+      offerName,
+      discountType,
+      discountValue,
+      startDate,
+      endDate,
+      isCommissionAuto,
+      adminCommission,
+      offerDescription,
+    } = req.body;
 
     let offerImage = null;
-    if (req.file) {
-      offerImage = `offers/${req.file.filename}`;
-    }
+    if (req.file) offerImage = `offers/${req.file.filename}`;
 
+    const adminId = req.admin?.id || null; // ✅ Real admin ID
+
+    // ✅ Create Offer
     const offer = await Offer.create({
-      ...req.body,
-      offerType: 'ADMIN',
-      createdBy: adminId,
       restaurantId: restaurantId || null,
+      categoryId: categoryId || null,
+      offerType: 'ADMIN',
+      createdBy: adminId, // ✅ correct foreign key
+      title: offerName,
+      description: offerDescription,
+      discountType,
+      discountValue,
+      startDate,
+      endDate,
+      isCommissionAuto: isCommissionAuto === 'true' || isCommissionAuto === true,
+      adminCommission: adminCommission || 0,
       approvalStatus: 'APPROVED',
       status: 'ACTIVE',
       approvedBy: adminId,
@@ -198,72 +215,103 @@ exports.createOfferByAdmin = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: 'Admin offer created successfully',
+      message: restaurantId
+        ? 'Admin offer created for specific restaurant'
+        : 'Global admin offer created successfully',
       data: offer,
     });
   } catch (error) {
+    console.error('Error creating admin offer:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// Update admin offer
-exports.updateAdminOffer = async (req, res) => {
-  try {
-    const { id } = req.params;
 
-    const offer = await Offer.findOne({ where: { id, offerType: 'ADMIN' } });
-    if (!offer)
-      return res.status(404).json({ success: false, message: 'Admin offer not found' });
-
-    let offerImage = offer.offerImage;
-    if (req.file) {
-      offerImage = `offers/${req.file.filename}`;
-    }
-
-    await offer.update({
-      ...req.body,
-      offerImage,
-    });
-
-    res.json({ success: true, message: 'Offer updated successfully', data: offer });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-// 🔹 Get all admin offers
+// ✅ Get all Admin Offers
 exports.getAdminOffers = async (req, res) => {
   try {
-    const { status } = req.query;
-    const whereClause = { offerType: 'ADMIN' };
-    if (status) whereClause.status = status;
-
     const offers = await Offer.findAll({
-      where: whereClause,
+      where: { offerType: 'ADMIN' },
       include: [
-        { model: RestaurantReg, as: 'restaurant', attributes: ['id', 'restaurantName'], required: false },
-        { model: Admin, as: 'creator', attributes: ['id', 'email'] },
+        {
+          model: RestaurantReg,
+          as: Offer.associations?.restaurant?.as || 'RestaurantReg', // safe alias fallback
+          attributes: ['id', 'rest_name', 'rest_logo', 'contact_email', 'contact_number', 'rest_address'],
+          required: false,
+        },
+        {
+          model: Category,
+          as: Offer.associations?.category?.as || 'Category', // safe alias fallback
+          attributes: ['id', 'name'],
+          required: false,
+        },
       ],
       order: [['createdAt', 'DESC']],
     });
 
-    res.json({ success: true, count: offers.length, data: offers });
+    // ✅ Return empty array if no offers found (no error)
+    res.json({
+      success: true,
+      count: offers.length,
+      data: offers,
+    });
   } catch (error) {
+    console.error('❌ Error fetching admin offers:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
 
-// 🔹 Delete admin offer
+// 🔹 Update Admin Offer
+exports.updateAdminOffer = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const offer = await Offer.findOne({ where: { id, offerType: 'ADMIN' } });
+    if (!offer)
+      return res.status(404).json({ success: false, message: 'Admin offer not found' });
+
+    const body = req.body || {};
+    let offerImage = offer.offerImage;
+    if (req.file) offerImage = `offers/${req.file.filename}`;
+    else if (req.files && req.files.length > 0) {
+      const imageFile = req.files.find(f => f.fieldname === 'offerImage');
+      if (imageFile) offerImage = `offers/${imageFile.filename}`;
+    }
+
+    await offer.update({
+      ...body,
+      offerImage,
+      isCommissionAuto:
+        body.isCommissionAuto === 'true' || body.isCommissionAuto === true,
+    });
+
+    res.json({
+      success: true,
+      message: '✅ Admin offer updated successfully',
+      data: offer,
+    });
+  } catch (error) {
+    console.error('❌ Error updating admin offer:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// 🔹 Delete Admin Offer
 exports.deleteAdminOffer = async (req, res) => {
   try {
     const { id } = req.params;
-
     const offer = await Offer.findOne({ where: { id, offerType: 'ADMIN' } });
-    if (!offer) return res.status(404).json({ success: false, message: 'Admin offer not found' });
+    if (!offer)
+      return res.status(404).json({ success: false, message: 'Admin offer not found' });
 
     await offer.destroy();
-    res.json({ success: true, message: 'Admin offer deleted successfully' });
+
+    res.json({
+      success: true,
+      message: '🗑️ Admin offer deleted successfully',
+    });
   } catch (error) {
+    console.error('❌ Error deleting admin offer:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };

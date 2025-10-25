@@ -134,7 +134,7 @@ exports.getOfferById = async (req, res) => {
         {
           model: RestaurantReg,
           as: 'restaurant',
-          attributes: ['id', 'restaurantName', 'email', 'mobile']
+          attributes: ['id', 'rest_name','rest_logo']
         }
       ]
     });

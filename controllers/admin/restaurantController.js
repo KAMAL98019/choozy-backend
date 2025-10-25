@@ -1,15 +1,15 @@
 'use strict';
 const db = require('../../models');
-const { RestaurantReg, FoodItem, Cuisine, Category,sequelize } = db;
+const { RestaurantReg, FoodItem, Cuisine, Category } = db;
 const { Op } = require('sequelize');
 
 /**
  * Get all restaurants with filters and pagination
- * - Filter by status, city, cuisine (via FoodItem), and search
+ * (City filter removed)
  */
 exports.getAllRestaurants = async (req, res) => {
   try {
-    let { page = 1, limit = 10, status, city, cuisineName, search } = req.query;
+    let { page = 1, limit = 10, status, cuisineName, search } = req.query;
     page = parseInt(page);
     limit = parseInt(limit);
     const offset = (page - 1) * limit;
@@ -17,7 +17,6 @@ exports.getAllRestaurants = async (req, res) => {
     // Main where clause for restaurants
     const whereClause = {};
     if (status) whereClause.status = status;
-    if (city) whereClause.rest_address = { [Op.like]: `%${city}%` };
     if (search) {
       whereClause[Op.or] = [
         { rest_name: { [Op.like]: `%${search}%` } },
@@ -37,7 +36,7 @@ exports.getAllRestaurants = async (req, res) => {
             model: Cuisine,
             as: 'cuisine',
             attributes: ['id', 'name'],
-            required: false, // always left join
+            required: false,
             ...(cuisineName ? { where: { name: cuisineName }, required: true } : {})
           }
         ]
@@ -63,12 +62,8 @@ exports.getAllRestaurants = async (req, res) => {
       offset
     });
 
-    // Format cuisines for frontend
     const formattedRestaurants = restaurants.map(r => {
-      const cuisines = r.foodItems
-        .map(f => f.cuisine?.name)
-        .filter(Boolean);
-
+      const cuisines = r.foodItems.map(f => f.cuisine?.name).filter(Boolean);
       return {
         id: r.id,
         rest_name: r.rest_name,
@@ -105,47 +100,90 @@ exports.getAllRestaurants = async (req, res) => {
 };
 
 
-/**
- * Get single restaurant details (with FoodItems + Cuisine)
- */
 exports.getRestaurantById = async (req, res) => {
   try {
     const { id } = req.params;
 
+    // Fetch restaurant with related food items
     const restaurant = await RestaurantReg.findByPk(id, {
       include: [
-  {
-    model: FoodItem,
-    as: 'foodItems',
-    attributes: ['id', 'dishname', 'price', 'veg'],
-    include: [
-      { model: Cuisine, as: 'cuisine', attributes: ['id', 'name'] },
-      { model: Category, as: 'category', attributes: ['id', 'name'] } // ✅
-    ]
-  }
-]
-
+        {
+          model: FoodItem,
+          as: 'foodItems',
+          attributes: ['id', 'dishname', 'price', 'veg'],
+          include: [
+            { model: Cuisine, as: 'cuisine', attributes: ['id', 'name'] },
+            { model: Category, as: 'category', attributes: ['id', 'name'] }
+          ]
+        }
+      ]
     });
 
-    if (!restaurant) return res.status(404).json({ success: false, message: 'Restaurant not found' });
+    if (!restaurant) {
+      return res.status(404).json({ success: false, message: 'Restaurant not found' });
+    }
 
-    res.status(200).json({
-      success: true,
-      message: 'Restaurant details fetched successfully',
-      data: restaurant
-    });
+    // Transform operational hours into standard array format
+    let operationalHours = [];
+    if (restaurant.operational_hours && typeof restaurant.operational_hours === 'object') {
+      // Assuming operational_hours stored as an object keyed by day
+      operationalHours = Object.keys(restaurant.operational_hours).map(day => {
+        const dayData = restaurant.operational_hours[day];
+        return {
+          day,
+          enabled: dayData.enabled || false,
+          from: dayData.from || '',
+          to: dayData.to || ''
+        };
+      });
+    }
+
+    // Transform delivery zones if needed
+    let deliveryZones = [];
+    if (restaurant.deliveryZones && Array.isArray(restaurant.deliveryZones)) {
+      deliveryZones = restaurant.deliveryZones.map(zone => zone.name || zone);
+    }
+
+    // Prepare response
+    const responseData = {
+      id: restaurant.id,
+      rest_name: restaurant.rest_name,
+      rest_address: restaurant.rest_address,
+      contact_number: restaurant.contact_number,
+      contact_email: restaurant.contact_email,
+      bankAccountName: restaurant.bank_account_name,
+      bankAccountNumber: restaurant.account_number,
+      ifscCode: restaurant.ifsc_code,
+      deliveryRadius: restaurant.deliveryRadius,
+      deliveryZones,
+      operationalHours, // <-- send as array for frontend
+      status: restaurant.status,
+      rating: restaurant.rating || 4.5,
+      reviewCount: restaurant.reviewCount || 0,
+      commissionRate: restaurant.commissionRate || '15%',
+      totalPayouts: restaurant.totalPayouts || '₹0',
+      totalOrders: restaurant.totalOrders || 0,
+      totalBookings: restaurant.totalBookings || 0,
+      avgPrepTime: restaurant.avgPrepTime || '-',
+      orderAcceptanceRate: restaurant.orderAcceptanceRate || '-',
+      customerComplaints: restaurant.customerComplaints || 0,
+      foodItems: restaurant.foodItems,
+      documents: [
+        { name: 'FSSAI License', status: restaurant.fssai_certificate ? 'Verified' : 'Pending', date: '-' },
+        { name: 'GST Certificate', status: restaurant.gst_certificate ? 'Verified' : 'Pending', date: '-' },
+      ],
+    };
+
+    res.status(200).json({ success: true, message: 'Restaurant details fetched', data: responseData });
   } catch (error) {
     console.error('Error fetching restaurant details:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch restaurant details',
-      error: error.message
-    });
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
   }
 };
 
+
 /**
- * Get restaurant statistics
+ * Restaurant stats (inactive removed)
  */
 exports.getRestaurantStats = async (req, res) => {
   try {
@@ -153,12 +191,11 @@ exports.getRestaurantStats = async (req, res) => {
     const activeRestaurants = await RestaurantReg.count({ where: { status: 'active' } });
     const pendingApproval = await RestaurantReg.count({ where: { status: 'pending' } });
     const blockedRestaurants = await RestaurantReg.count({ where: { status: 'blocked' } });
-    const inactiveRestaurants = await RestaurantReg.count({ where: { status: 'inactive' } });
 
     res.status(200).json({
       success: true,
       message: 'Restaurant statistics fetched successfully',
-      data: { totalRestaurants, activeRestaurants, pendingApproval, blockedRestaurants, inactiveRestaurants }
+      data: { totalRestaurants, activeRestaurants, pendingApproval, blockedRestaurants }
     });
   } catch (error) {
     console.error('Error fetching restaurant stats:', error);
@@ -171,35 +208,46 @@ exports.getRestaurantStats = async (req, res) => {
 };
 
 /**
- * Update restaurant status
+ * ✅ Block / Unblock restaurant (like Customers)
  */
 exports.updateRestaurantStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status } = req.body;
+    let { status } = req.body;
 
-    const validStatuses = ['active', 'pending', 'blocked', 'inactive'];
-    if (!validStatuses.includes(status)) return res.status(400).json({ success: false, message: 'Invalid status' });
+    // Support block/unblock keywords
+    if (status === 'block') status = 'blocked';
+    if (status === 'unblock') status = 'active';
+
+    const validStatuses = ['active', 'pending', 'blocked'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ success: false, message: 'Invalid status' });
+    }
 
     const restaurant = await RestaurantReg.findByPk(id);
-    if (!restaurant) return res.status(404).json({ success: false, message: 'Restaurant not found' });
+    if (!restaurant)
+      return res.status(404).json({ success: false, message: 'Restaurant not found' });
 
     restaurant.status = status;
     await restaurant.save();
 
     res.status(200).json({
       success: true,
-      message: 'Restaurant status updated successfully',
+      message: `Restaurant ${status === 'blocked' ? 'blocked' : 'unblocked'} successfully`,
       data: { id: restaurant.id, rest_name: restaurant.rest_name, status: restaurant.status }
     });
   } catch (error) {
     console.error('Error updating restaurant status:', error);
-    res.status(500).json({ success: false, message: 'Failed to update restaurant status', error: error.message });
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update restaurant status',
+      error: error.message
+    });
   }
 };
 
 /**
- * Get unique cuisine types (from FoodItems)
+ * Get cuisine list
  */
 exports.getCuisineTypes = async (req, res) => {
   try {
@@ -223,25 +271,39 @@ exports.getCuisineTypes = async (req, res) => {
   }
 };
 
-// PUT /restaurants/:id/delivery-settings
-exports.updateDeliverySettings = async (req,res)=>{
-  try{
+/**
+ * Update delivery settings
+ */
+exports.updateDeliverySettings = async (req, res) => {
+  try {
     const { id } = req.params;
-    const { deliveryType, deliveryRadius, deliveryZones, restaurantLatitude, restaurantLongitude, minOrderAmount, baseDeliveryFee } = req.body;
+    const {
+      deliveryType,
+      deliveryRadius,
+      deliveryZones,
+      restaurantLatitude,
+      restaurantLongitude,
+      minOrderAmount,
+      baseDeliveryFee
+    } = req.body;
 
     const restaurant = await RestaurantReg.findByPk(id);
-    if(!restaurant) return res.status(404).json({ error: 'Restaurant not found' });
+    if (!restaurant)
+      return res.status(404).json({ error: 'Restaurant not found' });
 
     await restaurant.update({
-      deliveryType, deliveryRadius, deliveryZones,
-      restaurantLatitude, restaurantLongitude,
-      minOrderAmount, baseDeliveryFee
+      deliveryType,
+      deliveryRadius,
+      deliveryZones,
+      restaurantLatitude,
+      restaurantLongitude,
+      minOrderAmount,
+      baseDeliveryFee
     });
 
-    res.json({ message:'Delivery settings updated', data: restaurant });
-  }catch(e){
-    res.status(500).json({ error: "Failed to update delivery settings" });
+    res.json({ message: 'Delivery settings updated', data: restaurant });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to update delivery settings' });
   }
 };
-
 

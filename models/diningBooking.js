@@ -18,7 +18,7 @@ module.exports = (sequelize, DataTypes) => {
       });
       DiningBooking.belongsTo(models.DiningEvent, {
   foreignKey: 'eventId',
-  as: 'DiningEvent'
+  as: 'event'
 });
 
       
