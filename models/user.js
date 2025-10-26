@@ -34,7 +34,7 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING, // store file path or URL
       allowNull: true
     },
-     otp: {
+    otp: {
       type: DataTypes.STRING,
       allowNull: true
     },
@@ -50,7 +50,13 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       allowNull: false,
       defaultValue: 'active'
-    }
+    },
+    customerId: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      unique: true
+    },
+
   }, {
     sequelize,
     modelName: 'User',

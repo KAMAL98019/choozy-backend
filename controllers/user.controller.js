@@ -1,35 +1,66 @@
-const { User } = require("../models");
+const { User,sequelize } = require("../models");
 const bcrypt = require("bcryptjs");
 require("dotenv").config();
 const { sendFirebaseOTP } = require("../utils/firebaseOTP");
 
 const SALT_ROUNDS = Number(process.env.BCRYPT_SALT_ROUNDS || 10);
 
-// ------------------- Create User -------------------
+
 exports.createUser = async (req, res) => {
+  const transaction = await sequelize.transaction(); // 🔹 Start transaction
   try {
     const { name, email, password, mobile, birthday, anniversary } = req.body;
-    if (!mobile) return res.status(400).json({ error: "Mobile is required" });
+    if (!mobile) {
+      await transaction.rollback();
+      return res.status(400).json({ error: "Mobile is required" });
+    }
 
-    if (await User.findOne({ where: { mobile } }))
+    // 🔹 Check duplicates
+    if (await User.findOne({ where: { mobile } })) {
+      await transaction.rollback();
       return res.status(400).json({ error: "Mobile already used" });
-    if (email && await User.findOne({ where: { email } }))
-      return res.status(400).json({ error: "Email already used" });
+    }
 
+    if (email && await User.findOne({ where: { email } })) {
+      await transaction.rollback();
+      return res.status(400).json({ error: "Email already used" });
+    }
+
+    // 🔹 Get latest customerId safely inside transaction
+    const lastUser = await User.findOne({
+      order: [['createdAt', 'DESC']],
+      attributes: ['customerId'],
+      lock: transaction.LOCK.UPDATE, // 👈 prevents concurrent reads
+      transaction,
+    });
+
+    let newCustomerId = 'CUST0001';
+    if (lastUser && lastUser.customerId) {
+      const lastNumber = parseInt(lastUser.customerId.replace('CUST', ''), 10);
+      const nextNumber = lastNumber + 1;
+      newCustomerId = 'CUST' + nextNumber.toString().padStart(4, '0');
+    }
+
+    // 🔹 Hash password
     const hashed = password ? await bcrypt.hash(password, SALT_ROUNDS) : null;
 
+    // 🔹 Create user safely
     const user = await User.create({
+      customerId: newCustomerId,
       name: name || null,
       email: email || null,
       password: hashed,
       mobile,
       birthday: birthday || null,
-      anniversary: anniversary || null
-    });
+      anniversary: anniversary || null,
+    }, { transaction });
+
+    await transaction.commit(); // ✅ Commit only if all ok
 
     return res.status(201).json({ message: "Account created", user });
   } catch (err) {
     console.error(err);
+    await transaction.rollback(); // ❌ Rollback on error
     return res.status(500).json({ error: "Account creation failed" });
   }
 };
