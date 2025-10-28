@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const adminController = require('../../controllers/admin/bookingController');
+const adminController = require('../../controllers/admin/BookingController');
 
 
 // Get all bookings
