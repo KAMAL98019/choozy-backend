@@ -14,10 +14,15 @@
     "dialect": "mysql"
   },
   "production": {
-    "username": "root",
-    "password": null,
-    "database": "database_production",
-    "host": "127.0.0.1",
-    "dialect": "mysql"
+    "username": "u129190506_zenziouser",
+    "password": "Zenzio@123",
+    "database": "u129190506_zenzio",
+    "host": "82.180.143.154",
+    "port": 3306,
+    "dialect": "mysql",
+    "logging": false,
+    "dialectOptions": {
+      "connectTimeout": 10000
+    }
   }
 }
