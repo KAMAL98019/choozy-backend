@@ -17,7 +17,7 @@ router.delete('/:id', ctrl.remove);
 
 
 router.post("/login", ctrl.login);
-router.post("/logout", ctrl.login);
+router.post("/logout", ctrl.logout);
 
 // Forgot password flow routes
 router.post('/forgot-password/send-otp', ctrl.sendOTP);

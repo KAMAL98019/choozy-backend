@@ -87,6 +87,7 @@ async function getOrderById(req, res) {
     return res.status(500).json({ success: false, message: err.message });
   }
 }
+// accept order
 
 async function acceptOrder(req, res) {
   const t = await sequelize.transaction();
@@ -99,7 +100,7 @@ async function acceptOrder(req, res) {
       return res.status(400).json({ success: false, message: 'restaurantId is required' });
     }
 
-    // Fetch the order with transaction lock
+    // Fetch order with transaction lock
     const order = await Order.findByPk(id, { transaction: t, lock: t.LOCK.UPDATE });
     if (!order) {
       await t.rollback();
@@ -111,13 +112,9 @@ async function acceptOrder(req, res) {
       return res.status(403).json({ success: false, message: 'Cannot accept order for another restaurant' });
     }
 
-    if (order.status === 'CONFIRMED') {
+    if (['CONFIRMED', 'CANCELLED'].includes(order.status)) {
       await t.rollback();
-      return res.status(400).json({ success: false, message: 'Order is already accepted' });
-    }
-    if (order.status === 'CANCELLED') {
-      await t.rollback();
-      return res.status(400).json({ success: false, message: 'Cannot accept a rejected order' });
+      return res.status(400).json({ success: false, message: order.status === 'CONFIRMED' ? 'Order is already accepted' : 'Cannot accept a rejected order' });
     }
 
     if (order.paymentStatus !== 'PAID') {
@@ -127,33 +124,14 @@ async function acceptOrder(req, res) {
 
     // Update order status and estimated time
     const newEstimatedTime = (order.estimatedPreparationTime || 0) + (Number(estimatedPreparationTime) || 0);
-    await order.update(
-      {
-        status: 'CONFIRMED',
-        confirmedAt: new Date(),
-        estimatedPreparationTime: newEstimatedTime
-      },
-      { transaction: t }
-    );
+    await order.update({
+      status: 'CONFIRMED',
+      confirmedAt: new Date(),
+      estimatedPreparationTime: newEstimatedTime
+    }, { transaction: t });
 
     // 🔹 AUTO-ASSIGN DELIVERY PARTNER
-    const deliveryAssignment = await autoAssignPartner(order.id, t);
-
-    let deliveryWithPartner = null;
-
-    if (deliveryAssignment) {
-      deliveryWithPartner = await DeliveryOrder.findOne({
-        where: { id: deliveryAssignment.id },
-        include: [
-          {
-            model: Partner,
-            as: 'partner',
-            attributes: ['id', 'fullName', 'mobile', 'status', 'address']
-          }
-        ],
-        transaction: t
-      });
-    }
+    const deliveryWithPartner = await autoAssignPartner(order.id, t); // now returns delivery with partner included
 
     await t.commit();
 
@@ -162,7 +140,7 @@ async function acceptOrder(req, res) {
       message: 'Order accepted',
       data: {
         order,
-        delivery: deliveryWithPartner
+        delivery: deliveryWithPartner // guaranteed to be null only if no partner is available
       }
     });
 

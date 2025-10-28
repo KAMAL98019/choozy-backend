@@ -1,12 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const adminController = require('../../controllers/admin/BookingController');
+const adminController = require('../../controllers/admin/bookingController');
 
 
 // Get all bookings
 router.get('/bookings', adminController.getAllBookings);
 
-// Get booking details
+// Get booking details 
 router.get('/bookings/:id', adminController.getBookingById);
 
 // Verify booking (send to restaurant)

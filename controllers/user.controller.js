@@ -235,20 +235,34 @@ exports.login = async (req, res) => {
 };
 
 // ------------------- Resend OTP -------------------
+// ------------------- Resend OTP -------------------
 exports.resendOTP = async (req, res) => {
   try {
-    const { mobile, fcmToken } = req.body;
-    if (!mobile || !fcmToken) return res.status(400).json({ success: false, message: "Mobile and FCM token required" });
+    const { emailOrMobile, fcmToken } = req.body;
 
-    const user = await User.findOne({ where: { mobile } });
-    if (!user) return res.status(404).json({ success: false, message: "Mobile not registered" });
+    if (!emailOrMobile || !fcmToken)
+      return res.status(400).json({ success: false, message: "Email/Mobile and FCM token required" });
+
+    const isEmail = emailOrMobile.includes("@");
+
+    const user = await User.findOne({
+      where: isEmail ? { email: emailOrMobile } : { mobile: emailOrMobile }
+    });
+
+    if (!user)
+      return res.status(404).json({
+        success: false,
+        message: isEmail ? "Email not registered" : "Mobile not registered"
+      });
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const otpExpiry = new Date(Date.now() + 5 * 60 * 1000);
 
     await user.update({ otp, otpExpiry });
+
     const sent = await sendFirebaseOTP(fcmToken, otp);
-    if (!sent) return res.status(500).json({ success: false, message: "Failed to resend OTP" });
+    if (!sent)
+      return res.status(500).json({ success: false, message: "Failed to resend OTP" });
 
     res.json({ success: true, message: "OTP resent successfully" });
   } catch (err) {
@@ -256,6 +270,7 @@ exports.resendOTP = async (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 };
+
 
 // ------------------- Forgot & Reset Password -------------------
 exports.sendPasswordResetOTP = async (req, res) => {
@@ -319,5 +334,33 @@ exports.resetPassword = async (req, res) => {
 
 // ------------------- Logout -------------------
 exports.logout = async (req, res) => {
-  res.json({ success: true, message: "Logout successful" });
+  try {
+    const { emailOrMobile } = req.body;
+
+    if (!emailOrMobile)
+      return res.status(400).json({
+        success: false,
+        message: "Email or Mobile number is required to logout"
+      });
+
+    const isEmail = emailOrMobile.includes("@");
+
+    const user = await User.findOne({
+      where: isEmail ? { email: emailOrMobile } : { mobile: emailOrMobile }
+    });
+
+    if (!user)
+      return res.status(404).json({
+        success: false,
+        message: "User not found with given email or mobile"
+      });
+
+    // Optional: track logout time or clear session tokens
+    await user.update({ lastLogout: new Date() });
+
+    return res.json({ success: true, message: "Logout successful" });
+  } catch (err) {
+    console.error("Logout Error:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
 };

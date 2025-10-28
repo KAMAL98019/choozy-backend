@@ -79,91 +79,117 @@ exports.getOrder = async (req, res) => {
 // ------------------- AUTO-ASSIGN Partner -------------------
 const autoAssignPartner = async (orderId, transaction) => {
   try {
-    const order = await Order.findByPk(orderId, { include: [{ model: RestaurantReg, as: 'restaurant' }], transaction });
+    // Fetch order with restaurant
+    const order = await Order.findByPk(orderId, {
+      include: [{ model: RestaurantReg, as: 'restaurant' }],
+      transaction
+    });
     if (!order) throw new Error('Order not found');
+
     const restaurant = order.restaurant;
     if (!restaurant) throw new Error('Restaurant not found');
 
+    // Get online partners
     const onlineAttendances = await PartnerAttendance.findAll({
       where: { status: 'ONLINE' },
       attributes: ['partnerId'],
       order: [['attendanceTime','DESC']],
       transaction
     });
-    if (onlineAttendances.length === 0) return null;
+    if (!onlineAttendances.length) {
+      console.log('No partners online');
+      return null;
+    }
 
     const onlinePartnerIds = [...new Set(onlineAttendances.map(a => a.partnerId))];
 
+    // Exclude busy partners
     const busyPartners = await DeliveryOrder.findAll({
-      where: { partnerId: onlinePartnerIds, status: { [Op.in]: ['PENDING','ACCEPTED','PICKED_UP'] } },
+      where: {
+        partnerId: onlinePartnerIds,
+        status: { [Op.in]: ['PENDING', 'ACCEPTED', 'PICKED_UP'] }
+      },
       attributes: ['partnerId'],
       transaction
     });
-
     const busyPartnerIds = busyPartners.map(d => d.partnerId);
     let availablePartnerIds = onlinePartnerIds.filter(id => !busyPartnerIds.includes(id));
-    if (availablePartnerIds.length === 0) return null;
+    if (!availablePartnerIds.length) {
+      console.log('All online partners are busy');
+      return null;
+    }
 
-    const partnerRecords = await Partner.findAll({
+    // Filter active partners
+    const activePartners = await Partner.findAll({
       where: { id: { [Op.in]: availablePartnerIds }, status: 'active' },
       transaction
     });
+    if (!activePartners.length) {
+      console.log('No active partners available');
+      return null;
+    }
 
-    let filteredPartnerIds = partnerRecords.map(p => p.id);
-
-    // 🔹 RADIUS filter
+    // Apply RADIUS filter
+    let filteredPartners = [...activePartners];
     if (restaurant.deliveryType === 'RADIUS' && restaurant.deliveryRadius && restaurant.restaurantLatitude && restaurant.restaurantLongitude) {
-      const checks = await Promise.all(partnerRecords.map(async (partner) => {
+      filteredPartners = activePartners.filter(partner => {
         if (!partner.latitude || !partner.longitude) return false;
         const distance = geolib.getDistance(
           { latitude: restaurant.restaurantLatitude, longitude: restaurant.restaurantLongitude },
           { latitude: partner.latitude, longitude: partner.longitude }
         ) / 1000;
         return distance <= restaurant.deliveryRadius;
-      }));
-      filteredPartnerIds = partnerRecords.filter((_, i) => checks[i]).map(p => p.id);
+      });
     }
 
-    // 🔹 ZONE filter
-    if (restaurant.deliveryType === 'ZONE' && restaurant.deliveryZones && restaurant.deliveryZones.length > 0) {
-      const checks = await Promise.all(partnerRecords.map(async (partner) => {
+    // Apply ZONE filter
+    if (restaurant.deliveryType === 'ZONE' && restaurant.deliveryZones && restaurant.deliveryZones.length) {
+      filteredPartners = filteredPartners.filter(partner => {
         if (!partner.latitude || !partner.longitude) return false;
         return geolib.isPointInPolygon(
           { latitude: partner.latitude, longitude: partner.longitude },
           restaurant.deliveryZones
         );
-      }));
-      filteredPartnerIds = partnerRecords.filter((_, i) => checks[i]).map(p => p.id);
+      });
     }
 
-    if (filteredPartnerIds.length === 0) return null;
+    if (!filteredPartners.length) {
+      console.log('No partners available after radius/zone filter');
+      return null;
+    }
 
-    const availablePartner = await Partner.findOne({
-      where: { id: { [Op.in]: filteredPartnerIds }, status: 'active' },
-      order: [['id','ASC']],
-      transaction
-    });
-    if (!availablePartner) return null;
+    // Select the first available partner
+    const selectedPartner = filteredPartners[0];
 
+    // Generate delivery OTP
     const deliveryOtp = Math.floor(100000 + Math.random() * 900000).toString();
     await order.update({ deliveryOtp }, { transaction });
 
+    // Create DeliveryOrder
     const delivery = await DeliveryOrder.create({
       orderId: order.id,
-      partnerId: availablePartner.id,
+      partnerId: selectedPartner.id,
       status: 'ASSIGNED',
-      pickupLatitude: restaurant?.restaurantLatitude || null,
-      pickupLongitude: restaurant?.restaurantLongitude || null,
+      pickupLatitude: restaurant.restaurantLatitude || null,
+      pickupLongitude: restaurant.restaurantLongitude || null,
       deliveryLatitude: order.latitude || null,
       deliveryLongitude: order.longitude || null
     }, { transaction });
 
-    return delivery;
+    // Include partner info before returning
+    const deliveryWithPartner = await DeliveryOrder.findByPk(delivery.id, {
+      include: [{ model: Partner, as: 'partner', attributes: ['id','fullName','mobile','status','latitude','longitude'] }],
+      transaction
+    });
+
+    return deliveryWithPartner;
+
   } catch (err) {
     console.error('❌ Error in autoAssignPartner:', err);
     return null;
   }
 };
+
 exports.autoAssignPartner = autoAssignPartner;
 
 // ------------------- Get New Delivery Requests -------------------

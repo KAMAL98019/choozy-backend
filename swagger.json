@@ -7,7 +7,7 @@
     },
     "servers": [
         {
-            "url": "http://localhost:5000"
+            "url": "http://72.60.205.235:5000/"
         }
     ],
     "paths": {
@@ -533,6 +533,7 @@
                     "RestaurantAuth"
                 ],
                 "summary": "Logout restaurant account",
+                "description": "Logs out a restaurant user using their email or mobile number. This endpoint may clear session data or simply indicate successful logout depending on implementation.",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -542,7 +543,8 @@
                                 "properties": {
                                     "emailOrMobile": {
                                         "type": "string",
-                                        "example": "demo@restaurant.com"
+                                        "example": "demo@restaurant.com",
+                                        "description": "Email address or mobile number of the restaurant account"
                                     }
                                 },
                                 "required": [
@@ -554,10 +556,88 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Logout successful"
+                        "description": "Logout successful",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Logout successful"
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     },
                     "400": {
-                        "description": "Email or Mobile number is required"
+                        "description": "Email or Mobile number is required",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Email or mobile number is required to logout"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Restaurant not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Restaurant not found with given email or mobile number"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Something went wrong during logout"
+                                        },
+                                        "error": {
+                                            "type": "string",
+                                            "example": "Internal Server Error"
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -7471,9 +7551,7 @@
                     }
                 }
             }
-            
         },
-        
         "/api/admin/offers/admin-created/{id}": {
             "put": {
                 "tags": [
@@ -7854,177 +7932,242 @@
             }
         },
         "/api/offers": {
-      "get": {
-        "tags": ["Customer Offers"],
-        "summary": "Get all active offers (customer view)",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "restaurantId",
-            "schema": { "type": "string" },
-            "required": false,
-            "description": "Filter offers by restaurant ID"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "List of active offers",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean" },
-                    "count": { "type": "integer" },
-                    "data": { "type": "array", "items": { "type": "object" } }
-                  }
+            "get": {
+                "tags": [
+                    "Customer Offers"
+                ],
+                "summary": "Get all active offers (customer view)",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "restaurantId",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": false,
+                        "description": "Filter offers by restaurant ID"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of active offers",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "count": {
+                                            "type": "integer"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
-              }
             }
-          }
-        }
-      }
-    },
-    "/api/offers/{id}": {
-      "get": {
-        "tags": ["Customer Offers"],
-        "summary": "Get offer details for customer",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": { "type": "string" },
-            "description": "Offer ID"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Offer details",
-            "content": {
-              "application/json": {
-                "schema": { "type": "object" }
-              }
+        },
+        "/api/offers/{id}": {
+            "get": {
+                "tags": [
+                    "Customer Offers"
+                ],
+                "summary": "Get offer details for customer",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Offer ID"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Offer details",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
             }
-          }
-        }
-      }
-    },
-    "/api/user/offers/book": {
-      "post": {
-        "tags": ["Customer Offers"],
-        "summary": "Book an offer",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "userId": { "type": "string" },
-                  "offerId": { "type": "string" }
+        },
+        "/api/user/offers/book": {
+            "post": {
+                "tags": [
+                    "Customer Offers"
+                ],
+                "summary": "Book an offer",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "userId": {
+                                        "type": "string"
+                                    },
+                                    "offerId": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "userId",
+                                    "offerId"
+                                ]
+                            }
+                        }
+                    }
                 },
-                "required": ["userId", "offerId"]
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Offer booked successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean" },
-                    "message": { "type": "string" },
-                    "data": { "type": "object" }
-                  }
+                "responses": {
+                    "201": {
+                        "description": "Offer booked successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        },
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
-              }
             }
-          }
-        }
-      }
-    },
-    "/api/user/offers": {
-      "get": {
-        "tags": ["Customer Offers"],
-        "summary": "Get offers booked by user",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "userId",
-            "schema": { "type": "string" },
-            "required": true,
-            "description": "User ID"
-          },
-          {
-            "in": "query",
-            "name": "status",
-            "schema": { "type": "string", "enum": ["BOOKED", "USED", "EXPIRED"] },
-            "required": false,
-            "description": "Filter by booking status"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "List of user's booked offers",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean" },
-                    "count": { "type": "integer" },
-                    "data": { "type": "array", "items": { "type": "object" } }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-
-    "/api/user/offers/{id}/cancel": {
-      "put": {
-        "tags": ["Customer Offers"],
-        "summary": "Cancel booked offer",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": { "type": "string" },
-            "description": "UserOffer booking ID"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": { "userId": { "type": "string" } },
-                "required": ["userId"]
-              }
-            }
-          }
         },
-        "responses": {
-          "200": {
-            "description": "Offer booking cancelled",
-            "content": {
-              "application/json": {
-                "schema": { "type": "object" }
-              }
+        "/api/user/offers": {
+            "get": {
+                "tags": [
+                    "Customer Offers"
+                ],
+                "summary": "Get offers booked by user",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "userId",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true,
+                        "description": "User ID"
+                    },
+                    {
+                        "in": "query",
+                        "name": "status",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "BOOKED",
+                                "USED",
+                                "EXPIRED"
+                            ]
+                        },
+                        "required": false,
+                        "description": "Filter by booking status"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of user's booked offers",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "count": {
+                                            "type": "integer"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
-          }
-        }
-      }
-    },
+        },
+        "/api/user/offers/{id}/cancel": {
+            "put": {
+                "tags": [
+                    "Customer Offers"
+                ],
+                "summary": "Cancel booked offer",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "UserOffer booking ID"
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "userId": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "userId"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Offer booking cancelled",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/users/auth/send-mobile-otp": {
             "post": {
                 "summary": "Send OTP to Mobile",
@@ -8316,7 +8459,8 @@
         },
         "/api/users/auth/resend-otp": {
             "post": {
-                "summary": "Resend OTP to mobile",
+                "summary": "Resend OTP to user via email or mobile",
+                "description": "Resends a one-time password (OTP) to the user's registered email or mobile number. Requires FCM token for notification delivery.",
                 "tags": [
                     "Authentication"
                 ],
@@ -8327,13 +8471,20 @@
                             "schema": {
                                 "type": "object",
                                 "properties": {
-                                    "mobile": {
+                                    "emailOrMobile": {
                                         "type": "string",
-                                        "example": "9876543210"
+                                        "example": "demo@example.com",
+                                        "description": "Email address or mobile number of the user"
+                                    },
+                                    "fcmToken": {
+                                        "type": "string",
+                                        "example": "sample-fcm-token-123",
+                                        "description": "Firebase Cloud Messaging token for OTP push notification"
                                     }
                                 },
                                 "required": [
-                                    "mobile"
+                                    "emailOrMobile",
+                                    "fcmToken"
                                 ]
                             }
                         }
@@ -8341,23 +8492,93 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "OTP resent successfully"
+                        "description": "OTP resent successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "OTP resent successfully"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Missing email/mobile or FCM token"
                     },
                     "404": {
-                        "description": "Mobile not registered"
+                        "description": "Email or mobile not registered"
+                    },
+                    "500": {
+                        "description": "Failed to resend OTP or server error"
                     }
                 }
             }
         },
         "/api/users/auth/logout": {
             "post": {
-                "summary": "Logout user",
+                "summary": "Logout user account",
+                "description": "Logs out a user using their email or mobile number. Optionally records the logout time in the system.",
                 "tags": [
                     "Authentication"
                 ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "emailOrMobile": {
+                                        "type": "string",
+                                        "example": "demo@example.com",
+                                        "description": "Email address or mobile number of the user to log out"
+                                    }
+                                },
+                                "required": [
+                                    "emailOrMobile"
+                                ]
+                            }
+                        }
+                    }
+                },
                 "responses": {
                     "200": {
-                        "description": "Logout successful"
+                        "description": "Logout successful",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Logout successful"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Email or mobile number is required"
+                    },
+                    "404": {
+                        "description": "User not found with given email or mobile"
+                    },
+                    "500": {
+                        "description": "Internal server error"
                     }
                 }
             }

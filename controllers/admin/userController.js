@@ -2,32 +2,55 @@ const { User, Address, Order, ReviewDeliveryToCustomer, Partner } = require('../
 const { Op } = require('sequelize');
 
 /**
- * Get all customers with pagination, search, and status filter
+ * Get all customers with pagination, search, sort, and status filter
  */
 exports.getAllCustomers = async (req, res) => {
   try {
-    const { page = 1, limit = 10, search, status } = req.query;
+    const { page = 1, limit = 10, search, status, sortBy } = req.query;
     const offset = (page - 1) * limit;
 
     const whereClause = {};
 
-    // ✅ Filter by status (Active / Blocked)
+    // ✅ Filter by status
     if (status && status !== "All") {
       whereClause.status = status;
     }
 
-    // ✅ Search by name, email, or mobile
+    // ✅ Search by name, email, mobile, or customerId
     if (search) {
       whereClause[Op.or] = [
         { name: { [Op.like]: `%${search}%` } },
         { email: { [Op.like]: `%${search}%` } },
         { mobile: { [Op.like]: `%${search}%` } },
+        { customerId: { [Op.like]: `%${search}%` } },
       ];
     }
 
+    // ✅ Handle dynamic sorting (from frontend)
+    let order = [["createdAt", "DESC"]]; // default
+
+    if (sortBy) {
+      const [field, direction] = sortBy.split("_");
+      const validFields = ["name", "createdAt", "customerId"]; // ✅ allowed fields
+      const validDirections = ["ASC", "DESC"];
+
+      if (validFields.includes(field) && validDirections.includes(direction.toUpperCase())) {
+        order = [[field, direction.toUpperCase()]];
+      }
+    }
+
+    // ✅ Query users
     const { count, rows: customers } = await User.findAndCountAll({
       where: whereClause,
-      attributes: ["id", "name", "email", "mobile", "status", "createdAt"],
+      attributes: [
+        "id",
+        "customerId",
+        "name",
+        "email",
+        "mobile",
+        "status",
+        "createdAt",
+      ],
       include: [
         {
           model: Order,
@@ -38,11 +61,12 @@ exports.getAllCustomers = async (req, res) => {
           order: [["createdAt", "DESC"]],
         },
       ],
-      order: [["createdAt", "DESC"]],
+      order, // ✅ dynamic sorting applied here
       limit: parseInt(limit),
       offset: parseInt(offset),
     });
 
+    // ✅ Compute order stats
     const customersWithStats = await Promise.all(
       customers.map(async (customer) => {
         const totalOrders = await Order.count({ where: { userId: customer.id } });
@@ -52,6 +76,7 @@ exports.getAllCustomers = async (req, res) => {
 
         return {
           id: customer.id,
+          customerId: customer.customerId,
           name: customer.name,
           email: customer.email,
           mobile: customer.mobile,
@@ -88,6 +113,7 @@ exports.getAllCustomers = async (req, res) => {
 };
 
 
+
 /**
  * Get single customer details with all information
  */
@@ -97,120 +123,141 @@ exports.getCustomerById = async (req, res) => {
 
     // Get customer basic info
     const customer = await User.findByPk(id, {
-      attributes: ['id', 'name', 'email', 'mobile', 'birthday', 'anniversary', 'status', 'createdAt']
+      attributes: [
+        'id',
+        'customerId',
+        'name',
+        'email',
+        'mobile',
+        'birthday',
+        'anniversary',
+        'status',
+        'createdAt',
+      ],
     });
 
     if (!customer) {
       return res.status(404).json({
         success: false,
-        message: 'Customer not found'
+        message: 'Customer not found',
       });
     }
 
-    // Get order summary
+    // ✅ Generate a custom Customer ID (e.g. CUS1001)
+    const customerId = `CUS${String(customer.id).padStart(4, '0')}`;
+
+    // 🧾 Get order summary
     const totalOrders = await Order.count({ where: { userId: id } });
-    const totalSpent = await Order.sum('totalAmount', { where: { userId: id } }) || 0;
+    const totalSpent =
+      (await Order.sum('totalAmount', { where: { userId: id } })) || 0;
+
     const lastOrder = await Order.findOne({
       where: { userId: id },
       order: [['createdAt', 'DESC']],
-      attributes: ['createdAt']
+      attributes: ['createdAt'],
     });
 
-    // Get recent orders
+    // 🕒 Get recent orders (using orderNumber instead of id)
     const recentOrders = await Order.findAll({
       where: { userId: id },
-      attributes: ['id', 'totalAmount', 'status', 'createdAt'],
+      attributes: ['id','orderNumber', 'totalAmount', 'status', 'createdAt'],
       order: [['createdAt', 'DESC']],
-      limit: 5
+      limit: 5,
     });
 
-    // Get saved addresses
+    // 📍 Get saved addresses
     const addresses = await Address.findAll({
       where: { userId: id },
-      attributes: ['id', 'street', 'city', 'state', 'pincode', 'isDefault'],
-      order: [['isDefault', 'DESC'], ['createdAt', 'DESC']]
+      attributes: ['id','street', 'city', 'state', 'pincode', 'isDefault'],
+      order: [
+        ['isDefault', 'DESC'],
+        ['createdAt', 'DESC'],
+      ],
     });
 
-    // Get reviews & feedback
+    // ⭐ Get reviews & feedback
     const reviews = await ReviewDeliveryToCustomer.findAll({
       where: { userId: id },
       attributes: ['id', 'rating', 'comment', 'createdAt'],
       include: [
         {
           model: Partner,
-          attributes: ['fullName']
-        }
+          attributes: ['fullName'],
+        },
       ],
       order: [['createdAt', 'DESC']],
-      limit: 5
+      limit: 5,
     });
 
-    // Calculate average rating
-    const avgRating = reviews.length > 0 
-      ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
-      : 0;
+    // ⭐ Calculate average rating
+    const avgRating =
+      reviews.length > 0
+        ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
+        : 0;
 
+    // ✅ Send formatted response
     res.status(200).json({
       success: true,
       message: 'Customer details fetched successfully',
       data: {
         // Personal Information
         personalInfo: {
-          id: customer.id,
+          id:customer.customerId, // ✅ Added custom customer ID
           name: customer.name,
           email: customer.email,
           mobile: customer.mobile,
           birthday: customer.birthday,
           anniversary: customer.anniversary,
           status: customer.status,
-          memberSince: customer.createdAt
+          memberSince: customer.createdAt,
         },
-        
+
         // Account Activity
         accountActivity: {
           orderSummary: {
             totalOrders,
             totalSpent,
-            lastOrderDate: lastOrder ? lastOrder.createdAt : null
+            lastOrderDate: lastOrder ? lastOrder.createdAt : null,
           },
-          recentOrders: recentOrders.map(order => ({
-            orderId: order.id,
+          recentOrders: recentOrders.map((order) => ({
+            orderId: order.orderNumber, // ✅ Changed from id → orderNumber
             amount: order.totalAmount,
             status: order.status,
-            date: order.createdAt
-          }))
+            date: order.createdAt,
+          })),
         },
 
         // Reviews & Feedback
         reviewsAndFeedback: {
           averageRating: parseFloat(avgRating),
           totalReviews: reviews.length,
-          recentReviews: reviews.map(review => ({
+          recentReviews: reviews.map((review) => ({
             rating: review.rating,
             comment: review.comment,
-            restaurantName: review.Partner?.restaurantName,
-            date: review.createdAt
-          }))
+            restaurantName: review.Partner?.fullName || null,
+            date: review.createdAt,
+          })),
         },
 
         // Saved Addresses
-        savedAddresses: addresses.map(addr => ({
+        savedAddresses: addresses.map((addr) => ({
           id: addr.id,
           type: addr.isDefault ? 'Home (Default)' : 'Other',
           fullAddress: `${addr.street}, ${addr.city}, ${addr.state} - ${addr.pincode}`,
-          isDefault: addr.isDefault
-        }))
-      }
+          isDefault: addr.isDefault,
+        })),
+      },
     });
   } catch (error) {
-    console.error('Error fetching customer details:', error);
+    console.error('❌ Error fetching customer details:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch customer details',
-      error: error.message
+      error: error.message,
     });
   }
 };
+
 
 /**
  * Get customer statistics (for dashboard)

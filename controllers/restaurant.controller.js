@@ -5,46 +5,87 @@ const { RestaurantReg } = require('../models');
 const { v4: uuidv4 } = require('uuid');
 const bcrypt = require("bcryptjs");
 
-// ---------------- CREATE RESTAURANT ----------------
+
 exports.create = async (req, res) => {
   try {
-    const hashedPassword = await bcrypt.hash(req.body.password, 10);
+    const {
+      rest_name,
+      rest_address,
+      avg_cost_two,
+      rest_logo,
+      contact_person_name,
+      contact_email,
+      password,
+      contact_number,
+      operational_hours,
+      fssai_certificate,
+      gst_certificate,
+      bank_account_name,
+      account_number,
+      ifsc_code,
+      agree_to_terms
+    } = req.body;
 
-    const payload = {
-      id: uuidv4(),
-      rest_name: req.body.rest_name,
-      rest_address: req.body.rest_address,
-      avg_cost_two: Number(req.body.avg_cost_two) || 0,
-      rest_logo: req.body.rest_logo,
-      contact_person_name: req.body.contact_person_name,
-      contact_email: req.body.contact_email,
-      password: hashedPassword,
-      contact_number: req.body.contact_number,
-      operational_hours: JSON.stringify(req.body.operational_hours || []),
-      fssai_certificate: req.body.fssai_certificate,
-      gst_certificate: req.body.gst_certificate,
-      bank_account_name: req.body.bank_account_name,
-      account_number: req.body.account_number, // ✅ fixed typo
-      ifsc_code: req.body.ifsc_code,
-      agree_to_terms: !!req.body.agree_to_terms
-    };
-
-    if (!payload.rest_name || !payload.rest_address || !payload.fssai_certificate) {
-      return res.status(400).json({ 
-        error: 'Missing required fields: rest_name, rest_address, fssai_certificate' 
+    // ---------------- VALIDATION ----------------
+    if (!rest_name || !rest_address || !fssai_certificate || !contact_email || !contact_number || !password) {
+      return res.status(400).json({
+        error: "Missing required fields: rest_name, rest_address, fssai_certificate, contact_email, contact_number, password"
       });
     }
 
+    // ---------------- UNIQUE CHECKS ----------------
+    const existingRestaurant = await RestaurantReg.findOne({
+      where: {
+        [Op.or]: [
+          { contact_email },
+          { contact_number },
+          { rest_name }
+        ]
+      }
+    });
+
+    if (existingRestaurant) {
+      return res.status(400).json({
+        error: "Restaurant already registered with same email, phone, or name"
+      });
+    }
+
+    // ---------------- PASSWORD HASH ----------------
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // ---------------- PAYLOAD ----------------
+    const payload = {
+      id: uuidv4(),
+      rest_name,
+      rest_address,
+      avg_cost_two: Number(avg_cost_two) || 0,
+      rest_logo,
+      contact_person_name,
+      contact_email,
+      password: hashedPassword,
+      contact_number,
+      operational_hours: JSON.stringify(operational_hours || []),
+      fssai_certificate,
+      gst_certificate,
+      bank_account_name,
+      account_number,
+      ifsc_code,
+      agree_to_terms: !!agree_to_terms
+    };
+
+    // ---------------- SAVE TO DB ----------------
     const row = await RestaurantReg.create(payload);
     const data = row.toJSON();
-    delete data.password; // remove password before response
+    delete data.password;
 
-    return res.status(201).json({ message: 'Restaurant created', data });
+    return res.status(201).json({ message: 'Restaurant registered successfully', data });
+
   } catch (e) {
     console.error("Create error:", e);
     return res.status(500).json({ error: e.message || 'Create failed' });
   }
 };
+
 
 // ---------------- LIST RESTAURANTS ----------------
 exports.list = async (req, res) => {
@@ -235,38 +276,50 @@ exports.login = async (req, res) => {
 exports.logout = async (req, res) => {
   try {
     const { emailOrMobile } = req.body;
-    
+
+    // ---------------- VALIDATION ----------------
     if (!emailOrMobile) {
       return res.status(400).json({
         success: false,
-        message: "Email or Mobile number is required"
+        message: "Email or mobile number is required to logout"
       });
     }
 
+    // ---------------- FIND RESTAURANT ----------------
     const isEmail = emailOrMobile.includes('@');
-    
-    const restaurant = await RestaurantReg.findOne({ 
-      where: isEmail ? { contact_email: emailOrMobile } : { contact_number: emailOrMobile }
+    const restaurant = await RestaurantReg.findOne({
+      where: isEmail
+        ? { contact_email: emailOrMobile }
+        : { contact_number: emailOrMobile }
     });
 
-    if (restaurant) {
-      // Optional: Clear session data
-      // await restaurant.update({ sessionToken: null, lastLogout: new Date() });
+    if (!restaurant) {
+      return res.status(404).json({
+        success: false,
+        message: "Restaurant not found with given email or mobile number"
+      });
     }
 
-    res.json({
+    // ---------------- LOGOUT HANDLING ----------------
+    // If you use JWT, just ask client to delete the token.
+    // Optionally, track logout time in DB for auditing
+    await restaurant.update({ lastLogout: new Date() });
+
+    return res.status(200).json({
       success: true,
       message: "Logout successful"
     });
 
   } catch (err) {
     console.error("Logout Error:", err);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
+      message: "Something went wrong during logout",
       error: err.message
     });
   }
 };
+
 
 // ------------------- Send OTP (Email OR Mobile) -------------------
 exports.sendOTP = async (req, res) => {

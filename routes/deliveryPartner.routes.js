@@ -36,7 +36,7 @@ router.delete("/partner/:id", deliveryPartner.remove);
 
 
 router.post("/login", deliveryPartner.login);
-router.post("/logout", deliveryPartner.login);
+router.post("/logout", deliveryPartner.logout);
 
 // Forgot password flow routes
 router.post('/forgot-password/send-otp', deliveryPartner.sendOTP);
