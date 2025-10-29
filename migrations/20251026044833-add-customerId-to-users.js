@@ -3,7 +3,7 @@
 module.exports = {
   async up(queryInterface, Sequelize) {
     // Step 1: Add as NULLABLE (so it won't break existing rows)
-    await queryInterface.addColumn('Users', 'customerId', {
+    await queryInterface.addColumn('users', 'customerId', {
       type: Sequelize.STRING,
       allowNull: true, // ✅ allow null temporarily
       unique: true,
@@ -23,7 +23,7 @@ module.exports = {
     }
 
     // Step 3: Now make column NOT NULL
-    await queryInterface.changeColumn('Users', 'customerId', {
+    await queryInterface.changeColumn('users', 'customerId', {
       type: Sequelize.STRING,
       allowNull: false,
       unique: true,
@@ -31,6 +31,6 @@ module.exports = {
   },
 
   async down(queryInterface, Sequelize) {
-    await queryInterface.removeColumn('Users', 'customerId');
+    await queryInterface.removeColumn('users', 'customerId');
   }
 };

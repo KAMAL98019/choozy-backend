@@ -3,17 +3,17 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.addColumn('Users', 'otp', {
+    await queryInterface.addColumn('users', 'otp', {
       type: Sequelize.STRING,
       allowNull: true,
     });
 
-    await queryInterface.addColumn('Users', 'otpExpiry', {
+    await queryInterface.addColumn('users', 'otpExpiry', {
       type: Sequelize.DATE,
       allowNull: true,
     });
 
-    await queryInterface.addColumn('Users', 'otpVerified', {
+    await queryInterface.addColumn('users', 'otpVerified', {
       type: Sequelize.BOOLEAN,
       allowNull: false,
       defaultValue: false,
@@ -21,8 +21,8 @@ module.exports = {
   },
 
   async down(queryInterface, Sequelize) {
-    await queryInterface.removeColumn('Users', 'otp');
-    await queryInterface.removeColumn('Users', 'otpExpiry');
-    await queryInterface.removeColumn('Users', 'otpVerified');
+    await queryInterface.removeColumn('users', 'otp');
+    await queryInterface.removeColumn('users', 'otpExpiry');
+    await queryInterface.removeColumn('users', 'otpVerified');
   }
 };
