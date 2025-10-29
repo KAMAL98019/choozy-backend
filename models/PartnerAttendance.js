@@ -21,7 +21,7 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.UUID,
       allowNull: false,
       references: {
-        model: 'Partners',   // ✅ FK reference
+        model: 'partners',   // ✅ FK reference
         key: 'id'
       },
       onUpdate: 'CASCADE',
@@ -44,7 +44,7 @@ module.exports = (sequelize, DataTypes) => {
   }, {
     sequelize,
     modelName: 'PartnerAttendance',
-    tableName: 'PartnerAttendances', // ✅ plural table name
+    tableName: 'partner_attendances', 
     timestamps: true, // createdAt, updatedAt
   });
 

@@ -2,7 +2,7 @@
 
 module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.createTable('PartnerAttendances', {
+    await queryInterface.createTable('partner_attendances', {
       id: {
         allowNull: false,
         primaryKey: true,
@@ -13,7 +13,7 @@ module.exports = {
         type: Sequelize.UUID,
         allowNull: false,
         references: {
-          model: 'Partners',
+          model: 'partners',  // ✅ lowercase
           key: 'id',
         },
         onUpdate: 'CASCADE',
@@ -31,23 +31,22 @@ module.exports = {
       attendanceTime: {
         type: Sequelize.DATE,
         allowNull: false,
-        defaultValue: Sequelize.fn('NOW'),
+        defaultValue: Sequelize.NOW,
       },
       createdAt: {
         type: Sequelize.DATE,
         allowNull: false,
-        defaultValue: Sequelize.fn('NOW'),
+        defaultValue: Sequelize.NOW,
       },
       updatedAt: {
         type: Sequelize.DATE,
         allowNull: false,
-        defaultValue: Sequelize.fn('NOW'),
+        defaultValue: Sequelize.NOW,
       },
     });
   },
 
   async down(queryInterface, Sequelize) {
-    await queryInterface.dropTable('PartnerAttendances');
-    // ❌ Remove DROP TYPE (MySQL doesn't support)
+    await queryInterface.dropTable('partner_attendances');
   },
 };

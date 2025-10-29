@@ -2,7 +2,7 @@
 
 module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.createTable('Partners', {
+    await queryInterface.createTable('partners', {
       id: {
         type: Sequelize.UUID,                     // UUID type
         defaultValue: Sequelize.UUIDV4,           // Auto-generate UUID
@@ -74,7 +74,7 @@ module.exports = {
 
   async down(queryInterface, Sequelize) {
     // Drop ENUM types separately to avoid PostgreSQL conflicts
-    await queryInterface.dropTable('Partners');
+    await queryInterface.dropTable('partners');
     await queryInterface.sequelize.query('DROP TYPE IF EXISTS "enum_Partners_workType";');
     await queryInterface.sequelize.query('DROP TYPE IF EXISTS "enum_Partners_status";');
   }
