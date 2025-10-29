@@ -2,7 +2,7 @@
 const { Order, OrderItem, User, Partner, FoodItem,  DeliveryOrder, RestaurantReg } = require('../models');
 const { sequelize } = require('../models');
 const { Op } = require('sequelize');
-const { autoAssignPartner,autoAssignPartnerTest } = require('./order.controller'); // adjust path if needed
+const { autoAssignPartner } = require('./order.controller'); // adjust path if needed
 
 
 // -------------------- Get all orders --------------------
@@ -137,7 +137,7 @@ async function acceptOrder(req, res) {
     }, { transaction });
 
     // 🔹 Auto-assign delivery partner (returns delivery info if assigned)
-    const deliveryWithPartner = await autoAssignPartnerTest(order.id, transaction);
+    const deliveryWithPartner = await autoAssignPartner(order.id, transaction);
 
     await transaction.commit();
 

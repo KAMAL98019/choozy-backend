@@ -1,3 +1,6 @@
+'use strict';
+const { v4: uuidv4 } = require('uuid');
+
 module.exports = (sequelize, DataTypes) => {
   const Partner = sequelize.define("Partner", {
     id: {
@@ -7,47 +10,17 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
     },
 
-    // ---------------- Personal Details ----------------
-    fullName: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
-    mobile: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
-    email: {
-      type: DataTypes.STRING,
-      unique: true,
-      allowNull: false,
-      validate: {
-        isEmail: true,
-      },
-    },
-    dob: {
-      type: DataTypes.DATEONLY,
-      allowNull: true,
-    },
-    gender: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
-    referralCode: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
-    password: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
+    // ---------------- Personal ----------------
+    fullName: { type: DataTypes.STRING, allowNull: false },
+    mobile: { type: DataTypes.STRING, allowNull: false },
+    email: { type: DataTypes.STRING, allowNull: false, unique: true, validate: { isEmail: true } },
+    dob: { type: DataTypes.DATEONLY, allowNull: true },
+    gender: { type: DataTypes.STRING, allowNull: true },
+    referralCode: { type: DataTypes.STRING, allowNull: true },
+    password: { type: DataTypes.STRING, allowNull: false },
+    profilePhoto: { type: DataTypes.STRING, allowNull: true },
 
-    // ✅ Add this new field
-    profilePhoto: {
-      type: DataTypes.STRING, // file path or URL
-      allowNull: true,
-    },
-
-    // ---------------- Address + Emergency ----------------
+    // ---------------- Address ----------------
     address: DataTypes.STRING,
     city: DataTypes.STRING,
     state: DataTypes.STRING,
@@ -62,11 +35,8 @@ module.exports = (sequelize, DataTypes) => {
     rcFile: DataTypes.STRING,
     dlFile: DataTypes.STRING,
 
-    // ---------------- Work Type ----------------
-    workType: {
-      type: DataTypes.ENUM("full-time", "part-time", "weekend"),
-      allowNull: true,
-    },
+    // ---------------- Work ----------------
+    workType: { type: DataTypes.ENUM("full-time","part-time","weekend"), allowNull: true },
     breakStart: DataTypes.TIME,
     breakEnd: DataTypes.TIME,
 
@@ -76,31 +46,27 @@ module.exports = (sequelize, DataTypes) => {
     ifsc: DataTypes.STRING,
     idProofFile: DataTypes.STRING,
 
-    status: {
-      type: DataTypes.ENUM("pending", "active", "on-duty", "inactive", "blocked"),
-      allowNull: false,
-      defaultValue: "active"
-    },
-    otp: {
-      type: DataTypes.STRING(6),
-      allowNull: true
-    },
-    otpExpiry: {
-      type: DataTypes.DATE,
-      allowNull: true
-    },
-    otpVerified: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: false
-    }
+    // ---------------- Status & OTP ----------------
+    status: { type: DataTypes.ENUM("pending","active","on-duty","inactive","blocked"), allowNull: false, defaultValue: "active" },
+    otp: { type: DataTypes.STRING(6), allowNull: true },
+    otpExpiry: { type: DataTypes.DATE, allowNull: true },
+    otpVerified: { type: DataTypes.BOOLEAN, defaultValue: false },
+
+    // 🔹 Geo coordinates for delivery radius / zone
+    latitude: { type: DataTypes.FLOAT, allowNull: true },
+    longitude: { type: DataTypes.FLOAT, allowNull: true }
 
   });
 
   Partner.associate = (models) => {
     Partner.hasMany(models.Order, { foreignKey: "partnerId", as: "orders" });
     Partner.hasMany(models.DeliveryOrder, { foreignKey: "partnerId", as: "deliveries" });
-
   };
+
+  // UUID before create
+  Partner.beforeCreate((instance) => {
+    if (!instance.id) instance.id = uuidv4();
+  });
 
   return Partner;
 };

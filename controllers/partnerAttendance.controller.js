@@ -1,8 +1,8 @@
 const { Partner, PartnerAttendance, Earnings } = require("../models");
 const multer = require("multer");
 const path = require("path");
-const { Op } = require("sequelize");
 const fs = require("fs");
+const { Op } = require("sequelize");
 
 // ---------------- Multer Setup ----------------
 const storage = multer.diskStorage({
@@ -21,17 +21,24 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 exports.uploadMiddleware = upload.single("attendancePhoto");
 
-// ---------------- Helper Function ----------------
-async function setPartnerStatus(partnerId, status, photo = null) {
+// ---------------- Helper: Set Partner Status ----------------
+async function setPartnerStatus(partnerId, status, latitude = null, longitude = null, photo = null) {
   const partner = await Partner.findByPk(partnerId);
   if (!partner) throw new Error("Partner not found");
 
+  // Update partner status and location
+  await partner.update({
+    status: status === "ONLINE" ? "active" : "inactive",
+    latitude: latitude ?? partner.latitude,
+    longitude: longitude ?? partner.longitude,
+  });
+
+  // Check if attendance already exists today
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
   const todayEnd = new Date();
   todayEnd.setHours(23, 59, 59, 999);
 
-  // Check if there's already an attendance today
   let attendance = await PartnerAttendance.findOne({
     where: {
       partnerId,
@@ -41,7 +48,6 @@ async function setPartnerStatus(partnerId, status, photo = null) {
   });
 
   if (!attendance) {
-    // Create a new attendance if none today
     attendance = await PartnerAttendance.create({
       partnerId,
       status,
@@ -49,15 +55,10 @@ async function setPartnerStatus(partnerId, status, photo = null) {
       attendanceTime: new Date(),
     });
   } else {
-    // Update existing attendance
     attendance.status = status;
     if (photo) attendance.attendancePhoto = photo;
     await attendance.save();
   }
-
-  // Update partner table status
-  const partnerStatus = status === "ONLINE" ? "active" : "inactive";
-  await partner.update({ status: partnerStatus });
 
   return attendance;
 }
@@ -65,17 +66,23 @@ async function setPartnerStatus(partnerId, status, photo = null) {
 // ---------------- Mark Attendance ----------------
 exports.markAttendance = async (req, res) => {
   try {
-    const { partnerId } = req.body;
+    const { partnerId, latitude, longitude } = req.body;
     if (!partnerId) return res.status(400).json({ message: "partnerId is required" });
 
-    const attendance = await setPartnerStatus(partnerId, "ONLINE", req.file?.filename);
+    const attendance = await setPartnerStatus(
+      partnerId,
+      "ONLINE",
+      parseFloat(latitude),
+      parseFloat(longitude),
+      req.file?.filename
+    );
 
     res.status(201).json({
-      message: "Attendance marked successfully and partner status set to active",
+      message: "Attendance marked successfully & partner set to active",
       attendance,
     });
   } catch (err) {
-    console.error("❌ Error marking attendance:", err);
+    console.error(err);
     res.status(500).json({ error: err.message || "Internal server error" });
   }
 };
@@ -84,19 +91,48 @@ exports.markAttendance = async (req, res) => {
 exports.updateStatus = async (req, res) => {
   try {
     const { partnerId } = req.params;
-    const { status } = req.body;
-    if (!["ONLINE", "OFFLINE"].includes(status)) {
-      return res.status(400).json({ message: "Invalid status value" });
-    }
+    const { status, latitude, longitude } = req.body;
 
-    const attendance = await setPartnerStatus(partnerId, status);
+    if (!["ONLINE", "OFFLINE"].includes(status))
+      return res.status(400).json({ message: "Invalid status value" });
+
+    const attendance = await setPartnerStatus(
+      partnerId,
+      status,
+      parseFloat(latitude),
+      parseFloat(longitude)
+    );
 
     res.status(200).json({
       message: `Partner status updated to ${status}`,
       attendance,
     });
   } catch (err) {
-    console.error("❌ Error updating status:", err);
+    console.error(err);
+    res.status(500).json({ error: err.message || "Internal server error" });
+  }
+};
+
+// ---------------- Update Partner Location ----------------
+exports.updateLocation = async (req, res) => {
+  try {
+    const { partnerId } = req.params;
+    const { latitude, longitude } = req.body;
+
+    if (!partnerId || latitude == null || longitude == null)
+      return res.status(400).json({ message: "partnerId, latitude, longitude are required" });
+
+    const partner = await Partner.findByPk(partnerId);
+    if (!partner) return res.status(404).json({ message: "Partner not found" });
+
+    await partner.update({ latitude: parseFloat(latitude), longitude: parseFloat(longitude) });
+
+    res.status(200).json({
+      message: "Partner location updated successfully",
+      data: { latitude: parseFloat(latitude), longitude: parseFloat(longitude) },
+    });
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ error: err.message || "Internal server error" });
   }
 };
@@ -125,11 +161,11 @@ exports.getEarnings = async (req, res) => {
         endDate.setHours(23, 59, 59, 999);
         break;
       case "month":
-        startDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
         endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
         break;
       case "lastMonth":
-        startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0);
+        startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
         endDate = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
         break;
       default:
@@ -142,9 +178,9 @@ exports.getEarnings = async (req, res) => {
 
     const total = earnings.reduce((sum, e) => sum + Number(e.amount || 0), 0);
 
-    res.json({ partnerId, type, total, count: earnings.length, earnings, startDate, endDate });
+    res.status(200).json({ partnerId, type, total, count: earnings.length, earnings });
   } catch (err) {
-    console.error("❌ Error fetching earnings:", err);
-    res.status(500).json({ error: "Internal server error" });
+    console.error(err);
+    res.status(500).json({ error: err.message || "Internal server error" });
   }
 };

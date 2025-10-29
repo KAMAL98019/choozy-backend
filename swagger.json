@@ -7,7 +7,7 @@
     },
     "servers": [
         {
-            "url": "http://localhost:5000"
+            "url": "https://backend.zenzio.in"
         }
     ],
     "paths": {
@@ -1903,7 +1903,7 @@
                     "DeliveryOrder Flow"
                 ],
                 "summary": "Get new and accepted delivery requests",
-                "description": "Retrieves all delivery requests (PENDING and ACCEPTED) assigned to the currently online partner. Includes an `isNew` flag to indicate PENDING deliveries.",
+                "description": "Fetches all delivery requests (ASSIGNED, ACCEPTED, PICKED_UP) for an online partner. Includes `isNew` flag for newly assigned deliveries.",
                 "parameters": [
                     {
                         "name": "partnerId",
@@ -1920,94 +1920,31 @@
                         "description": "List of delivery requests",
                         "content": {
                             "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "success": {
-                                            "type": "boolean"
-                                        },
-                                        "count": {
-                                            "type": "integer"
-                                        },
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "type": "object",
-                                                "properties": {
-                                                    "id": {
-                                                        "type": "string"
-                                                    },
-                                                    "partnerId": {
-                                                        "type": "string"
-                                                    },
-                                                    "status": {
-                                                        "type": "string",
-                                                        "enum": [
-                                                            "PENDING",
-                                                            "ACCEPTED"
-                                                        ]
-                                                    },
-                                                    "isNew": {
-                                                        "type": "boolean"
-                                                    },
-                                                    "order": {
-                                                        "type": "object",
-                                                        "properties": {
-                                                            "id": {
-                                                                "type": "string"
-                                                            },
-                                                            "orderNumber": {
-                                                                "type": "string"
-                                                            },
-                                                            "user": {
-                                                                "type": "object",
-                                                                "properties": {
-                                                                    "id": {
-                                                                        "type": "string"
-                                                                    },
-                                                                    "name": {
-                                                                        "type": "string"
-                                                                    },
-                                                                    "mobile": {
-                                                                        "type": "string"
-                                                                    },
-                                                                    "email": {
-                                                                        "type": "string"
-                                                                    }
-                                                                }
-                                                            },
-                                                            "restaurant": {
-                                                                "type": "object",
-                                                                "properties": {
-                                                                    "id": {
-                                                                        "type": "string"
-                                                                    },
-                                                                    "rest_name": {
-                                                                        "type": "string"
-                                                                    },
-                                                                    "contact_email": {
-                                                                        "type": "string"
-                                                                    },
-                                                                    "restaurantLatitude": {
-                                                                        "type": "number"
-                                                                    },
-                                                                    "restaurantLongitude": {
-                                                                        "type": "number"
-                                                                    },
-                                                                    "rest_address": {
-                                                                        "type": "string"
-                                                                    },
-                                                                    "contact_number": {
-                                                                        "type": "string"
-                                                                    }
-                                                                }
-                                                            }
-                                                        }
-                                                    }
+                                "example": {
+                                    "success": true,
+                                    "count": 2,
+                                    "data": [
+                                        {
+                                            "id": "uuid",
+                                            "status": "ASSIGNED",
+                                            "isNew": true,
+                                            "order": {
+                                                "id": "uuid",
+                                                "orderNumber": "ORD12345",
+                                                "restaurant": {
+                                                    "id": "uuid",
+                                                    "rest_name": "Burger House",
+                                                    "restaurantLatitude": 12.9716,
+                                                    "restaurantLongitude": 77.5946
+                                                },
+                                                "user": {
+                                                    "id": "uuid",
+                                                    "name": "John Doe",
+                                                    "mobile": "9876543210"
                                                 }
                                             }
                                         }
-                                    }
+                                    ]
                                 }
                             }
                         }
@@ -2021,77 +1958,224 @@
                 }
             }
         },
-        "/api/delivery/{deliveryId}/accept": {
+        "/api/delivery/accept": {
             "put": {
                 "tags": [
                     "DeliveryOrder Flow"
                 ],
                 "summary": "Accept a delivery request",
-                "description": "Partner accepts a pending delivery request. Partner must be online.",
-                "parameters": [
-                    {
-                        "name": "deliveryId",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        },
-                        "description": "The delivery ID to accept"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Delivery accepted successfully"
-                    },
-                    "400": {
-                        "description": "Invalid or already processed delivery"
-                    },
-                    "403": {
-                        "description": "Partner not online"
-                    }
-                }
-            }
-        },
-        "/api/delivery/{deliveryId}/reject": {
-            "put": {
-                "tags": [
-                    "DeliveryOrder Flow"
-                ],
-                "summary": "Reject a delivery request",
-                "description": "Partner rejects a pending delivery request with optional reason.",
-                "parameters": [
-                    {
-                        "name": "deliveryId",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        },
-                        "description": "The delivery ID to reject"
-                    }
-                ],
+                "description": "Partner accepts an assigned delivery. Partner ID and Delivery ID are required.",
                 "requestBody": {
-                    "required": false,
+                    "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
                                 "type": "object",
                                 "properties": {
-                                    "reason": {
+                                    "deliveryId": {
                                         "type": "string",
-                                        "example": "Too far from current location"
+                                        "example": "uuid"
+                                    },
+                                    "partnerId": {
+                                        "type": "string",
+                                        "example": "uuid"
                                     }
-                                }
+                                },
+                                "required": [
+                                    "deliveryId",
+                                    "partnerId"
+                                ]
                             }
                         }
                     }
                 },
                 "responses": {
                     "200": {
-                        "description": "Delivery rejected successfully"
+                        "description": "Delivery accepted successfully"
                     },
                     "400": {
-                        "description": "Cannot reject processed delivery"
+                        "description": "Already accepted or invalid delivery"
+                    },
+                    "404": {
+                        "description": "Delivery not found"
+                    }
+                }
+            }
+        },
+        "/api/delivery/reject": {
+            "put": {
+                "tags": [
+                    "DeliveryOrder Flow"
+                ],
+                "summary": "Reject a delivery request",
+                "description": "Partner rejects an assigned delivery. The system automatically reassigns the order to another partner if available.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "deliveryId": {
+                                        "type": "string",
+                                        "example": "uuid"
+                                    },
+                                    "reason": {
+                                        "type": "string",
+                                        "example": "Too far from current location"
+                                    }
+                                },
+                                "required": [
+                                    "deliveryId"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Delivery rejected and reassigned"
+                    },
+                    "404": {
+                        "description": "Delivery not found"
+                    }
+                }
+            }
+        },
+        "/api/delivery/pickedup": {
+            "put": {
+                "tags": [
+                    "DeliveryOrder Flow"
+                ],
+                "summary": "Mark delivery as picked up",
+                "description": "Partner marks a delivery as picked up from the restaurant.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "deliveryId": {
+                                        "type": "string",
+                                        "example": "uuid"
+                                    }
+                                },
+                                "required": [
+                                    "deliveryId"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Order marked as picked up"
+                    },
+                    "400": {
+                        "description": "Invalid request"
+                    },
+                    "404": {
+                        "description": "Delivery not found"
+                    }
+                }
+            }
+        },
+        "/api/delivery/verify-otp": {
+            "post": {
+                "tags": [
+                    "DeliveryOrder Flow"
+                ],
+                "summary": "Verify customer OTP for delivery completion",
+                "description": "Customer provides OTP to confirm delivery. Once verified, earnings are credited to the partner.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "deliveryId": {
+                                        "type": "string",
+                                        "example": "uuid"
+                                    },
+                                    "otp": {
+                                        "type": "string",
+                                        "example": "123456"
+                                    }
+                                },
+                                "required": [
+                                    "deliveryId",
+                                    "otp"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "OTP verified successfully",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "success": true,
+                                    "message": "Order delivered successfully"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid OTP"
+                    },
+                    "404": {
+                        "description": "Delivery not found"
+                    }
+                }
+            }
+        },
+        "/api/delivery/photo": {
+            "post": {
+                "tags": [
+                    "DeliveryOrder Flow"
+                ],
+                "summary": "Upload delivery proof photo",
+                "description": "Uploads a photo proof after delivery. Must include `deliveryId` and an image file.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "deliveryId": {
+                                        "type": "string",
+                                        "example": "uuid"
+                                    },
+                                    "deliveryPhoto": {
+                                        "type": "string",
+                                        "format": "binary"
+                                    }
+                                },
+                                "required": [
+                                    "deliveryId",
+                                    "deliveryPhoto"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Proof photo uploaded",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "success": true,
+                                    "message": "Proof photo uploaded",
+                                    "photoUrl": "/uploads/delivery/17299029291.jpg"
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -2102,7 +2186,7 @@
                     "DeliveryOrder Flow"
                 ],
                 "summary": "Get partner’s current active delivery",
-                "description": "Fetches the ongoing delivery details for a partner (accepted, picked up, or out for delivery).",
+                "description": "Fetches the most recent delivery that is ASSIGNED, ACCEPTED, or PICKED_UP for the partner.",
                 "parameters": [
                     {
                         "name": "partnerId",
@@ -2111,166 +2195,35 @@
                         "schema": {
                             "type": "string"
                         },
-                        "description": "Partner ID to fetch active delivery."
+                        "description": "Partner ID to fetch current delivery for."
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Active delivery details or message if none."
-                    }
-                }
-            }
-        },
-        "/api/delivery/{deliveryId}/pickedup": {
-            "put": {
-                "tags": [
-                    "DeliveryOrder Flow"
-                ],
-                "summary": "Mark order as picked up",
-                "description": "Partner marks a delivery as picked up from restaurant.",
-                "parameters": [
-                    {
-                        "name": "deliveryId",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        },
-                        "description": "The delivery ID to mark as picked up"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Order marked as picked up"
-                    },
-                    "400": {
-                        "description": "Invalid status transition"
-                    }
-                }
-            }
-        },
-        "/api/delivery/{deliveryId}/photo": {
-            "put": {
-                "tags": [
-                    "DeliveryOrder Flow"
-                ],
-                "summary": "Upload delivery photo (before OTP verification)",
-                "description": "Partner uploads photo proof after delivering the order. Marks delivery as 'DELIVERED_PENDING_OTP'.",
-                "parameters": [
-                    {
-                        "name": "deliveryId",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        },
-                        "description": "The delivery ID to upload photo for"
-                    }
-                ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "multipart/form-data": {
-                            "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "deliveryPhoto": {
-                                        "type": "string",
-                                        "format": "binary",
-                                        "description": "Photo proof of delivery"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Delivery photo uploaded successfully. Waiting for OTP verification.",
+                        "description": "Active delivery fetched successfully",
                         "content": {
                             "application/json": {
                                 "example": {
                                     "success": true,
-                                    "message": "Delivery photo uploaded. Waiting for customer OTP confirmation.",
                                     "data": {
-                                        "deliveryId": "uuid",
-                                        "status": "DELIVERED_PENDING_OTP"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/api/delivery/{deliveryId}/verify-otp": {
-            "post": {
-                "tags": [
-                    "DeliveryOrder Flow"
-                ],
-                "summary": "Verify customer OTP to complete delivery",
-                "description": "Customer enters OTP to confirm delivery completion. Once verified, the order and delivery are marked as DELIVERED.",
-                "parameters": [
-                    {
-                        "name": "deliveryId",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        },
-                        "description": "The delivery ID to verify OTP for"
-                    }
-                ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "otp": {
-                                        "type": "string",
-                                        "example": "123456"
-                                    },
-                                    "distanceKm": {
-                                        "type": "number",
-                                        "example": 5
-                                    }
-                                },
-                                "required": [
-                                    "otp"
-                                ]
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "OTP verified and delivery completed",
-                        "content": {
-                            "application/json": {
-                                "example": {
-                                    "success": true,
-                                    "message": "OTP verified. Delivery completed successfully!",
-                                    "data": {
-                                        "deliveryId": "uuid",
-                                        "earnings": 50,
-                                        "status": "DELIVERED"
+                                        "id": "uuid",
+                                        "status": "ACCEPTED",
+                                        "order": {
+                                            "orderNumber": "ORD12345",
+                                            "user": {
+                                                "name": "John Doe"
+                                            },
+                                            "restaurant": {
+                                                "rest_name": "Pizza Hub"
+                                            }
+                                        }
                                     }
                                 }
                             }
                         }
                     },
                     "400": {
-                        "description": "Invalid or incorrect OTP",
-                        "content": {
-                            "application/json": {
-                                "example": {
-                                    "success": false,
-                                    "message": "Invalid OTP"
-                                }
-                            }
-                        }
+                        "description": "Partner ID missing"
                     }
                 }
             }
@@ -2280,8 +2233,8 @@
                 "tags": [
                     "DeliveryOrder Flow"
                 ],
-                "summary": "Get delivery history for partner",
-                "description": "Retrieves last 50 delivered orders for the specified partner.",
+                "summary": "Get delivery history for a partner",
+                "description": "Retrieves all previously delivered orders for the specified partner.",
                 "parameters": [
                     {
                         "name": "partnerId",
@@ -2290,12 +2243,38 @@
                         "schema": {
                             "type": "string"
                         },
-                        "description": "Partner ID to fetch history for."
+                        "description": "Partner ID to fetch delivery history."
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "List of delivered orders"
+                        "description": "List of delivered orders",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "success": true,
+                                    "data": [
+                                        {
+                                            "id": "uuid",
+                                            "status": "DELIVERED",
+                                            "order": {
+                                                "orderNumber": "ORD98765",
+                                                "restaurant": {
+                                                    "rest_name": "KFC"
+                                                },
+                                                "user": {
+                                                    "name": "Raj",
+                                                    "mobile": "9876543210"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Partner ID missing"
                     }
                 }
             }
@@ -3356,7 +3335,7 @@
                     "Partner Attendance"
                 ],
                 "summary": "Mark partner attendance",
-                "description": "Mark attendance with photo. Default status will be ONLINE",
+                "description": "Mark attendance with optional photo and location. Default status will be ONLINE.",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -3371,6 +3350,14 @@
                                     "attendancePhoto": {
                                         "type": "string",
                                         "format": "binary"
+                                    },
+                                    "latitude": {
+                                        "type": "number",
+                                        "example": 12.9716
+                                    },
+                                    "longitude": {
+                                        "type": "number",
+                                        "example": 77.5946
                                     }
                                 },
                                 "required": [
@@ -3386,6 +3373,9 @@
                     },
                     "400": {
                         "description": "Invalid input"
+                    },
+                    "500": {
+                        "description": "Internal server error"
                     }
                 }
             }
@@ -3396,7 +3386,7 @@
                     "Partner Attendance"
                 ],
                 "summary": "Update partner attendance status",
-                "description": "Update status to ONLINE or OFFLINE",
+                "description": "Update partner's status to ONLINE or OFFLINE (optionally with location).",
                 "parameters": [
                     {
                         "name": "partnerId",
@@ -3404,7 +3394,8 @@
                         "required": true,
                         "schema": {
                             "type": "string"
-                        }
+                        },
+                        "example": "c9a3eabc-1234-4567-89ab-cdef98765432"
                     }
                 ],
                 "requestBody": {
@@ -3421,6 +3412,14 @@
                                             "OFFLINE"
                                         ],
                                         "example": "OFFLINE"
+                                    },
+                                    "latitude": {
+                                        "type": "number",
+                                        "example": 12.9716
+                                    },
+                                    "longitude": {
+                                        "type": "number",
+                                        "example": 77.5946
                                     }
                                 },
                                 "required": [
@@ -3435,7 +3434,71 @@
                         "description": "Status updated successfully"
                     },
                     "400": {
-                        "description": "Invalid status"
+                        "description": "Invalid status or input"
+                    },
+                    "404": {
+                        "description": "Partner not found"
+                    },
+                    "500": {
+                        "description": "Internal server error"
+                    }
+                }
+            }
+        },
+        "/api/partner/attendance/{partnerId}/location": {
+            "put": {
+                "tags": [
+                    "Partner Attendance"
+                ],
+                "summary": "Update partner live location",
+                "description": "Update partner's current latitude and longitude in real-time for live tracking.",
+                "parameters": [
+                    {
+                        "name": "partnerId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "c9a3eabc-1234-4567-89ab-cdef98765432"
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "latitude": {
+                                        "type": "number",
+                                        "example": 12.9716
+                                    },
+                                    "longitude": {
+                                        "type": "number",
+                                        "example": 77.5946
+                                    }
+                                },
+                                "required": [
+                                    "latitude",
+                                    "longitude"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Location updated successfully"
+                    },
+                    "400": {
+                        "description": "Missing or invalid input"
+                    },
+                    "404": {
+                        "description": "Partner not found"
+                    },
+                    "500": {
+                        "description": "Internal server error"
                     }
                 }
             }
@@ -3445,8 +3508,8 @@
                 "tags": [
                     "Partner Attendance"
                 ],
-                "summary": "Get earnings for a partner",
-                "description": "Fetch partner earnings for today, week, month, or lastMonth",
+                "summary": "Get partner earnings",
+                "description": "Fetch partner earnings for today, week, month, or lastMonth.",
                 "parameters": [
                     {
                         "name": "partnerId",
@@ -3454,7 +3517,8 @@
                         "required": true,
                         "schema": {
                             "type": "string"
-                        }
+                        },
+                        "example": "c9a3eabc-1234-4567-89ab-cdef98765432"
                     },
                     {
                         "name": "type",
@@ -3477,7 +3541,10 @@
                         "description": "Earnings fetched successfully"
                     },
                     "400": {
-                        "description": "Invalid type"
+                        "description": "Invalid query parameters"
+                    },
+                    "500": {
+                        "description": "Internal server error"
                     }
                 }
             }

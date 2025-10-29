@@ -9,13 +9,19 @@ router.post(
   attendanceController.markAttendance
 );
 
-// ✅ Update Partner Status
+// ✅ Update Partner Status (ONLINE / OFFLINE)
 router.put(
   "/attendance/:partnerId/status",
   attendanceController.updateStatus
 );
 
-// ✅ Get Earnings (today/week/month/lastMonth)
+// ✅ Update Partner Live Location (latitude & longitude)
+router.put(
+  "/attendance/:partnerId/location",
+  attendanceController.updateLocation
+);
+
+// ✅ Get Partner Earnings (today / week / month / lastMonth)
 router.get(
   "/attendance/earnings",
   attendanceController.getEarnings
