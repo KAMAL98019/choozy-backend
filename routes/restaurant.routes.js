@@ -15,6 +15,9 @@ router.get('/:id', ctrl.getById);
 router.put('/:id', ctrl.update);
 router.delete('/:id', ctrl.remove);
 
+// ✅ Get all active food items for a restaurant (only if ONLINE)
+router.get('/:id/foods', ctrl.getRestaurantFoods);
+
 
 router.post("/login", ctrl.login);
 router.post("/logout", ctrl.logout);

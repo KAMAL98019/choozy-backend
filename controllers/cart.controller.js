@@ -1,4 +1,4 @@
-const { Cart, CartItem, FoodItem, Order, sequelize, RestaurantReg } = require('../models');
+const { Cart, CartItem, FoodItem, Order, sequelize, RestaurantReg,RestaurantStatus } = require('../models');
 
 // Get active cart for a user & specific restaurant
 // Get active cart for a user & specific restaurant
@@ -49,20 +49,41 @@ exports.getActiveCart = async (req, res) => {
 };
 
 
-// Ensure cart exists for a user & restaurant
+// Ensure cart exists for a user & restaurant — only if restaurant is ONLINE
 exports.ensureCart = async (req, res) => {
   try {
     const { userId, restId } = req.body;
+
+    // Check restaurant online status
+    const restStatus = await RestaurantStatus.findOne({
+      where: { rest_id: restId },
+      order: [['createdAt', 'DESC']],
+    });
+
+    if (!restStatus || restStatus.status !== 'ONLINE') {
+      return res.status(403).json({
+        success: false,
+        message: 'Restaurant is currently offline. You cannot add items or create a cart.',
+      });
+    }
+
+    // Find or create active cart
     let cart = await Cart.findOne({ where: { userId, rest_id: restId, status: 'active' } });
-    if (!cart) cart = await Cart.create({ userId, rest_id: restId, status: 'active' });
-    res.status(201).json(cart);
+    if (!cart) {
+      cart = await Cart.create({ userId, rest_id: restId, status: 'active' });
+    }
+
+    res.status(201).json({
+      success: true,
+      message: 'Cart ready',
+      cart,
+    });
   } catch (e) {
     console.error(e);
-    res.status(400).json({ error: 'Failed to create/find cart' });
+    res.status(400).json({ success: false, error: 'Failed to create/find cart' });
   }
 };
 
-// Add item to cart
 exports.addItem = async (req, res) => {
   const t = await sequelize.transaction();
   try {
@@ -74,12 +95,26 @@ exports.addItem = async (req, res) => {
       return res.status(404).json({ error: 'Food not found' });
     }
 
-    // Normalize addons
+    // ✅ Check restaurant online status
+    const restStatus = await RestaurantStatus.findOne({
+      where: { rest_id: food.rest_id },
+      order: [['createdAt', 'DESC']],
+    });
+
+    if (!restStatus || restStatus.status !== 'ONLINE') {
+      await t.rollback();
+      return res.status(403).json({
+        success: false,
+        message: 'This restaurant is currently offline. Cannot add items to cart.',
+      });
+    }
+
+    // === Existing addItem logic ===
     let finalAddOns = [];
     if (Array.isArray(selectedAddOns)) {
       for (const addOn of selectedAddOns) {
-        if (typeof addOn === "object") finalAddOns.push(addOn);
-        else if (typeof addOn === "number") {
+        if (typeof addOn === 'object') finalAddOns.push(addOn);
+        else if (typeof addOn === 'number') {
           const addOnObj = food.customised_options?.add_ons?.[addOn];
           if (addOnObj) finalAddOns.push(addOnObj);
         }
@@ -88,28 +123,24 @@ exports.addItem = async (req, res) => {
 
     const addOnKey = JSON.stringify(finalAddOns.sort((a, b) => a.name.localeCompare(b.name)));
 
-    // Check existing item with same addons
     const existingItem = await CartItem.findOne({ where: { cartId, foodId }, transaction: t });
     let item;
 
     if (existingItem) {
       const existingKey = JSON.stringify(
-        (typeof existingItem.selectedAddOns === "string"
+        (typeof existingItem.selectedAddOns === 'string'
           ? JSON.parse(existingItem.selectedAddOns)
           : existingItem.selectedAddOns || []
         ).sort((a, b) => a.name.localeCompare(b.name))
       );
 
       if (existingKey === addOnKey) {
-        // Update quantity
         await existingItem.update({ quantity: existingItem.quantity + (quantity || 1) }, { transaction: t });
         item = existingItem;
       } else {
-        // Create new row for different addons
         item = await CartItem.create({ cartId, foodId, quantity: quantity || 1, unitPrice: food.price, selectedAddOns: finalAddOns }, { transaction: t });
       }
     } else {
-      // New item
       item = await CartItem.create({ cartId, foodId, quantity: quantity || 1, unitPrice: food.price, selectedAddOns: finalAddOns }, { transaction: t });
     }
 
@@ -121,6 +152,8 @@ exports.addItem = async (req, res) => {
     res.status(500).json({ error: 'Failed to add item' });
   }
 };
+
+
 
 // Update item quantity
 exports.updateItem = async (req, res) => {

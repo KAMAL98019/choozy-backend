@@ -1,7 +1,7 @@
 'use strict';
 
 const { Op } = require('sequelize');
-const { RestaurantReg } = require('../models');
+const { RestaurantReg,RestaurantStatus,FoodItem } = require('../models');
 const { v4: uuidv4 } = require('uuid');
 const bcrypt = require("bcryptjs");
 
@@ -75,14 +75,29 @@ exports.create = async (req, res) => {
 
     // ---------------- SAVE TO DB ----------------
     const row = await RestaurantReg.create(payload);
+
+    // ✅ Add default OFFLINE status after restaurant creation
+    await RestaurantStatus.create({
+      rest_id: row.id,
+      status: 'OFFLINE',
+      reason: 'New restaurant — awaiting approval or activation'
+    });
+
     const data = row.toJSON();
     delete data.password;
 
-    return res.status(201).json({ message: 'Restaurant registered successfully', data });
+    return res.status(201).json({
+      success: true,
+      message: 'Restaurant registered successfully and set to OFFLINE status',
+      data
+    });
 
   } catch (e) {
-    console.error("Create error:", e);
-    return res.status(500).json({ error: e.message || 'Create failed' });
+    console.error("Create Restaurant Error:", e);
+    return res.status(500).json({
+      success: false,
+      error: e.message || 'Create failed'
+    });
   }
 };
 
@@ -200,6 +215,35 @@ exports.remove = async (req, res) => {
     return res.status(500).json({ error: 'Delete failed' });
   }
 };
+
+exports.getRestaurantFoods = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const restStatus = await RestaurantStatus.findOne({
+      where: { rest_id: id },
+      order: [['createdAt', 'DESC']],
+    });
+
+    if (!restStatus || restStatus.status !== 'ONLINE') {
+      return res.status(403).json({
+        success: false,
+        message: 'Restaurant is currently offline. You cannot view its menu.',
+      });
+    }
+
+    // Fetch all foods for the restaurant without the isActive filter
+    const foods = await FoodItem.findAll({ where: { rest_id: id } });
+
+    res.json({ success: true, data: foods });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: 'Failed to fetch food items' });
+  }
+};
+
+
+
 // ------------------- Login (Email OR Mobile) -------------------
 exports.login = async (req, res) => {
   try {

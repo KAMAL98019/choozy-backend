@@ -7,7 +7,7 @@
     },
     "servers": [
         {
-            "url": "http://72.60.205.235:5000"
+            "url": "http://localhost:5000"
         }
     ],
     "paths": {
@@ -474,6 +474,125 @@
                     },
                     "500": {
                         "description": "Failed to update delivery settings"
+                    }
+                }
+            }
+        },
+        "/api/restaurants/{id}/foods": {
+            "get": {
+                "tags": [
+                    "Restaurants"
+                ],
+                "summary": "Get all active food items for a restaurant (only if online)",
+                "description": "Fetches all active food items from a restaurant only if the restaurant's current status is ONLINE.",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "description": "Restaurant ID (UUID)",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of active food items for the restaurant",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "string",
+                                                        "example": "3e2a76f8-1d9c-4aef-8bb7-7e8a5cf8d47c"
+                                                    },
+                                                    "rest_id": {
+                                                        "type": "string",
+                                                        "example": "c7a5a3dc-5f7c-42d9-9a3a-4f0731c5a37b"
+                                                    },
+                                                    "food_name": {
+                                                        "type": "string",
+                                                        "example": "Chicken Biryani"
+                                                    },
+                                                    "price": {
+                                                        "type": "number",
+                                                        "example": 180
+                                                    },
+                                                    "isActive": {
+                                                        "type": "boolean",
+                                                        "example": true
+                                                    },
+                                                    "category": {
+                                                        "type": "string",
+                                                        "example": "Main Course"
+                                                    },
+                                                    "description": {
+                                                        "type": "string",
+                                                        "example": "Aromatic basmati rice with spicy marinated chicken."
+                                                    },
+                                                    "image": {
+                                                        "type": "string",
+                                                        "example": "https://example.com/uploads/foods/biryani.jpg"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Restaurant is offline",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Restaurant is currently offline. You cannot view its menu."
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "error": {
+                                            "type": "string",
+                                            "example": "Failed to fetch food items"
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }

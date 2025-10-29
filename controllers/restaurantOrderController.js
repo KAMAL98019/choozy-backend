@@ -2,7 +2,7 @@
 const { Order, OrderItem, User, Partner, FoodItem,  DeliveryOrder, RestaurantReg } = require('../models');
 const { sequelize } = require('../models');
 const { Op } = require('sequelize');
-const { autoAssignPartner } = require('./order.controller'); // adjust path if needed
+const { autoAssignPartner,autoAssignPartnerTest } = require('./order.controller'); // adjust path if needed
 
 
 // -------------------- Get all orders --------------------
@@ -87,69 +87,76 @@ async function getOrderById(req, res) {
     return res.status(500).json({ success: false, message: err.message });
   }
 }
-// accept order
-
+// ------------------- ACCEPT ORDER & AUTO-ASSIGN PARTNER -------------------
 async function acceptOrder(req, res) {
-  const t = await sequelize.transaction();
+  const transaction = await sequelize.transaction();
   try {
     const { id } = req.params;
     const { estimatedPreparationTime, restaurantId } = req.body;
 
+    // ✅ Validate input
     if (!restaurantId) {
-      await t.rollback();
+      await transaction.rollback();
       return res.status(400).json({ success: false, message: 'restaurantId is required' });
     }
 
-    // Fetch order with transaction lock
-    const order = await Order.findByPk(id, { transaction: t, lock: t.LOCK.UPDATE });
+    // ✅ Fetch order with transaction lock
+    const order = await Order.findByPk(id, { transaction, lock: transaction.LOCK.UPDATE });
     if (!order) {
-      await t.rollback();
+      await transaction.rollback();
       return res.status(404).json({ success: false, message: 'Order not found' });
     }
 
+    // ✅ Ensure the restaurant owns this order
     if (order.rest_id !== restaurantId) {
-      await t.rollback();
+      await transaction.rollback();
       return res.status(403).json({ success: false, message: 'Cannot accept order for another restaurant' });
     }
 
+    // ✅ Prevent accepting already confirmed or cancelled orders
     if (['CONFIRMED', 'CANCELLED'].includes(order.status)) {
-      await t.rollback();
-      return res.status(400).json({ success: false, message: order.status === 'CONFIRMED' ? 'Order is already accepted' : 'Cannot accept a rejected order' });
+      await transaction.rollback();
+      return res.status(400).json({ 
+        success: false, 
+        message: order.status === 'CONFIRMED' ? 'Order is already accepted' : 'Cannot accept a cancelled order' 
+      });
     }
 
+    // ✅ Check payment status
     if (order.paymentStatus !== 'PAID') {
-      await t.rollback();
+      await transaction.rollback();
       return res.status(400).json({ success: false, message: 'Cannot accept order. Payment not confirmed.' });
     }
 
-    // Update order status and estimated time
+    // ✅ Update order status and estimated preparation time
     const newEstimatedTime = (order.estimatedPreparationTime || 0) + (Number(estimatedPreparationTime) || 0);
     await order.update({
       status: 'CONFIRMED',
       confirmedAt: new Date(),
       estimatedPreparationTime: newEstimatedTime
-    }, { transaction: t });
+    }, { transaction });
 
-    // 🔹 AUTO-ASSIGN DELIVERY PARTNER
-    const deliveryWithPartner = await autoAssignPartner(order.id, t); // now returns delivery with partner included
+    // 🔹 Auto-assign delivery partner (returns delivery info if assigned)
+    const deliveryWithPartner = await autoAssignPartnerTest(order.id, transaction);
 
-    await t.commit();
+    await transaction.commit();
 
     return res.status(200).json({
       success: true,
-      message: 'Order accepted',
+      message: 'Order accepted successfully',
       data: {
         order,
-        delivery: deliveryWithPartner // guaranteed to be null only if no partner is available
+        delivery: deliveryWithPartner || null
       }
     });
 
   } catch (err) {
-    if (!t.finished) await t.rollback();
+    if (!transaction.finished) await transaction.rollback();
     console.error('Error in acceptOrder:', err);
     return res.status(500).json({ success: false, message: err.message });
   }
 }
+
 
 
 
