@@ -11,12 +11,12 @@ module.exports = {
     });
 
     // Step 2: Optionally fill existing users with dummy IDs (if needed)
-    const [users] = await queryInterface.sequelize.query(`SELECT id FROM Users`);
+    const [users] = await queryInterface.sequelize.query(`SELECT id FROM users`);
     let count = 1;
     for (const user of users) {
       const custId = 'CUST' + count.toString().padStart(4, '0');
       await queryInterface.sequelize.query(
-        `UPDATE Users SET customerId = :custId WHERE id = :id`,
+        `UPDATE users SET customerId = :custId WHERE id = :id`,
         { replacements: { custId, id: user.id } }
       );
       count++;
