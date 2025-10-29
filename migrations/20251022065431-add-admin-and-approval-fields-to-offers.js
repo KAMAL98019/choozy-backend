@@ -2,17 +2,13 @@
 
 module.exports = {
   async up(queryInterface, Sequelize) {
-    // 🧹 STEP 1: Remove old FK if exists (avoids errors)
+    // STEP 1: Remove old FK if exists
     try {
       await queryInterface.removeConstraint('offers', 'offers_approvedBy_foreign_idx');
-      console.log('✅ Removed old foreign key constraint on approvedBy');
-    } catch (error) {
-      console.log('ℹ️ No existing approvedBy foreign key constraint found');
-    }
+    } catch (error) {}
 
-    // 🆕 STEP 2: Add missing columns one by one safely
+    // STEP 2: Add missing columns safely
 
-    // 1️⃣ createdBy (Admin who created the offer)
     try {
       await queryInterface.addColumn('offers', 'createdBy', {
         type: Sequelize.UUID,
@@ -21,116 +17,76 @@ module.exports = {
         onUpdate: 'CASCADE',
         onDelete: 'SET NULL'
       });
-      console.log('✅ Added createdBy column');
-    } catch (error) {
-      console.log('ℹ️ createdBy already exists');
-    }
+    } catch (error) {}
 
-    // 2️⃣ offerType (RESTAURANT / ADMIN)
     try {
       await queryInterface.addColumn('offers', 'offerType', {
         type: Sequelize.ENUM('RESTAURANT', 'ADMIN'),
         allowNull: false,
         defaultValue: 'RESTAURANT'
       });
-      console.log('✅ Added offerType column');
-    } catch (error) {
-      console.log('ℹ️ offerType already exists');
-    }
+    } catch (error) {}
 
-    // 3️⃣ approvalStatus (PENDING / APPROVED / REJECTED / CHANGES_REQUESTED)
     try {
       await queryInterface.addColumn('offers', 'approvalStatus', {
         type: Sequelize.ENUM('PENDING', 'APPROVED', 'REJECTED', 'CHANGES_REQUESTED'),
         allowNull: false,
         defaultValue: 'PENDING'
       });
-      console.log('✅ Added approvalStatus column');
-    } catch (error) {
-      console.log('ℹ️ approvalStatus already exists');
-    }
+    } catch (error) {}
 
-    // 4️⃣ approvedBy (string name/id — no FK)
     try {
       await queryInterface.addColumn('offers', 'approvedBy', {
         type: Sequelize.STRING,
         allowNull: true
       });
-      console.log('✅ Added approvedBy column (string, no FK)');
-    } catch (error) {
-      console.log('ℹ️ approvedBy already exists');
-    }
+    } catch (error) {}
 
-    // 5️⃣ approvalDate
     try {
       await queryInterface.addColumn('offers', 'approvalDate', {
         type: Sequelize.DATE,
         allowNull: true
       });
-      console.log('✅ Added approvalDate column');
-    } catch (error) {
-      console.log('ℹ️ approvalDate already exists');
-    }
+    } catch (error) {}
 
-    // 6️⃣ rejectionReason
     try {
       await queryInterface.addColumn('offers', 'rejectionReason', {
         type: Sequelize.TEXT,
         allowNull: true
       });
-      console.log('✅ Added rejectionReason column');
-    } catch (error) {
-      console.log('ℹ️ rejectionReason already exists');
-    }
+    } catch (error) {}
 
-    // 7️⃣ adminComments
     try {
       await queryInterface.addColumn('offers', 'adminComments', {
         type: Sequelize.TEXT,
         allowNull: true
       });
-      console.log('✅ Added adminComments column');
-    } catch (error) {
-      console.log('ℹ️ adminComments already exists');
-    }
+    } catch (error) {}
 
-    // 8️⃣ maxUsagePerUser
     try {
       await queryInterface.addColumn('offers', 'maxUsagePerUser', {
         type: Sequelize.INTEGER,
         allowNull: false,
         defaultValue: 1
       });
-      console.log('✅ Added maxUsagePerUser column');
-    } catch (error) {
-      console.log('ℹ️ maxUsagePerUser already exists');
-    }
+    } catch (error) {}
 
-    // 9️⃣ totalUsageLimit
     try {
       await queryInterface.addColumn('offers', 'totalUsageLimit', {
         type: Sequelize.INTEGER,
         allowNull: true
       });
-      console.log('✅ Added totalUsageLimit column');
-    } catch (error) {
-      console.log('ℹ️ totalUsageLimit already exists');
-    }
+    } catch (error) {}
 
-    // 🔟 Make restaurantId nullable (since admin offers may not have restaurant)
     try {
       await queryInterface.changeColumn('offers', 'restaurantId', {
         type: Sequelize.UUID,
         allowNull: true
       });
-      console.log('✅ Made restaurantId nullable');
-    } catch (error) {
-      console.log('ℹ️ restaurantId already nullable or change skipped');
-    }
+    } catch (error) {}
   },
 
   async down(queryInterface, Sequelize) {
-    // Remove all added columns on rollback
     const columns = [
       'createdBy',
       'offerType',
@@ -146,10 +102,7 @@ module.exports = {
     for (const column of columns) {
       try {
         await queryInterface.removeColumn('offers', column);
-        console.log(`🗑️ Removed ${column} column`);
-      } catch (error) {
-        console.log(`ℹ️ Column ${column} not found or already removed`);
-      }
+      } catch (error) {}
     }
 
     // Drop ENUMs if needed (PostgreSQL only)
