@@ -2,13 +2,13 @@
 
 module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.addColumn('Carts', 'rest_id', {
+    await queryInterface.addColumn('carts', 'rest_id', {
       type: Sequelize.UUID,
       allowNull: false,
     });
   },
 
   async down(queryInterface, Sequelize) {
-    await queryInterface.removeColumn('Carts', 'rest_id');
+    await queryInterface.removeColumn('carts', 'rest_id');
   }
 };
