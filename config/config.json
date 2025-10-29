@@ -3,7 +3,7 @@
     "username": "root",
     "password": "1234",
     "database": "food-main",
-    "host": "localhost",
+    "host": "127.0.0.1",
     "dialect": "mysql"
   },
   "test": {
