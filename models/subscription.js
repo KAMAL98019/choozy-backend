@@ -55,7 +55,7 @@ module.exports = (sequelize) => {
     {
       sequelize,
       modelName: 'Subscription',
-      tableName: 'subscriptions',
+      tableName: 'subscriptions'
     }
   );
 

@@ -18,10 +18,15 @@ module.exports = {
         onUpdate: 'CASCADE',
         onDelete: 'CASCADE'
       },
+      dishimage: {  // ✅ Added
+        type: DataTypes.STRING,
+        allowNull: true
+      },
       dishname: {
         type: Sequelize.STRING,
         allowNull: false
       },
+
       description: {
         type: Sequelize.TEXT,
         allowNull: true

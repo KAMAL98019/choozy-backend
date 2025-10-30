@@ -34,13 +34,16 @@ const upload = multer({ storage });
 exports.uploadDeliveryPhoto = upload.single('deliveryPhoto');
 
 // ------------------- AUTO-ASSIGN PARTNER -------------------
+
+
 const autoAssignPartner = async (orderId, transaction, excludePartnerId = null) => {
   try {
     console.log('🔹 Auto-assign partner start');
 
-    const order = await Order.findByPk(orderId, { include: [{ model: RestaurantReg, as: 'restaurant' }], transaction });
+    const order = await Order.findByPk(orderId, { transaction });
     if (!order) throw new Error('Order not found');
-    const restaurant = order.restaurant;
+
+    const restaurant = await RestaurantReg.findByPk(order.rest_id, { transaction });
     if (!restaurant) throw new Error('Restaurant not found');
 
     // 1️⃣ Get online partners
@@ -68,14 +71,14 @@ const autoAssignPartner = async (orderId, transaction, excludePartnerId = null) 
     let availablePartnerIds = onlinePartnerIds.filter(id => !busyPartnerIds.includes(id));
     if (!availablePartnerIds.length) return null;
 
-    // 3️⃣ Filter active partners
+    // 3️⃣ Active partners
     let activePartners = await Partner.findAll({
       where: { id: { [Op.in]: availablePartnerIds }, status: 'active' },
       transaction
     });
     if (!activePartners.length) return null;
 
-    // 4️⃣ Apply RADIUS filter
+    // 4️⃣ Radius filter
     let filteredPartners = [...activePartners];
     if (restaurant.deliveryType === 'RADIUS' && restaurant.deliveryRadius && restaurant.restaurantLatitude && restaurant.restaurantLongitude) {
       filteredPartners = filteredPartners.filter(partner => {
@@ -88,23 +91,27 @@ const autoAssignPartner = async (orderId, transaction, excludePartnerId = null) 
       });
     }
 
-    // 5️⃣ Apply ZONE filter
-    if (restaurant.deliveryType === 'ZONE' && restaurant.deliveryZones && restaurant.deliveryZones.length) {
+    // 5️⃣ Zone filter
+    if (restaurant.deliveryType === 'ZONE' && restaurant.deliveryZones) {
+      let zones = restaurant.deliveryZones;
+      if (typeof zones === 'string') {
+        try { zones = JSON.parse(zones); } catch { zones = []; }
+      }
       filteredPartners = filteredPartners.filter(partner => {
         if (!partner.latitude || !partner.longitude) return false;
         return geolib.isPointInPolygon(
           { latitude: partner.latitude, longitude: partner.longitude },
-          restaurant.deliveryZones
+          zones
         );
       });
     }
 
     if (!filteredPartners.length) return null;
 
-    // 6️⃣ Assign first partner
+    // 6️⃣ Select partner
     const selectedPartner = filteredPartners[0];
 
-    // 7️⃣ Generate delivery OTP
+    // 7️⃣ Delivery OTP
     const deliveryOtp = Math.floor(100000 + Math.random() * 900000).toString();
     await order.update({ deliveryOtp }, { transaction });
 
@@ -118,6 +125,8 @@ const autoAssignPartner = async (orderId, transaction, excludePartnerId = null) 
       deliveryLatitude: order.latitude || null,
       deliveryLongitude: order.longitude || null
     }, { transaction });
+
+    console.log(`✅ Partner ${selectedPartner.fullName} assigned for order ${order.id}`);
 
     return await DeliveryOrder.findByPk(delivery.id, {
       include: [{ model: Partner, as: 'partner', attributes: ['id','fullName','mobile','status','latitude','longitude'] }],

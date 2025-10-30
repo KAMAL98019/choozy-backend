@@ -1,9 +1,12 @@
 const { FoodItem, CartItem, Cuisine, Category } = require('../models');
 const { Op } = require('sequelize');
-
-// 🧩 Create Food Item
 exports.create = async (req, res) => {
   try {
+    // If an image was uploaded, attach it to req.body
+    if (req.file) {
+      req.body.dishimage = `/uploads/food/${req.file.filename}`;
+    }
+
     const item = await FoodItem.create(req.body);
 
     const newItem = await FoodItem.findByPk(item.id, {
@@ -18,6 +21,7 @@ exports.create = async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 };
+
 
 // 🧩 Get All Food Items
 exports.getAll = async (req, res) => {
@@ -76,9 +80,12 @@ exports.getById = async (req, res) => {
   }
 };
 
-// 🧩 Update Food Item
 exports.update = async (req, res) => {
   try {
+    if (req.file) {
+      req.body.dishimage = `/uploads/food/${req.file.filename}`;
+    }
+
     const [updated] = await FoodItem.update(req.body, { where: { id: req.params.id } });
     if (!updated) {
       return res.status(404).json({ success: false, message: 'Food item not found' });

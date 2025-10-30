@@ -933,34 +933,30 @@
                     {
                         "name": "restaurantId",
                         "in": "query",
-                        "required": false,
                         "schema": {
                             "type": "string"
                         },
-                        "description": "Filter food items by restaurant ID"
+                        "description": "Filter by restaurant ID"
                     },
                     {
                         "name": "cuisineId",
                         "in": "query",
-                        "required": false,
                         "schema": {
                             "type": "string"
                         },
-                        "description": "Filter food items by cuisine ID"
+                        "description": "Filter by cuisine ID"
                     },
                     {
                         "name": "categoryId",
                         "in": "query",
-                        "required": false,
                         "schema": {
                             "type": "string"
                         },
-                        "description": "Filter food items by category ID"
+                        "description": "Filter by category ID"
                     },
                     {
                         "name": "search",
                         "in": "query",
-                        "required": false,
                         "schema": {
                             "type": "string"
                         },
@@ -969,7 +965,6 @@
                     {
                         "name": "veg",
                         "in": "query",
-                        "required": false,
                         "schema": {
                             "type": "boolean"
                         },
@@ -989,6 +984,7 @@
                                             "dishname": "Paneer Butter Masala",
                                             "price": 250,
                                             "veg": true,
+                                            "dishimage": "/uploads/food/1730255842381-paneer.jpg",
                                             "rest_id": "restaurant-uuid",
                                             "cuisine": {
                                                 "id": "cuisine-uuid",
@@ -1010,84 +1006,62 @@
                 }
             },
             "post": {
-                "summary": "Create a food item",
+                "summary": "Create a food item (with optional image upload)",
                 "tags": [
                     "Food Items"
                 ],
                 "requestBody": {
                     "required": true,
                     "content": {
-                        "application/json": {
+                        "multipart/form-data": {
                             "schema": {
                                 "type": "object",
                                 "properties": {
                                     "rest_id": {
                                         "type": "string",
-                                        "format": "uuid",
-                                        "example": "b1a2c3d4-e5f6-7890-1234-56789abcdef0"
+                                        "format": "uuid"
                                     },
                                     "cuisineId": {
                                         "type": "string",
-                                        "format": "uuid",
-                                        "example": "c1d2e3f4-g5h6-7890-1234-56789abcdef0"
+                                        "format": "uuid"
                                     },
                                     "categoryId": {
                                         "type": "string",
-                                        "format": "uuid",
-                                        "example": "cat1d2e3f4-g5h6-7890-1234-56789abcdeff"
+                                        "format": "uuid"
                                     },
                                     "dishname": {
-                                        "type": "string",
-                                        "example": "Paneer Butter Masala"
+                                        "type": "string"
                                     },
                                     "description": {
-                                        "type": "string",
-                                        "example": "A rich and creamy North Indian curry made with paneer cubes, butter, tomatoes, and spices."
+                                        "type": "string"
                                     },
                                     "price": {
                                         "type": "number",
-                                        "format": "float",
-                                        "example": 250.0
+                                        "format": "float"
                                     },
                                     "veg": {
-                                        "type": "boolean",
-                                        "example": true
+                                        "type": "boolean"
                                     },
                                     "contain_allergens": {
-                                        "type": "boolean",
-                                        "example": true
+                                        "type": "boolean"
                                     },
                                     "specify_allergence": {
-                                        "type": "string",
-                                        "example": "Contains dairy and cashew nuts"
+                                        "type": "string"
                                     },
                                     "customised_options": {
-                                        "type": "object",
-                                        "example": {
-                                            "spice_level": [
-                                                "Mild",
-                                                "Medium",
-                                                "Spicy"
-                                            ],
-                                            "add_ons": [
-                                                {
-                                                    "name": "Extra Paneer",
-                                                    "price": 50
-                                                },
-                                                {
-                                                    "name": "Butter Naan",
-                                                    "price": 40
-                                                }
-                                            ]
-                                        }
+                                        "type": "string",
+                                        "description": "JSON stringified object for options"
+                                    },
+                                    "dishimage": {
+                                        "type": "string",
+                                        "format": "binary",
+                                        "description": "Image file for the dish"
                                     }
                                 },
                                 "required": [
                                     "rest_id",
                                     "dishname",
-                                    "price",
-                                    "categoryId",
-                                    "cuisineId"
+                                    "price"
                                 ]
                             }
                         }
@@ -1095,7 +1069,7 @@
                 },
                 "responses": {
                     "201": {
-                        "description": "Food item created"
+                        "description": "Food item created successfully"
                     },
                     "500": {
                         "description": "Server error"
@@ -1131,6 +1105,7 @@
                                         "id": "uuid",
                                         "dishname": "Paneer Butter Masala",
                                         "price": 250,
+                                        "dishimage": "/uploads/food/1730255842381-paneer.jpg",
                                         "cuisine": {
                                             "id": "cuisine-uuid",
                                             "name": "Indian"
@@ -1153,7 +1128,7 @@
                 }
             },
             "put": {
-                "summary": "Update food item",
+                "summary": "Update food item (with optional new image upload)",
                 "tags": [
                     "Food Items"
                 ],
@@ -1171,7 +1146,7 @@
                 "requestBody": {
                     "required": true,
                     "content": {
-                        "application/json": {
+                        "multipart/form-data": {
                             "schema": {
                                 "type": "object",
                                 "properties": {
@@ -1195,7 +1170,8 @@
                                         "type": "string"
                                     },
                                     "customised_options": {
-                                        "type": "object"
+                                        "type": "string",
+                                        "description": "JSON stringified object for options"
                                     },
                                     "cuisineId": {
                                         "type": "string",
@@ -1204,6 +1180,11 @@
                                     "categoryId": {
                                         "type": "string",
                                         "format": "uuid"
+                                    },
+                                    "dishimage": {
+                                        "type": "string",
+                                        "format": "binary",
+                                        "description": "New image file (optional)"
                                     }
                                 }
                             }
@@ -1240,7 +1221,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Food item deleted"
+                        "description": "Food item deleted successfully"
                     },
                     "404": {
                         "description": "Food item not found"
@@ -2020,13 +2001,18 @@
                                         "type": "string",
                                         "example": "uuid"
                                     },
+                                    "partnerId": {
+                                        "type": "string",
+                                        "example": "uuid"
+                                    },
                                     "reason": {
                                         "type": "string",
                                         "example": "Too far from current location"
                                     }
                                 },
                                 "required": [
-                                    "deliveryId"
+                                    "deliveryId",
+                                    "partnerId"
                                 ]
                             }
                         }
@@ -2059,10 +2045,15 @@
                                     "deliveryId": {
                                         "type": "string",
                                         "example": "uuid"
+                                    },
+                                    "partnerId": {
+                                        "type": "string",
+                                        "example": "uuid"
                                     }
                                 },
                                 "required": [
-                                    "deliveryId"
+                                    "deliveryId",
+                                    "partnerId"
                                 ]
                             }
                         }
@@ -2099,6 +2090,10 @@
                                         "type": "string",
                                         "example": "uuid"
                                     },
+                                    "partnerId": {
+                                        "type": "string",
+                                        "example": "uuid"
+                                    },
                                     "otp": {
                                         "type": "string",
                                         "example": "123456"
@@ -2106,6 +2101,7 @@
                                 },
                                 "required": [
                                     "deliveryId",
+                                    "partnerId",
                                     "otp"
                                 ]
                             }
@@ -2151,6 +2147,10 @@
                                         "type": "string",
                                         "example": "uuid"
                                     },
+                                    "partnerId": {
+                                        "type": "string",
+                                        "example": "uuid"
+                                    },
                                     "deliveryPhoto": {
                                         "type": "string",
                                         "format": "binary"
@@ -2158,6 +2158,7 @@
                                 },
                                 "required": [
                                     "deliveryId",
+                                    "partnerId",
                                     "deliveryPhoto"
                                 ]
                             }
