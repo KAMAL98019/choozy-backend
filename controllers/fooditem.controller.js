@@ -1,13 +1,13 @@
 const { FoodItem, Cuisine, Category } = require('../models');
 const { Op } = require('sequelize');
 
-// 🧩 Create Food Item
+// Helper to build full URL for images
+const getImageUrl = (req, filename) => filename ? `${req.protocol}://${req.get('host')}${filename}` : null;
+
+// ------------------- Create Food Item -------------------
 exports.create = async (req, res) => {
   try {
-    // If an image was uploaded, attach full URL
-    if (req.file) {
-      req.body.dishimage = `${req.protocol}://${req.get('host')}/uploads/food/${req.file.filename}`;
-    }
+    if (req.file) req.body.dishimage = `/uploads/food/${req.file.filename}`;
 
     const item = await FoodItem.create(req.body);
 
@@ -18,14 +18,16 @@ exports.create = async (req, res) => {
       ]
     });
 
-    res.status(201).json({ success: true, data: newItem });
+    const result = { ...newItem.toJSON(), dishimage: getImageUrl(req, newItem.dishimage) };
+
+    res.status(201).json({ success: true, message: 'Food item created successfully', data: result });
   } catch (error) {
     console.error('Create FoodItem Error:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to create food item', error: error.message });
   }
 };
 
-// 🧩 Get All Food Items
+// ------------------- Get All Food Items -------------------
 exports.getAll = async (req, res) => {
   try {
     const { restaurantId, cuisineId, categoryId, search, veg } = req.query;
@@ -35,9 +37,7 @@ exports.getAll = async (req, res) => {
     if (cuisineId) condition.cuisineId = cuisineId;
     if (categoryId) condition.categoryId = categoryId;
     if (veg !== undefined) condition.veg = veg === 'true';
-    if (search) {
-      condition[Op.or] = [{ dishname: { [Op.like]: `%${search}%` } }];
-    }
+    if (search) condition[Op.or] = [{ dishname: { [Op.like]: `%${search}%` } }];
 
     const items = await FoodItem.findAll({
       where: condition,
@@ -48,14 +48,16 @@ exports.getAll = async (req, res) => {
       order: [['createdAt', 'DESC']]
     });
 
-    res.status(200).json({ success: true, data: items });
+    const results = items.map(item => ({ ...item.toJSON(), dishimage: getImageUrl(req, item.dishimage) }));
+
+    res.status(200).json({ success: true, message: 'Food items fetched successfully', data: results });
   } catch (error) {
     console.error('GetAll FoodItems Error:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to fetch food items', error: error.message });
   }
 };
 
-// 🧩 Get Food Item by ID
+// ------------------- Get Food Item by ID -------------------
 exports.getById = async (req, res) => {
   try {
     const item = await FoodItem.findByPk(req.params.id, {
@@ -67,19 +69,18 @@ exports.getById = async (req, res) => {
 
     if (!item) return res.status(404).json({ success: false, message: 'Food item not found' });
 
-    res.status(200).json({ success: true, data: item });
+    const result = { ...item.toJSON(), dishimage: getImageUrl(req, item.dishimage) };
+    res.status(200).json({ success: true, message: 'Food item fetched successfully', data: result });
   } catch (error) {
     console.error('GetById FoodItem Error:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to fetch food item', error: error.message });
   }
 };
 
-// 🧩 Update Food Item
+// ------------------- Update Food Item -------------------
 exports.update = async (req, res) => {
   try {
-    if (req.file) {
-      req.body.dishimage = `${req.protocol}://${req.get('host')}/uploads/food/${req.file.filename}`;
-    }
+    if (req.file) req.body.dishimage = `/uploads/food/${req.file.filename}`;
 
     const [updated] = await FoodItem.update(req.body, { where: { id: req.params.id } });
     if (!updated) return res.status(404).json({ success: false, message: 'Food item not found' });
@@ -91,14 +92,15 @@ exports.update = async (req, res) => {
       ]
     });
 
-    res.status(200).json({ success: true, data: updatedItem });
+    const result = { ...updatedItem.toJSON(), dishimage: getImageUrl(req, updatedItem.dishimage) };
+    res.status(200).json({ success: true, message: 'Food item updated successfully', data: result });
   } catch (error) {
     console.error('Update FoodItem Error:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to update food item', error: error.message });
   }
 };
 
-// 🧩 Delete Food Item
+// ------------------- Delete Food Item -------------------
 exports.remove = async (req, res) => {
   try {
     const deleted = await FoodItem.destroy({ where: { id: req.params.id } });
@@ -107,6 +109,6 @@ exports.remove = async (req, res) => {
     res.status(200).json({ success: true, message: 'Food item deleted successfully' });
   } catch (error) {
     console.error('Delete FoodItem Error:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to delete food item', error: error.message });
   }
 };
