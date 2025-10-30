@@ -1,8 +1,11 @@
 const { FoodItem, Cuisine, Category } = require('../models');
 const { Op } = require('sequelize');
+const path = require('path');
+const fs = require('fs');
 
 // Helper to build full URL for images
-const getImageUrl = (req, filename) => filename ? `${req.protocol}://${req.get('host')}${filename}` : null;
+const getImageUrl = (req, filename) =>
+  filename ? `${req.protocol}://${req.get('host')}${filename}` : null;
 
 // ------------------- Create Food Item -------------------
 exports.create = async (req, res) => {
@@ -14,8 +17,8 @@ exports.create = async (req, res) => {
     const newItem = await FoodItem.findByPk(item.id, {
       include: [
         { model: Cuisine, as: 'cuisine', attributes: ['id', 'name'] },
-        { model: Category, as: 'category', attributes: ['id', 'name'] }
-      ]
+        { model: Category, as: 'category', attributes: ['id', 'name'] },
+      ],
     });
 
     const result = { ...newItem.toJSON(), dishimage: getImageUrl(req, newItem.dishimage) };
@@ -43,9 +46,9 @@ exports.getAll = async (req, res) => {
       where: condition,
       include: [
         { model: Cuisine, as: 'cuisine', attributes: ['id', 'name'] },
-        { model: Category, as: 'category', attributes: ['id', 'name'] }
+        { model: Category, as: 'category', attributes: ['id', 'name'] },
       ],
-      order: [['createdAt', 'DESC']]
+      order: [['createdAt', 'DESC']],
     });
 
     const results = items.map(item => ({ ...item.toJSON(), dishimage: getImageUrl(req, item.dishimage) }));
@@ -63,8 +66,8 @@ exports.getById = async (req, res) => {
     const item = await FoodItem.findByPk(req.params.id, {
       include: [
         { model: Cuisine, as: 'cuisine', attributes: ['id', 'name'] },
-        { model: Category, as: 'category', attributes: ['id', 'name'] }
-      ]
+        { model: Category, as: 'category', attributes: ['id', 'name'] },
+      ],
     });
 
     if (!item) return res.status(404).json({ success: false, message: 'Food item not found' });
@@ -80,16 +83,25 @@ exports.getById = async (req, res) => {
 // ------------------- Update Food Item -------------------
 exports.update = async (req, res) => {
   try {
-    if (req.file) req.body.dishimage = `/uploads/food/${req.file.filename}`;
+    const item = await FoodItem.findByPk(req.params.id);
+    if (!item) return res.status(404).json({ success: false, message: 'Food item not found' });
 
-    const [updated] = await FoodItem.update(req.body, { where: { id: req.params.id } });
-    if (!updated) return res.status(404).json({ success: false, message: 'Food item not found' });
+    // If new image uploaded, delete old image
+    if (req.file) {
+      if (item.dishimage) {
+        const oldPath = path.join(__dirname, '..', item.dishimage);
+        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+      }
+      req.body.dishimage = `/uploads/food/${req.file.filename}`;
+    }
+
+    await item.update(req.body);
 
     const updatedItem = await FoodItem.findByPk(req.params.id, {
       include: [
         { model: Cuisine, as: 'cuisine', attributes: ['id', 'name'] },
-        { model: Category, as: 'category', attributes: ['id', 'name'] }
-      ]
+        { model: Category, as: 'category', attributes: ['id', 'name'] },
+      ],
     });
 
     const result = { ...updatedItem.toJSON(), dishimage: getImageUrl(req, updatedItem.dishimage) };
@@ -103,9 +115,16 @@ exports.update = async (req, res) => {
 // ------------------- Delete Food Item -------------------
 exports.remove = async (req, res) => {
   try {
-    const deleted = await FoodItem.destroy({ where: { id: req.params.id } });
-    if (!deleted) return res.status(404).json({ success: false, message: 'Food item not found' });
+    const item = await FoodItem.findByPk(req.params.id);
+    if (!item) return res.status(404).json({ success: false, message: 'Food item not found' });
 
+    // Delete image from server
+    if (item.dishimage) {
+      const imgPath = path.join(__dirname, '..', item.dishimage);
+      if (fs.existsSync(imgPath)) fs.unlinkSync(imgPath);
+    }
+
+    await item.destroy();
     res.status(200).json({ success: true, message: 'Food item deleted successfully' });
   } catch (error) {
     console.error('Delete FoodItem Error:', error);
