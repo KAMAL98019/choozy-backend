@@ -1,10 +1,12 @@
-const { FoodItem, CartItem, Cuisine, Category } = require('../models');
+const { FoodItem, Cuisine, Category } = require('../models');
 const { Op } = require('sequelize');
+
+// 🧩 Create Food Item
 exports.create = async (req, res) => {
   try {
-    // If an image was uploaded, attach it to req.body
+    // If an image was uploaded, attach full URL
     if (req.file) {
-      req.body.dishimage = `/uploads/food/${req.file.filename}`;
+      req.body.dishimage = `${req.protocol}://${req.get('host')}/uploads/food/${req.file.filename}`;
     }
 
     const item = await FoodItem.create(req.body);
@@ -18,30 +20,23 @@ exports.create = async (req, res) => {
 
     res.status(201).json({ success: true, data: newItem });
   } catch (error) {
+    console.error('Create FoodItem Error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 };
 
-
 // 🧩 Get All Food Items
 exports.getAll = async (req, res) => {
   try {
-    const { restaurantId, cuisineId, categoryId, search, veg } = req.query; // <-- added veg
+    const { restaurantId, cuisineId, categoryId, search, veg } = req.query;
     const condition = {};
 
     if (restaurantId) condition.rest_id = restaurantId;
     if (cuisineId) condition.cuisineId = cuisineId;
     if (categoryId) condition.categoryId = categoryId;
-
-    if (veg !== undefined) {
-      condition.veg = veg === 'true'; // string to boolean
-    }
-
+    if (veg !== undefined) condition.veg = veg === 'true';
     if (search) {
-      condition[Op.or] = [
-        { dishname: { [Op.like]: `%${search}%` } }
-        // you can extend search by cuisine/category name if needed
-      ];
+      condition[Op.or] = [{ dishname: { [Op.like]: `%${search}%` } }];
     }
 
     const items = await FoodItem.findAll({
@@ -55,10 +50,10 @@ exports.getAll = async (req, res) => {
 
     res.status(200).json({ success: true, data: items });
   } catch (error) {
+    console.error('GetAll FoodItems Error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 };
-
 
 // 🧩 Get Food Item by ID
 exports.getById = async (req, res) => {
@@ -70,26 +65,24 @@ exports.getById = async (req, res) => {
       ]
     });
 
-    if (!item) {
-      return res.status(404).json({ success: false, message: 'Food item not found' });
-    }
+    if (!item) return res.status(404).json({ success: false, message: 'Food item not found' });
 
     res.status(200).json({ success: true, data: item });
   } catch (error) {
+    console.error('GetById FoodItem Error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 };
 
+// 🧩 Update Food Item
 exports.update = async (req, res) => {
   try {
     if (req.file) {
-      req.body.dishimage = `/uploads/food/${req.file.filename}`;
+      req.body.dishimage = `${req.protocol}://${req.get('host')}/uploads/food/${req.file.filename}`;
     }
 
     const [updated] = await FoodItem.update(req.body, { where: { id: req.params.id } });
-    if (!updated) {
-      return res.status(404).json({ success: false, message: 'Food item not found' });
-    }
+    if (!updated) return res.status(404).json({ success: false, message: 'Food item not found' });
 
     const updatedItem = await FoodItem.findByPk(req.params.id, {
       include: [
@@ -100,6 +93,7 @@ exports.update = async (req, res) => {
 
     res.status(200).json({ success: true, data: updatedItem });
   } catch (error) {
+    console.error('Update FoodItem Error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 };
@@ -108,13 +102,11 @@ exports.update = async (req, res) => {
 exports.remove = async (req, res) => {
   try {
     const deleted = await FoodItem.destroy({ where: { id: req.params.id } });
-    if (!deleted) {
-      return res.status(404).json({ success: false, message: 'Food item not found' });
-    }
+    if (!deleted) return res.status(404).json({ success: false, message: 'Food item not found' });
 
     res.status(200).json({ success: true, message: 'Food item deleted successfully' });
   } catch (error) {
+    console.error('Delete FoodItem Error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 };
-
