@@ -1,7 +1,7 @@
 {
   "development": {
-    "username": "Root@1234",
-    "password": null,
+    "username": "root",
+    "password": "Root@1234",
     "database": "food-main",
     "host": "127.0.0.1",
     "dialect": "mysql"
