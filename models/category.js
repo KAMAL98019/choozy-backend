@@ -23,6 +23,8 @@ module.exports = (sequelize, DataTypes) => {
   }, {
     sequelize,
     modelName: 'Category',
+    tableName: 'categories', // ✅ important!
+    freezeTableName: true,   // ✅ prevents Sequelize from pluralizing table names
   });
   return Category;
 };

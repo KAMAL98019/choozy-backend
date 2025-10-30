@@ -45,20 +45,26 @@ module.exports = {
         defaultValue: 0
       },
 
-      // Dates & times (date part + optional time)
       startDate: { type: Sequelize.DATE, allowNull: true },
       endDate: { type: Sequelize.DATE, allowNull: true },
-      startTime: { type: Sequelize.STRING, allowNull: true }, // e.g. "09:00"
-      endTime: { type: Sequelize.STRING, allowNull: true },   // e.g. "23:00"
+      startTime: { type: Sequelize.STRING, allowNull: true },
+      endTime: { type: Sequelize.STRING, allowNull: true },
 
-      // Which items/categories this offer applies to (store JSON array of ids or categories)
+      // New column: categoryId
+      categoryId: {
+        type: Sequelize.UUID,
+        allowNull: true,
+        references: { model: 'categories', key: 'id' },
+        onUpdate: 'CASCADE',
+        onDelete: 'SET NULL',
+      },
+
       applicableItems: {
         type: Sequelize.JSON,
         allowNull: true
       },
 
       termsConditions: { type: Sequelize.TEXT, allowNull: true },
-
       offerImage: { type: Sequelize.STRING, allowNull: true },
 
       status: {
@@ -67,13 +73,16 @@ module.exports = {
         defaultValue: 'ACTIVE'
       },
 
+      // Commission fields
+      isCommissionAuto: { type: Sequelize.BOOLEAN, defaultValue: true },
+      adminCommission: { type: Sequelize.FLOAT, defaultValue: 0 },
+
       createdAt: { allowNull: false, type: Sequelize.DATE, defaultValue: Sequelize.fn('NOW') },
       updatedAt: { allowNull: false, type: Sequelize.DATE, defaultValue: Sequelize.fn('NOW') }
     });
   },
 
   async down(queryInterface, Sequelize) {
-    // drop enum types are automatically handled by Sequelize, but if errors appear you may need to drop manually
     await queryInterface.dropTable('offers');
   }
 };

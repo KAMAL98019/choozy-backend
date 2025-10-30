@@ -56,7 +56,13 @@ module.exports = (sequelize, DataTypes) => {
     latitude: { type: DataTypes.FLOAT, allowNull: true },
     longitude: { type: DataTypes.FLOAT, allowNull: true }
 
-  });
+  },
+  {
+    sequelize,
+    modelName: 'Partner',
+    tableName: 'partners'
+  }
+);
 
   Partner.associate = (models) => {
     Partner.hasMany(models.Order, { foreignKey: "partnerId", as: "orders" });

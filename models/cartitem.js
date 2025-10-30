@@ -32,7 +32,7 @@ module.exports = (sequelize, DataTypes) => {
   }, {
     sequelize,
     modelName: 'CartItem',
-    tableName: 'cartitems'
+    tableName: 'cartItems'
   });
 
   return CartItem;
