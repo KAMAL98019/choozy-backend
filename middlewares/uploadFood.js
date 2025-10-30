@@ -15,4 +15,5 @@ const storage = multer.diskStorage({
 });
 
 const uploadFood = multer({ storage });
+
 module.exports = uploadFood;
