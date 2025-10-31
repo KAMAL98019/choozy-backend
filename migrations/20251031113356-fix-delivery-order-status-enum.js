@@ -13,9 +13,10 @@ module.exports = {
         partnerId: { type: Sequelize.UUID, allowNull: true },
         status: {
           type: Sequelize.ENUM(
-            'PENDING','ASSIGNED','ACCEPTED','PICKED_UP','DELIVERED_PENDING_OTP','DELIVERED','REJECTED'
+            'PENDING','ASSIGNED','ACCEPTED','PICKED_UP','DELIVERED','REJECTED'
           ),
-          defaultValue: 'PENDING'
+          defaultValue: 'PENDING',
+          allowNull: false
         },
         pickupTime: { type: Sequelize.DATE },
         deliveryTime: { type: Sequelize.DATE },
@@ -35,26 +36,40 @@ module.exports = {
       });
     } else {
       // Table exists → migrate safely
+      
+      // Step 1: Handle column renames
       if (tableDesc.proofUrl && !tableDesc.deliveryPhoto) {
         await queryInterface.renameColumn('delivery_orders', 'proofUrl', 'deliveryPhoto');
       }
-      if (!tableDesc.earnings) await queryInterface.addColumn('delivery_orders', 'earnings', { type: Sequelize.FLOAT });
-      if (!tableDesc.distanceKm) await queryInterface.addColumn('delivery_orders', 'distanceKm', { type: Sequelize.FLOAT });
-      if (!tableDesc.deliveredAt) await queryInterface.addColumn('delivery_orders', 'deliveredAt', { type: Sequelize.DATE });
-      if (!tableDesc.pickedUpAt) await queryInterface.addColumn('delivery_orders', 'pickedUpAt', { type: Sequelize.DATE });
-      if (!tableDesc.acceptedAt) await queryInterface.addColumn('delivery_orders', 'acceptedAt', { type: Sequelize.DATE });
-      if (!tableDesc.rejectionReason) await queryInterface.addColumn('delivery_orders', 'rejectionReason', { type: Sequelize.STRING });
+      
+      // Step 2: Add missing columns
+      if (!tableDesc.earnings) {
+        await queryInterface.addColumn('delivery_orders', 'earnings', { type: Sequelize.FLOAT });
+      }
+      if (!tableDesc.distanceKm) {
+        await queryInterface.addColumn('delivery_orders', 'distanceKm', { type: Sequelize.FLOAT });
+      }
+      if (!tableDesc.deliveredAt) {
+        await queryInterface.addColumn('delivery_orders', 'deliveredAt', { type: Sequelize.DATE });
+      }
+      if (!tableDesc.pickedUpAt) {
+        await queryInterface.addColumn('delivery_orders', 'pickedUpAt', { type: Sequelize.DATE });
+      }
+      if (!tableDesc.acceptedAt) {
+        await queryInterface.addColumn('delivery_orders', 'acceptedAt', { type: Sequelize.DATE });
+      }
+      if (!tableDesc.rejectionReason) {
+        await queryInterface.addColumn('delivery_orders', 'rejectionReason', { type: Sequelize.STRING });
+      }
 
-      // Update ENUM safely
-      await queryInterface.sequelize.transaction(async t => {
-        await queryInterface.changeColumn('delivery_orders', 'status', {
-          type: Sequelize.ENUM(
-            'PENDING','ASSIGNED','ACCEPTED','PICKED_UP','DELIVERED_PENDING_OTP','DELIVERED','REJECTED'
-          ),
-          defaultValue: 'PENDING',
-          allowNull: false
-        }, { transaction: t });
-      });
+      // Step 3: Fix ENUM - This is the critical part
+      // MySQL requires dropping and recreating ENUMs
+      await queryInterface.sequelize.query(`
+        ALTER TABLE delivery_orders 
+        MODIFY COLUMN status 
+        ENUM('PENDING','ASSIGNED','ACCEPTED','PICKED_UP','DELIVERED','REJECTED') 
+        NOT NULL DEFAULT 'PENDING'
+      `);
     }
   },
 

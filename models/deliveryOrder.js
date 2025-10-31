@@ -23,7 +23,6 @@ module.exports = (sequelize, DataTypes) => {
         'ASSIGNED',
         'ACCEPTED',
         'PICKED_UP',
-        'DELIVERED_PENDING_OTP',
         'DELIVERED',
         'REJECTED'
       ),
