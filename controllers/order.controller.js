@@ -423,7 +423,10 @@ exports.verifyDeliveryOtp = async (req, res) => {
       return res.status(400).json({ success: false, message: 'deliveryId, partnerId, and otp are required' });
     }
 
-    const delivery = await DeliveryOrder.findByPk(deliveryId, { include: [{ model: Order, as: 'order' }], transaction: t });
+    const delivery = await DeliveryOrder.findByPk(deliveryId, {
+      include: [{ model: Order, as: 'order' }],
+      transaction: t
+    });
     if (!delivery) {
       await t.rollback();
       return res.status(404).json({ success: false, message: 'Delivery not found' });
@@ -434,25 +437,18 @@ exports.verifyDeliveryOtp = async (req, res) => {
       return res.status(403).json({ success: false, message: 'Unauthorized partner' });
     }
 
-    // Log missing restaurant but do NOT block
     if (!delivery.order?.rest_id) {
       await logMissingRestaurant(delivery.order?.id);
     }
 
-    if (delivery.order.deliveryOtp !== otp) {
+    // Coerce OTP to string to avoid mismatch
+    if (String(delivery.order.deliveryOtp) !== String(otp)) {
       await t.rollback();
       return res.status(400).json({ success: false, message: 'Invalid OTP' });
     }
 
-    await delivery.update({ 
-      status: 'DELIVERED',
-      deliveredAt: new Date()
-    }, { transaction: t });
-    
-    await delivery.order.update({ 
-      status: 'DELIVERED',
-      deliveredAt: new Date()
-    }, { transaction: t });
+    await delivery.update({ status: 'DELIVERED', deliveredAt: new Date() }, { transaction: t });
+    await delivery.order.update({ status: 'DELIVERED', deliveredAt: new Date() }, { transaction: t });
 
     await Earnings.create({
       partnerId,
@@ -471,27 +467,45 @@ exports.verifyDeliveryOtp = async (req, res) => {
   }
 };
 
+
 // ------------------- UPLOAD DELIVERY PROOF -------------------
 exports.uploadDeliveryProof = async (req, res) => {
+  const t = await sequelize.transaction();
   try {
     const { deliveryId, partnerId } = req.body;
-    if (!deliveryId || !partnerId) return res.status(400).json({ success: false, message: 'deliveryId and partnerId are required' });
-    if (!req.file) return res.status(400).json({ success: false, message: 'Proof photo is required' });
+    if (!deliveryId || !partnerId) {
+      await t.rollback();
+      return res.status(400).json({ success: false, message: 'deliveryId and partnerId are required' });
+    }
 
-    const delivery = await DeliveryOrder.findByPk(deliveryId);
-    if (!delivery) return res.status(404).json({ success: false, message: 'Delivery not found' });
+    if (!req.file) {
+      await t.rollback();
+      return res.status(400).json({ success: false, message: 'Proof photo is required' });
+    }
 
-    if (delivery.partnerId !== partnerId) return res.status(403).json({ success: false, message: 'Unauthorized partner' });
+    const delivery = await DeliveryOrder.findByPk(deliveryId, { transaction: t });
+    if (!delivery) {
+      await t.rollback();
+      return res.status(404).json({ success: false, message: 'Delivery not found' });
+    }
+
+    if (delivery.partnerId !== partnerId) {
+      await t.rollback();
+      return res.status(403).json({ success: false, message: 'Unauthorized partner' });
+    }
 
     const photoUrl = `/uploads/delivery/${req.file.filename}`;
-    await delivery.update({ proofPhoto: photoUrl });
+    await delivery.update({ deliveryPhoto: photoUrl }, { transaction: t });
 
+    await t.commit();
     res.json({ success: true, message: 'Proof photo uploaded successfully', photoUrl });
   } catch (err) {
+    if (!t.finished) await t.rollback();
     console.error('Error in uploadDeliveryProof:', err);
     res.status(500).json({ success: false, message: err.message });
   }
 };
+
 
 // ------------------- CURRENT DELIVERY -------------------
 exports.getCurrentDelivery = async (req, res) => {

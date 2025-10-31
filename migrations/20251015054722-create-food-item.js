@@ -18,15 +18,14 @@ module.exports = {
         onUpdate: 'CASCADE',
         onDelete: 'CASCADE'
       },
-      dishimage: {  // ✅ Added
-        type: DataTypes.STRING,
+      dishimage: {  
+        type: Sequelize.STRING,  // ✅ fixed
         allowNull: true
       },
       dishname: {
         type: Sequelize.STRING,
         allowNull: false
       },
-
       description: {
         type: Sequelize.TEXT,
         allowNull: true
@@ -39,7 +38,7 @@ module.exports = {
         type: Sequelize.UUID,
         allowNull: true,
         references: {
-          model: 'categories', // ✅ lowercase
+          model: 'categories',
           key: 'id'
         },
         onUpdate: 'CASCADE',
@@ -49,13 +48,12 @@ module.exports = {
         type: Sequelize.UUID,
         allowNull: true,
         references: {
-          model: 'cuisines', // ✅ lowercase
+          model: 'cuisines',
           key: 'id'
         },
         onUpdate: 'CASCADE',
         onDelete: 'SET NULL'
       },
-
       veg: {
         type: Sequelize.BOOLEAN,
         defaultValue: true
