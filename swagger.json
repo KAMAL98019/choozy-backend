@@ -251,7 +251,7 @@
                 "requestBody": {
                     "required": true,
                     "content": {
-                        "application/json": {
+                        "multipart/form-data": {
                             "schema": {
                                 "$ref": "#/components/schemas/RestaurantRegCreate"
                             }
@@ -2610,7 +2610,7 @@
                 "requestBody": {
                     "required": true,
                     "content": {
-                        "application/json": {
+                        "multipart/form-data": {
                             "schema": {
                                 "$ref": "#/components/schemas/Partner"
                             }
@@ -2618,8 +2618,11 @@
                     }
                 },
                 "responses": {
-                    "200": {
-                        "description": "Partner created successfully"
+                    "201": {
+                        "description": "Partner registered successfully"
+                    },
+                    "400": {
+                        "description": "Validation error"
                     }
                 }
             }
@@ -6334,9 +6337,14 @@
                 "requestBody": {
                     "required": true,
                     "content": {
-                        "application/json": {
+                        "multipart/form-data": {
                             "schema": {
                                 "type": "object",
+                                "required": [
+                                    "restaurantId",
+                                    "areaName",
+                                    "seatingCapacity"
+                                ],
                                 "properties": {
                                     "restaurantId": {
                                         "type": "string"
@@ -6353,15 +6361,12 @@
                                     "photos": {
                                         "type": "array",
                                         "items": {
-                                            "type": "string"
+                                            "type": "string",
+                                            "format": "binary",
+                                            "description": "Upload one or more images"
                                         }
                                     }
-                                },
-                                "required": [
-                                    "restaurantId",
-                                    "areaName",
-                                    "seatingCapacity"
-                                ]
+                                }
                             }
                         }
                     }
@@ -6392,7 +6397,7 @@
                 "requestBody": {
                     "required": true,
                     "content": {
-                        "application/json": {
+                        "multipart/form-data": {
                             "schema": {
                                 "type": "object",
                                 "properties": {
@@ -6408,7 +6413,9 @@
                                     "photos": {
                                         "type": "array",
                                         "items": {
-                                            "type": "string"
+                                            "type": "string",
+                                            "format": "binary",
+                                            "description": "Upload new or additional photos"
                                         }
                                     }
                                 }
@@ -8960,8 +8967,8 @@
             "RestaurantRegCreate": {
                 "type": "object",
                 "required": [
-                    "Rest_name",
-                    "Rest_address",
+                    "rest_name",
+                    "rest_address",
                     "fssai_certificate",
                     "gst_certificate"
                 ],
@@ -8977,7 +8984,9 @@
                         "format": "float"
                     },
                     "rest_logo": {
-                        "type": "string"
+                        "type": "string",
+                        "format": "binary",
+                        "description": "Restaurant logo image file"
                     },
                     "contact_person_name": {
                         "type": "string"
@@ -9013,10 +9022,14 @@
                         }
                     },
                     "fssai_certificate": {
-                        "type": "string"
+                        "type": "string",
+                        "format": "binary",
+                        "description": "Upload FSSAI certificate image or PDF"
                     },
                     "gst_certificate": {
-                        "type": "string"
+                        "type": "string",
+                        "format": "binary",
+                        "description": "Upload GST certificate image or PDF"
                     },
                     "bank_account_name": {
                         "type": "string"
@@ -9138,6 +9151,12 @@
             },
             "Partner": {
                 "type": "object",
+                "required": [
+                    "fullName",
+                    "mobile",
+                    "email",
+                    "password"
+                ],
                 "properties": {
                     "fullName": {
                         "type": "string"
@@ -9189,10 +9208,14 @@
                         "type": "string"
                     },
                     "rcFile": {
-                        "type": "string"
+                        "type": "string",
+                        "format": "binary",
+                        "description": "Upload RC document image/PDF"
                     },
                     "dlFile": {
-                        "type": "string"
+                        "type": "string",
+                        "format": "binary",
+                        "description": "Upload Driving License image/PDF"
                     },
                     "workType": {
                         "type": "string",
@@ -9201,14 +9224,6 @@
                             "part-time",
                             "weekend"
                         ]
-                    },
-                    "breakStart": {
-                        "type": "string",
-                        "format": "time"
-                    },
-                    "breakEnd": {
-                        "type": "string",
-                        "format": "time"
                     },
                     "bankName": {
                         "type": "string"
@@ -9220,15 +9235,11 @@
                         "type": "string"
                     },
                     "idProofFile": {
-                        "type": "string"
+                        "type": "string",
+                        "format": "binary",
+                        "description": "Upload ID Proof image/PDF"
                     }
-                },
-                "required": [
-                    "fullName",
-                    "mobile",
-                    "email",
-                    "password"
-                ]
+                }
             },
             "CartItem": {
                 "type": "object",
