@@ -157,7 +157,7 @@ const autoAssignPartner = async (orderId, transaction, excludePartnerId = null) 
 
 exports.autoAssignPartner = autoAssignPartner;
 
-// ------------------- ORDERS -------------------
+// ------------------- GET ORDERS -------------------
 exports.getOrders = async (req, res) => {
   try {
     const orders = await Order.findAll({
@@ -217,7 +217,7 @@ exports.getNewDeliveryRequests = async (req, res) => {
   }
 };
 
-// ------------------- ACCEPT / REJECT / PICKED_UP / DELIVERED -------------------
+// ------------------- ACCEPT / REJECT -------------------
 exports.acceptDelivery = async (req, res) => {
   const t = await sequelize.transaction();
   try {
@@ -229,10 +229,8 @@ exports.acceptDelivery = async (req, res) => {
 
     const delivery = await DeliveryOrder.findByPk(deliveryId, { include: [{ model: Order, as: 'order' }], transaction: t });
     if (!delivery) return res.status(404).json({ success: false, message: 'Delivery not found' });
-    if (!delivery.order?.rest_id) {
-      await logMissingRestaurant(delivery.order?.id);
-      return res.status(400).json({ success: false, message: 'restaurantId missing on order' });
-    }
+
+    if (!delivery.order?.rest_id) await logMissingRestaurant(delivery.order?.id);
 
     if (delivery.status !== 'ASSIGNED') return res.status(400).json({ success: false, message: 'Already accepted or not available' });
 
@@ -259,6 +257,8 @@ exports.rejectDelivery = async (req, res) => {
 
     if (delivery.partnerId !== partnerId) return res.status(403).json({ success: false, message: 'You cannot reject a delivery not assigned to you' });
 
+    if (!delivery.order?.rest_id) await logMissingRestaurant(delivery.order?.id);
+
     await delivery.update({ status: 'REJECTED', rejectionReason: reason || null }, { transaction: t });
 
     const reassignedDelivery = await autoAssignPartner(delivery.orderId, t, partnerId);
@@ -272,6 +272,7 @@ exports.rejectDelivery = async (req, res) => {
   }
 };
 
+// ------------------- MARK PICKED UP -------------------
 exports.markPickedUp = async (req, res) => {
   try {
     const { deliveryId, partnerId } = req.body;
@@ -279,8 +280,12 @@ exports.markPickedUp = async (req, res) => {
 
     const delivery = await DeliveryOrder.findByPk(deliveryId, { include: [{ model: Order, as: 'order' }] });
     if (!delivery) return res.status(404).json({ success: false, message: 'Delivery not found' });
+
     if (delivery.partnerId !== partnerId) return res.status(403).json({ success: false, message: 'Unauthorized partner' });
+
     if (delivery.status !== 'ACCEPTED') return res.status(400).json({ success: false, message: 'Order not in accepted state' });
+
+    if (!delivery.order?.rest_id) await logMissingRestaurant(delivery.order?.id);
 
     await delivery.update({ status: 'PICKED_UP' });
     if (delivery.order) await delivery.order.update({ status: 'OUT_FOR_DELIVERY' });
@@ -292,6 +297,7 @@ exports.markPickedUp = async (req, res) => {
   }
 };
 
+// ------------------- VERIFY DELIVERY OTP -------------------
 exports.verifyDeliveryOtp = async (req, res) => {
   const t = await sequelize.transaction();
   try {
@@ -300,7 +306,11 @@ exports.verifyDeliveryOtp = async (req, res) => {
 
     const delivery = await DeliveryOrder.findByPk(deliveryId, { include: [{ model: Order, as: 'order' }], transaction: t });
     if (!delivery) return res.status(404).json({ success: false, message: 'Delivery not found' });
+
     if (delivery.partnerId !== partnerId) return res.status(403).json({ success: false, message: 'Unauthorized partner' });
+
+    if (!delivery.order?.rest_id) await logMissingRestaurant(delivery.order?.id);
+
     if (delivery.order.deliveryOtp !== otp) return res.status(400).json({ success: false, message: 'Invalid OTP' });
 
     await delivery.update({ status: 'DELIVERED' }, { transaction: t });
@@ -332,6 +342,7 @@ exports.uploadDeliveryProof = async (req, res) => {
 
     const delivery = await DeliveryOrder.findByPk(deliveryId);
     if (!delivery) return res.status(404).json({ success: false, message: 'Delivery not found' });
+
     if (delivery.partnerId !== partnerId) return res.status(403).json({ success: false, message: 'Unauthorized partner' });
 
     const photoUrl = `/uploads/delivery/${req.file.filename}`;
@@ -344,7 +355,7 @@ exports.uploadDeliveryProof = async (req, res) => {
   }
 };
 
-// ------------------- CURRENT / HISTORY -------------------
+// ------------------- CURRENT DELIVERY -------------------
 exports.getCurrentDelivery = async (req, res) => {
   try {
     const { partnerId } = req.query;
@@ -368,6 +379,7 @@ exports.getCurrentDelivery = async (req, res) => {
   }
 };
 
+// ------------------- DELIVERY HISTORY -------------------
 exports.getDeliveryHistory = async (req, res) => {
   try {
     const { partnerId } = req.query;
