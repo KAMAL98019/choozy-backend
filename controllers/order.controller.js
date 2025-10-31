@@ -217,12 +217,13 @@ exports.getNewDeliveryRequests = async (req, res) => {
   }
 };
 
-// ------------------- ACCEPT / REJECT -------------------
+// ------------------- ACCEPT DELIVERY -------------------
 exports.acceptDelivery = async (req, res) => {
   const t = await sequelize.transaction();
   try {
     const { deliveryId, partnerId } = req.body;
-    if (!deliveryId || !partnerId) return res.status(400).json({ success: false, message: 'deliveryId and partnerId are required' });
+    if (!deliveryId || !partnerId)
+      return res.status(400).json({ success: false, message: 'deliveryId and partnerId are required' });
 
     const partnerOnline = await PartnerAttendance.findOne({ where: { partnerId, status: 'ONLINE' } });
     if (!partnerOnline) return res.status(403).json({ success: false, message: 'Partner is not online' });
@@ -230,7 +231,10 @@ exports.acceptDelivery = async (req, res) => {
     const delivery = await DeliveryOrder.findByPk(deliveryId, { include: [{ model: Order, as: 'order' }], transaction: t });
     if (!delivery) return res.status(404).json({ success: false, message: 'Delivery not found' });
 
-    if (!delivery.order?.rest_id) await logMissingRestaurant(delivery.order?.id);
+    // Log missing restaurant but do NOT block
+    if (!delivery.order?.rest_id) {
+      await logMissingRestaurant(delivery.order?.id);
+    }
 
     if (delivery.status !== 'ASSIGNED') return res.status(400).json({ success: false, message: 'Already accepted or not available' });
 
@@ -246,21 +250,28 @@ exports.acceptDelivery = async (req, res) => {
   }
 };
 
+// ------------------- REJECT DELIVERY -------------------
 exports.rejectDelivery = async (req, res) => {
   const t = await sequelize.transaction();
   try {
     const { deliveryId, partnerId, reason } = req.body;
-    if (!deliveryId || !partnerId) return res.status(400).json({ success: false, message: 'deliveryId and partnerId are required' });
+    if (!deliveryId || !partnerId)
+      return res.status(400).json({ success: false, message: 'deliveryId and partnerId are required' });
 
-    const delivery = await DeliveryOrder.findByPk(deliveryId, { transaction: t });
+    const delivery = await DeliveryOrder.findByPk(deliveryId, { include: [{ model: Order, as: 'order' }], transaction: t });
     if (!delivery) return res.status(404).json({ success: false, message: 'Delivery not found' });
 
-    if (delivery.partnerId !== partnerId) return res.status(403).json({ success: false, message: 'You cannot reject a delivery not assigned to you' });
+    if (delivery.partnerId !== partnerId)
+      return res.status(403).json({ success: false, message: 'You cannot reject a delivery not assigned to you' });
 
-    if (!delivery.order?.rest_id) await logMissingRestaurant(delivery.order?.id);
+    // Log missing restaurant but do NOT block
+    if (!delivery.order?.rest_id) {
+      await logMissingRestaurant(delivery.order?.id);
+    }
 
     await delivery.update({ status: 'REJECTED', rejectionReason: reason || null }, { transaction: t });
 
+    // Auto reassign to another partner
     const reassignedDelivery = await autoAssignPartner(delivery.orderId, t, partnerId);
 
     await t.commit();
@@ -276,16 +287,22 @@ exports.rejectDelivery = async (req, res) => {
 exports.markPickedUp = async (req, res) => {
   try {
     const { deliveryId, partnerId } = req.body;
-    if (!deliveryId || !partnerId) return res.status(400).json({ success: false, message: 'deliveryId and partnerId are required' });
+    if (!deliveryId || !partnerId)
+      return res.status(400).json({ success: false, message: 'deliveryId and partnerId are required' });
 
     const delivery = await DeliveryOrder.findByPk(deliveryId, { include: [{ model: Order, as: 'order' }] });
     if (!delivery) return res.status(404).json({ success: false, message: 'Delivery not found' });
 
-    if (delivery.partnerId !== partnerId) return res.status(403).json({ success: false, message: 'Unauthorized partner' });
+    if (delivery.partnerId !== partnerId)
+      return res.status(403).json({ success: false, message: 'Unauthorized partner' });
 
-    if (delivery.status !== 'ACCEPTED') return res.status(400).json({ success: false, message: 'Order not in accepted state' });
+    // Log missing restaurant but do NOT block
+    if (!delivery.order?.rest_id) {
+      await logMissingRestaurant(delivery.order?.id);
+    }
 
-    if (!delivery.order?.rest_id) await logMissingRestaurant(delivery.order?.id);
+    if (delivery.status !== 'ACCEPTED')
+      return res.status(400).json({ success: false, message: 'Order not in accepted state' });
 
     await delivery.update({ status: 'PICKED_UP' });
     if (delivery.order) await delivery.order.update({ status: 'OUT_FOR_DELIVERY' });
@@ -302,16 +319,22 @@ exports.verifyDeliveryOtp = async (req, res) => {
   const t = await sequelize.transaction();
   try {
     const { deliveryId, partnerId, otp } = req.body;
-    if (!deliveryId || !partnerId || !otp) return res.status(400).json({ success: false, message: 'deliveryId, partnerId, and otp are required' });
+    if (!deliveryId || !partnerId || !otp)
+      return res.status(400).json({ success: false, message: 'deliveryId, partnerId, and otp are required' });
 
     const delivery = await DeliveryOrder.findByPk(deliveryId, { include: [{ model: Order, as: 'order' }], transaction: t });
     if (!delivery) return res.status(404).json({ success: false, message: 'Delivery not found' });
 
-    if (delivery.partnerId !== partnerId) return res.status(403).json({ success: false, message: 'Unauthorized partner' });
+    if (delivery.partnerId !== partnerId)
+      return res.status(403).json({ success: false, message: 'Unauthorized partner' });
 
-    if (!delivery.order?.rest_id) await logMissingRestaurant(delivery.order?.id);
+    // Log missing restaurant but do NOT block
+    if (!delivery.order?.rest_id) {
+      await logMissingRestaurant(delivery.order?.id);
+    }
 
-    if (delivery.order.deliveryOtp !== otp) return res.status(400).json({ success: false, message: 'Invalid OTP' });
+    if (delivery.order.deliveryOtp !== otp)
+      return res.status(400).json({ success: false, message: 'Invalid OTP' });
 
     await delivery.update({ status: 'DELIVERED' }, { transaction: t });
     await delivery.order.update({ status: 'DELIVERED' }, { transaction: t });
@@ -332,6 +355,7 @@ exports.verifyDeliveryOtp = async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 };
+
 
 // ------------------- UPLOAD DELIVERY PROOF -------------------
 exports.uploadDeliveryProof = async (req, res) => {
