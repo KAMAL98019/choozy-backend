@@ -32,19 +32,17 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 exports.uploadDeliveryPhoto = upload.single('deliveryPhoto');
-
 // ------------------- AUTO-ASSIGN PARTNER -------------------
-
 
 const autoAssignPartner = async (orderId, transaction, excludePartnerId = null) => {
   try {
     console.log('🔹 Auto-assign partner start');
 
     const order = await Order.findByPk(orderId, { transaction });
-    if (!order) throw new Error('Order not found');
+    if (!order) return null;
 
     const restaurant = await RestaurantReg.findByPk(order.rest_id, { transaction });
-    if (!restaurant) throw new Error('Restaurant not found');
+    if (!restaurant) return null;
 
     // 1️⃣ Get online partners
     let onlineAttendances = await PartnerAttendance.findAll({
@@ -108,7 +106,7 @@ const autoAssignPartner = async (orderId, transaction, excludePartnerId = null) 
 
     if (!filteredPartners.length) return null;
 
-    // 6️⃣ Select partner
+    // 6️⃣ Select first partner
     const selectedPartner = filteredPartners[0];
 
     // 7️⃣ Delivery OTP
@@ -126,8 +124,6 @@ const autoAssignPartner = async (orderId, transaction, excludePartnerId = null) 
       deliveryLongitude: order.longitude || null
     }, { transaction });
 
-    console.log(`✅ Partner ${selectedPartner.fullName} assigned for order ${order.id}`);
-
     return await DeliveryOrder.findByPk(delivery.id, {
       include: [{ model: Partner, as: 'partner', attributes: ['id','fullName','mobile','status','latitude','longitude'] }],
       transaction
@@ -138,6 +134,7 @@ const autoAssignPartner = async (orderId, transaction, excludePartnerId = null) 
     return null;
   }
 };
+
 exports.autoAssignPartner = autoAssignPartner;
 
 
