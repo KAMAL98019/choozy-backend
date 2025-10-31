@@ -8,28 +8,39 @@ const bcrypt = require("bcryptjs");
 
 exports.create = async (req, res) => {
   try {
+    // ---------------- TEXT FIELDS ----------------
     const {
       rest_name,
       rest_address,
       avg_cost_two,
-      rest_logo,
       contact_person_name,
       contact_email,
       password,
       contact_number,
       operational_hours,
-      fssai_certificate,
-      gst_certificate,
       bank_account_name,
       account_number,
       ifsc_code,
       agree_to_terms
     } = req.body;
 
+    // ---------------- FILES ----------------
+    const rest_logo = req.files?.rest_logo?.[0]?.path || null;
+    const fssai_certificate = req.files?.fssai_certificate?.[0]?.path || null;
+    const gst_certificate = req.files?.gst_certificate?.[0]?.path || null;
+
     // ---------------- VALIDATION ----------------
-    if (!rest_name || !rest_address || !fssai_certificate || !contact_email || !contact_number || !password) {
+    const missingFields = [];
+    if (!rest_name) missingFields.push("rest_name");
+    if (!rest_address) missingFields.push("rest_address");
+    if (!contact_email) missingFields.push("contact_email");
+    if (!contact_number) missingFields.push("contact_number");
+    if (!password) missingFields.push("password");
+    if (!fssai_certificate) missingFields.push("fssai_certificate");
+
+    if (missingFields.length > 0) {
       return res.status(400).json({
-        error: "Missing required fields: rest_name, rest_address, fssai_certificate, contact_email, contact_number, password"
+        error: `Missing required fields: ${missingFields.join(", ")}`
       });
     }
 
@@ -43,7 +54,6 @@ exports.create = async (req, res) => {
         ]
       }
     });
-
     if (existingRestaurant) {
       return res.status(400).json({
         error: "Restaurant already registered with same email, phone, or name"
@@ -76,7 +86,7 @@ exports.create = async (req, res) => {
     // ---------------- SAVE TO DB ----------------
     const row = await RestaurantReg.create(payload);
 
-    // ✅ Add default OFFLINE status after restaurant creation
+    // ✅ Add default OFFLINE status
     await RestaurantStatus.create({
       rest_id: row.id,
       status: 'OFFLINE',
