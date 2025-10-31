@@ -1,25 +1,7 @@
 const { Partner, PartnerAttendance, Earnings } = require("../models");
-const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 const { Op } = require("sequelize");
-
-// ---------------- Multer Setup ----------------
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    try {
-      const uploadPath = path.join(__dirname, "..", "uploads", "attendance");
-      if (!fs.existsSync(uploadPath)) fs.mkdirSync(uploadPath, { recursive: true });
-      cb(null, uploadPath);
-    } catch (err) {
-      console.error("❌ Failed to create upload path:", err);
-      cb(err, null);
-    }
-  },
-  filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname)),
-});
-const upload = multer({ storage });
-exports.uploadMiddleware = upload.single("attendancePhoto");
 
 // ---------------- Helper: Set Partner Status ----------------
 async function setPartnerStatus(partnerId, status, latitude = null, longitude = null, photo = null) {

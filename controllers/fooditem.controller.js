@@ -3,9 +3,12 @@ const { Op } = require('sequelize');
 const path = require('path');
 const fs = require('fs');
 
+
+
 // Helper to build full URL
 const getImageUrl = (req, filename) =>
   filename ? `${req.protocol}://${req.get('host')}${filename}` : null;
+
 
 // ------------------- Create Food Item -------------------
 exports.create = async (req, res) => {

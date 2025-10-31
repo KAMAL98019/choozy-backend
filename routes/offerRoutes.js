@@ -3,7 +3,7 @@ const express = require('express');
 const router = express.Router();
 const restaurantOfferController = require('../controllers/restaurantOfferController');
 const customerOfferController = require('../controllers/customerOfferController');
-const upload = require("../middlewares/upload"); // multer config file
+const upload = require("../middlewares/uploadOffer"); // multer config file
 
 
 // ============ RESTAURANT ROUTES ============

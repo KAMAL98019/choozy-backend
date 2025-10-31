@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const adminOfferController = require('../../controllers/admin/offerController');
-const upload = require("../../middlewares/upload"); // multer config file
+const upload = require("../../middlewares/uploadOffer"); // multer config file
 
 // ============ ADMIN ROUTES (Approval) ============
 router.get('/admin/offers/pending', adminOfferController.getPendingOffers);

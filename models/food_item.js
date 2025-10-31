@@ -55,6 +55,10 @@ module.exports = (sequelize, DataTypes) => {
     categoryId: {   // Add this foreign key
       type: DataTypes.UUID,
       allowNull: true
+    },
+    dishimage: {  // ✅ ADD THIS FIELD
+      type: DataTypes.STRING,
+      allowNull: true
     }
   }, {
     sequelize,

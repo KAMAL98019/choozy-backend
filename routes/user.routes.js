@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const userCtrl = require("../controllers/user.controller");
-const upload = require("../middlewares/upload"); // multer config file
+const upload = require("../middlewares/uploadUser"); // multer config file
 
 // 👇 Create User — NO photo upload
 router.post("/", userCtrl.createUser);

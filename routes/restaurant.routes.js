@@ -1,7 +1,7 @@
 'use strict';
 const router = require('express').Router();
 const ctrl = require('../controllers/restaurant.controller');
-const upload = require("../middlewares/upload");
+const upload = require("../middlewares/uploadRestaurant");
 
 
 // CRUD + search
@@ -12,7 +12,11 @@ router.post('/',upload.fields([
   ]), ctrl.create);
 router.get('/', ctrl.list); // supports ?q=&cuisine=&minCost=&maxCost=&page=&pageSize=
 router.get('/:id', ctrl.getById);
-router.put('/:id', ctrl.update);
+router.put('/:id',upload.fields([
+    { name: "rest_logo", maxCount: 1 },
+    { name: "fssai_certificate", maxCount: 1 },
+    { name: "gst_certificate", maxCount: 1 }
+  ]), ctrl.update);
 router.delete('/:id', ctrl.remove);
 
 // ✅ Get all active food items for a restaurant (only if ONLINE)

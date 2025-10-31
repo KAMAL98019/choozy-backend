@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Controller = require('../controllers/restaurantBookingController');
+const uploadDiningSpace = require('../middlewares/uploadDiningSpace');
 
 // Example correct usage:
 router.get('/bookings/:restaurantId', Controller.getRestaurantBookings);
@@ -12,8 +13,8 @@ router.put('/bookings/:id/complete', Controller.completeBooking);
 
 // Dining spaces
 router.get('/dining-spaces/:restaurantId', Controller.getDiningSpaces);
-router.post('/dining-spaces', Controller.createDiningSpace);
-router.put('/dining-spaces/:id', Controller.updateDiningSpace);
+router.post('/dining-spaces',uploadDiningSpace, Controller.createDiningSpace);
+router.put('/dining-spaces/:id',uploadDiningSpace, Controller.updateDiningSpace);
 router.delete('/dining-spaces/:id', Controller.deleteDiningSpace);
 
 // Events

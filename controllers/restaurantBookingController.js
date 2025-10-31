@@ -253,21 +253,26 @@ exports.getDiningSpaces = async (req, res) => {
 };
 
 
-// Create, Update, Delete DiningSpace
+// ---------------- CREATE DINING SPACE ----------------
 exports.createDiningSpace = async (req, res) => {
   try {
-    const { restaurantId, areaName, seatingCapacity, description, photos } = req.body;
-    if (!restaurantId || !areaName || !seatingCapacity) return res.status(400).json({ success: false, error: 'restaurantId, areaName, seatingCapacity required' });
+    const { restaurantId, areaName, seatingCapacity, description } = req.body;
+
+    if (!restaurantId || !areaName || !seatingCapacity)
+      return res.status(400).json({ success: false, error: 'restaurantId, areaName, seatingCapacity required' });
 
     const restaurant = await RestaurantReg.findOne({ where: { id: restaurantId, status: 'active' } });
     if (!restaurant) return res.status(404).json({ success: false, error: 'Restaurant not found or inactive' });
+
+    // Handle uploaded photos
+    const photos = req.files ? req.files.map(f => `/uploads/diningSpacesPhotos/${f.filename}`) : [];
 
     const space = await DiningSpace.create({
       rest_id: restaurantId,
       areaName,
       seatingCapacity,
       description,
-      photos: Array.isArray(photos) ? photos : []
+      photos
     });
 
     return res.status(201).json({ success: true, message: 'Dining space created', data: space });
@@ -277,19 +282,24 @@ exports.createDiningSpace = async (req, res) => {
   }
 };
 
+// ---------------- UPDATE DINING SPACE ----------------
 exports.updateDiningSpace = async (req, res) => {
   try {
     const { id } = req.params;
-    const { areaName, seatingCapacity, description, photos } = req.body;
+    const { areaName, seatingCapacity, description } = req.body;
 
     const space = await DiningSpace.findOne({ where: { id, isActive: true } });
     if (!space) return res.status(404).json({ success: false, error: 'Dining space not found' });
+
+    // Handle uploaded photos
+    const newPhotos = req.files ? req.files.map(f => `/uploads/diningSpacesPhotos/${f.filename}`) : [];
+    const photos = newPhotos.length ? newPhotos : space.photos;
 
     await space.update({
       areaName: areaName || space.areaName,
       seatingCapacity: seatingCapacity || space.seatingCapacity,
       description: description !== undefined ? description : space.description,
-      photos: photos || space.photos
+      photos
     });
 
     return res.status(200).json({ success: true, message: 'Dining space updated', data: space });
