@@ -1939,7 +1939,7 @@
                 }
             }
         },
-        "/api/delivery/accept": {
+        "/api/delivery/{deliveryId}/accept": {
             "put": {
                 "tags": [
                     "DeliveryOrder Flow"
@@ -1983,7 +1983,7 @@
                 }
             }
         },
-        "/api/delivery/reject": {
+        "/api/delivery/{deliveryId}/reject": {
             "put": {
                 "tags": [
                     "DeliveryOrder Flow"
@@ -2028,7 +2028,7 @@
                 }
             }
         },
-        "/api/delivery/pickedup": {
+        "/api/delivery/{deliveryId}/pickedup": {
             "put": {
                 "tags": [
                     "DeliveryOrder Flow"
@@ -2072,7 +2072,7 @@
                 }
             }
         },
-        "/api/delivery/verify-otp": {
+        "/api/delivery/{deliveryId}/verify-otp": {
             "post": {
                 "tags": [
                     "DeliveryOrder Flow"
@@ -2129,7 +2129,7 @@
                 }
             }
         },
-        "/api/delivery/photo": {
+        "/api/delivery/{deliveryId}/photo": {
             "post": {
                 "tags": [
                     "DeliveryOrder Flow"
