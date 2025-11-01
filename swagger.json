@@ -7435,7 +7435,7 @@
                 "tags": [
                     "Restaurant Status"
                 ],
-                "summary": "Create a new restaurant status (ONLINE/OFFLINE)",
+                "summary": "Create or update restaurant status (ONLINE/OFFLINE)",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -7454,10 +7454,6 @@
                                             "OFFLINE"
                                         ],
                                         "example": "ONLINE"
-                                    },
-                                    "reason": {
-                                        "type": "string",
-                                        "example": "Kitchen closed for maintenance"
                                     }
                                 },
                                 "required": [
@@ -7469,65 +7465,17 @@
                     }
                 },
                 "responses": {
-                    "201": {
-                        "description": "Status created successfully"
+                    "200": {
+                        "description": "Restaurant status saved successfully"
                     },
                     "400": {
-                        "description": "Missing required fields"
+                        "description": "Missing required fields or invalid status"
                     },
                     "404": {
                         "description": "Restaurant not found"
-                    }
-                }
-            }
-        },
-        "/api/restaurant-status/{id}": {
-            "put": {
-                "tags": [
-                    "Restaurant Status"
-                ],
-                "summary": "Update existing restaurant status",
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        },
-                        "description": "RestaurantStatus record ID"
-                    }
-                ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "status": {
-                                        "type": "string",
-                                        "enum": [
-                                            "ONLINE",
-                                            "OFFLINE"
-                                        ],
-                                        "example": "OFFLINE"
-                                    },
-                                    "reason": {
-                                        "type": "string",
-                                        "example": "Maintenance break"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Status updated successfully"
                     },
-                    "404": {
-                        "description": "Status record not found"
+                    "500": {
+                        "description": "Internal server error"
                     }
                 }
             }
