@@ -1692,7 +1692,23 @@
                                                 },
                                                 "paymentStatus": {
                                                     "type": "string",
-                                                    "example": "UNPAID"
+                                                    "example": "PAID"
+                                                },
+                                                "customerName": {
+                                                    "type": "string",
+                                                    "example": "John Doe"
+                                                },
+                                                "customerPhone": {
+                                                    "type": "string",
+                                                    "example": "+91 9123456789"
+                                                },
+                                                "latitude": {
+                                                    "type": "number",
+                                                    "example": 12.9716
+                                                },
+                                                "longitude": {
+                                                    "type": "number",
+                                                    "example": 77.5946
                                                 }
                                             }
                                         }
@@ -1813,6 +1829,27 @@
                                                         },
                                                         "contact_number": {
                                                             "type": "string"
+                                                        }
+                                                    }
+                                                },
+                                                "customer": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "name": {
+                                                            "type": "string",
+                                                            "example": "John Doe"
+                                                        },
+                                                        "phone": {
+                                                            "type": "string",
+                                                            "example": "+91 9123456789"
+                                                        },
+                                                        "latitude": {
+                                                            "type": "number",
+                                                            "example": 12.9716
+                                                        },
+                                                        "longitude": {
+                                                            "type": "number",
+                                                            "example": 77.5946
                                                         }
                                                     }
                                                 },
