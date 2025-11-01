@@ -53,7 +53,11 @@ const autoAssignPartner = async (orderId, transaction, excludePartnerId = null) 
   try {
     console.log('🔹 Auto-assign partner start');
 
-    const order = await Order.findByPk(orderId, { transaction });
+    // 1️⃣ Fetch order with user
+    const order = await Order.findByPk(orderId, {
+      include: [{ model: User, as: 'user' }],
+      transaction
+    });
     if (!order) return null;
 
     if (!order.rest_id) {
@@ -64,7 +68,7 @@ const autoAssignPartner = async (orderId, transaction, excludePartnerId = null) 
     const restaurant = await RestaurantReg.findByPk(order.rest_id, { transaction });
     if (!restaurant) return null;
 
-    // 1️⃣ Get online partners
+    // 2️⃣ Get online partners
     let onlineAttendances = await PartnerAttendance.findAll({
       where: { status: 'ONLINE' },
       attributes: ['partnerId'],
@@ -76,7 +80,7 @@ const autoAssignPartner = async (orderId, transaction, excludePartnerId = null) 
     let onlinePartnerIds = [...new Set(onlineAttendances.map(a => a.partnerId))];
     if (excludePartnerId) onlinePartnerIds = onlinePartnerIds.filter(id => id !== excludePartnerId);
 
-    // 2️⃣ Exclude busy partners
+    // 3️⃣ Exclude busy partners
     const busyPartners = await DeliveryOrder.findAll({
       where: {
         partnerId: onlinePartnerIds,
@@ -89,14 +93,14 @@ const autoAssignPartner = async (orderId, transaction, excludePartnerId = null) 
     let availablePartnerIds = onlinePartnerIds.filter(id => !busyPartnerIds.includes(id));
     if (!availablePartnerIds.length) return null;
 
-    // 3️⃣ Active partners
+    // 4️⃣ Active partners
     let activePartners = await Partner.findAll({
       where: { id: { [Op.in]: availablePartnerIds }, status: 'active' },
       transaction
     });
     if (!activePartners.length) return null;
 
-    // 4️⃣ Radius filter
+    // 5️⃣ Radius filter
     let filteredPartners = [...activePartners];
     if (restaurant.deliveryType === 'RADIUS' && restaurant.deliveryRadius && restaurant.restaurantLatitude && restaurant.restaurantLongitude) {
       filteredPartners = filteredPartners.filter(partner => {
@@ -109,7 +113,7 @@ const autoAssignPartner = async (orderId, transaction, excludePartnerId = null) 
       });
     }
 
-    // 5️⃣ Zone filter
+    // 6️⃣ Zone filter
     if (restaurant.deliveryType === 'ZONE' && restaurant.deliveryZones) {
       let zones = restaurant.deliveryZones;
       if (typeof zones === 'string') {
@@ -126,14 +130,17 @@ const autoAssignPartner = async (orderId, transaction, excludePartnerId = null) 
 
     if (!filteredPartners.length) return null;
 
-    // 6️⃣ Select first partner
+    // 7️⃣ Select first partner
     const selectedPartner = filteredPartners[0];
 
-    // 7️⃣ Delivery OTP
+    // 8️⃣ Generate OTP for user and save in user table
     const deliveryOtp = Math.floor(100000 + Math.random() * 900000).toString();
-    await order.update({ deliveryOtp }, { transaction });
+    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes expiry
+    if (order.user) {
+      await order.user.update({ otp: deliveryOtp, otpExpiry, otpVerified: false }, { transaction });
+    }
 
-    // 8️⃣ Create delivery order
+    // 9️⃣ Create delivery order
     const delivery = await DeliveryOrder.create({
       orderId: order.id,
       partnerId: selectedPartner.id,
@@ -474,53 +481,64 @@ exports.verifyDeliveryOtp = async (req, res) => {
   const t = await sequelize.transaction();
   try {
     const { deliveryId, partnerId, otp } = req.body;
+
     if (!deliveryId || !partnerId || !otp) {
       await t.rollback();
       return res.status(400).json({ success: false, message: 'deliveryId, partnerId, and otp are required' });
     }
 
+    // 1️⃣ Fetch delivery with order and user
     const delivery = await DeliveryOrder.findByPk(deliveryId, {
-      include: [{ model: Order, as: 'order' }],
+      include: [{ model: Order, as: 'order', include: [{ model: User, as: 'user' }] }],
       transaction: t
     });
+
     if (!delivery) {
       await t.rollback();
       return res.status(404).json({ success: false, message: 'Delivery not found' });
     }
 
+    // 2️⃣ Check if assigned partner is correct
     if (delivery.partnerId !== partnerId) {
       await t.rollback();
       return res.status(403).json({ success: false, message: 'Unauthorized partner' });
     }
 
+    // 3️⃣ Ensure delivery is picked up before verifying OTP
     if (delivery.status !== 'PICKED_UP') {
       await t.rollback();
-      return res.status(400).json({ 
-        success: false, 
-        message: `Order must be PICKED_UP before delivery. Current status: ${delivery.status}` 
+      return res.status(400).json({
+        success: false,
+        message: `Order must be PICKED_UP before delivery. Current status: ${delivery.status}`
       });
     }
 
-    if (!delivery.order?.rest_id) {
-      await logMissingRestaurant(delivery.order?.id);
+    // 4️⃣ Check user OTP
+    const user = delivery.order.user;
+    if (!user) {
+      await t.rollback();
+      return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    // Coerce OTP to string to avoid mismatch
-    if (String(delivery.order.deliveryOtp).trim() !== String(otp).trim()) {
+    if (!user.otp || String(user.otp).trim() !== String(otp).trim()) {
       await t.rollback();
       return res.status(400).json({ success: false, message: 'Invalid OTP' });
     }
 
-    await delivery.update({ 
-      status: 'DELIVERED', 
-      deliveredAt: new Date() 
-    }, { transaction: t });
-    
-    await delivery.order.update({ 
-      status: 'DELIVERED', 
-      deliveredAt: new Date() 
-    }, { transaction: t });
+    // 5️⃣ Check OTP expiry
+    if (user.otpExpiry && new Date() > user.otpExpiry) {
+      await t.rollback();
+      return res.status(400).json({ success: false, message: 'OTP expired' });
+    }
 
+    // 6️⃣ Mark OTP verified and clear it
+    await user.update({ otpVerified: true, otp: null, otpExpiry: null }, { transaction: t });
+
+    // 7️⃣ Update delivery & order status
+    await delivery.update({ status: 'DELIVERED', deliveredAt: new Date() }, { transaction: t });
+    await delivery.order.update({ status: 'DELIVERED', deliveredAt: new Date() }, { transaction: t });
+
+    // 8️⃣ Record partner earnings
     await Earnings.create({
       partnerId,
       orderId: delivery.orderId,
@@ -530,19 +548,21 @@ exports.verifyDeliveryOtp = async (req, res) => {
     }, { transaction: t });
 
     await t.commit();
-    
+
+    // 9️⃣ Fetch updated delivery for response
     const updatedDelivery = await DeliveryOrder.findByPk(deliveryId, {
       include: [
-        { model: Order, as: 'order' },
+        { model: Order, as: 'order', include: [{ model: User, as: 'user', attributes: ['id','name','mobile'] }] },
         { model: Partner, as: 'partner', attributes: ['id','fullName','mobile'] }
       ]
     });
-    
-    res.json({ 
-      success: true, 
-      message: 'Order delivered successfully', 
-      data: updatedDelivery 
+
+    res.json({
+      success: true,
+      message: 'Order delivered successfully',
+      data: updatedDelivery
     });
+
   } catch (err) {
     if (!t.finished) await t.rollback();
     console.error('Error in verifyDeliveryOtp:', err);
