@@ -46,9 +46,9 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         allowNull: true
       },
-      address: { 
-        type: DataTypes.STRING, 
-        allowNull: false 
+      address: {
+        type: DataTypes.STRING,
+        allowNull: false
       },
       latitude: {
         type: DataTypes.FLOAT,
@@ -58,9 +58,9 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.FLOAT,
         allowNull: true
       },
-      paymentMethod: { 
-        type: DataTypes.ENUM('CASH', 'CARD', 'UPI'), 
-        allowNull: false 
+      paymentMethod: {
+        type: DataTypes.ENUM('CASH', 'CARD', 'UPI'),
+        allowNull: false
       },
       paymentStatus: {
         type: DataTypes.ENUM('PENDING', 'PAID', 'FAILED'),
@@ -76,6 +76,8 @@ module.exports = (sequelize, DataTypes) => {
           'CONFIRMED',
           'PREPARING',
           'READY',
+          'ASSIGNED',
+          'ACCEPTED',
           'OUT_FOR_DELIVERY',
           'DELIVERED',
           'CANCELLED'
@@ -119,8 +121,8 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: true
       }
     },
-    { 
-      sequelize, 
+    {
+      sequelize,
       modelName: 'Order',
       tableName: 'orders',
       timestamps: true
