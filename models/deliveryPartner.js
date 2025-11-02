@@ -10,6 +10,13 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
     },
 
+    // 🆕 Human-readable Partner Code
+    partnerCode: {
+      type: DataTypes.STRING(20),
+      allowNull: false,
+      unique: true,
+    },
+
     // ---------------- Personal ----------------
     fullName: { type: DataTypes.STRING, allowNull: false },
     mobile: { type: DataTypes.STRING, allowNull: false },
@@ -61,18 +68,29 @@ module.exports = (sequelize, DataTypes) => {
     sequelize,
     modelName: 'Partner',
     tableName: 'partners',
-     
-  }
-);
+  });
 
   Partner.associate = (models) => {
     Partner.hasMany(models.Order, { foreignKey: "partnerId", as: "orders" });
     Partner.hasMany(models.DeliveryOrder, { foreignKey: "partnerId", as: "deliveries" });
   };
 
-  // UUID before create
-  Partner.beforeCreate((instance) => {
+  // 🆕 UUID + Sequential DP code
+  Partner.beforeCreate(async (instance) => {
     if (!instance.id) instance.id = uuidv4();
+
+    const lastPartner = await Partner.findOne({
+      order: [['createdAt', 'DESC']],
+      attributes: ['partnerCode'],
+    });
+
+    let nextNumber = 1;
+    if (lastPartner && lastPartner.partnerCode) {
+      const match = lastPartner.partnerCode.match(/\d+$/);
+      if (match) nextNumber = parseInt(match[0]) + 1;
+    }
+
+    instance.partnerCode = `DP${String(nextNumber).padStart(4, '0')}`;
   });
 
   return Partner;

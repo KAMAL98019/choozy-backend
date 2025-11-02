@@ -15,8 +15,22 @@ exports.register = async (req, res) => {
     const dlFile = req.files?.dlFile ? `${req.protocol}://${req.get("host")}/uploads/${req.files.dlFile[0].filename}` : null;
     const idProofFile = req.files?.idProofFile ? `${req.protocol}://${req.get("host")}/uploads/${req.files.idProofFile[0].filename}` : null;
 
+    // ---------------- GENERATE PARTNERCODE ----------------
+    const lastPartner = await Partner.findOne({
+      order: [['createdAt', 'DESC']],
+      attributes: ['partnerCode'],
+    });
+
+    let nextNumber = 1;
+    if (lastPartner && lastPartner.partnerCode) {
+      const match = lastPartner.partnerCode.match(/\d+$/);
+      if (match) nextNumber = parseInt(match[0]) + 1;
+    }
+    const partnerCode = `DP${String(nextNumber).padStart(4, '0')}`;
+
     const partner = await Partner.create({
       ...req.body,
+      partnerCode, // ✅ guaranteed
       password: hash,
       rcFile,
       dlFile,

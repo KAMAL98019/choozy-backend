@@ -9,6 +9,12 @@ module.exports = {
         primaryKey: true,
         allowNull: false
       },
+      partnerCode: {
+        type: Sequelize.STRING(20),
+        allowNull: false,
+        unique: true,
+      },
+
 
       // ---------------- Personal Details ----------------
       fullName: { type: Sequelize.STRING, allowNull: false },

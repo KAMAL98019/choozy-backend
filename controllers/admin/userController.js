@@ -1,22 +1,18 @@
 const { User, Address, Order, ReviewDeliveryToCustomer, Partner } = require('../../models');
 const { Op } = require('sequelize');
 
-/**
- * Get all customers with pagination, search, sort, and status filter
- */
+const BASE_URL = process.env.BASE_URL || 'http://localhost:5000';
+
+// ------------------- Get All Customers -------------------
 exports.getAllCustomers = async (req, res) => {
   try {
-    const { page = 1, limit = 10, search, status, sortBy } = req.query;
+    const { page = 1, limit = 10, search, status, sortBy, startDate, endDate } = req.query;
     const offset = (page - 1) * limit;
 
     const whereClause = {};
 
-    // ✅ Filter by status
-    if (status && status !== "All") {
-      whereClause.status = status;
-    }
+    if (status && status !== "All") whereClause.status = status;
 
-    // ✅ Search by name, email, mobile, or customerId
     if (search) {
       whereClause[Op.or] = [
         { name: { [Op.like]: `%${search}%` } },
@@ -26,53 +22,37 @@ exports.getAllCustomers = async (req, res) => {
       ];
     }
 
-    // ✅ Handle dynamic sorting (from frontend)
-    let order = [["createdAt", "DESC"]]; // default
+    if (startDate && endDate) {
+      whereClause.createdAt = { [Op.between]: [new Date(`${startDate}T00:00:00`), new Date(`${endDate}T23:59:59`)] };
+    } else if (startDate) {
+      whereClause.createdAt = { [Op.gte]: new Date(`${startDate}T00:00:00`) };
+    } else if (endDate) {
+      whereClause.createdAt = { [Op.lte]: new Date(`${endDate}T23:59:59`) };
+    }
 
+    // Sorting
+    let order = [["createdAt", "DESC"]];
     if (sortBy) {
       const [field, direction] = sortBy.split("_");
-      const validFields = ["name", "createdAt", "customerId"]; // ✅ allowed fields
+      const validFields = ["name", "createdAt", "customerId"];
       const validDirections = ["ASC", "DESC"];
-
       if (validFields.includes(field) && validDirections.includes(direction.toUpperCase())) {
         order = [[field, direction.toUpperCase()]];
       }
     }
 
-    // ✅ Query users
     const { count, rows: customers } = await User.findAndCountAll({
       where: whereClause,
-      attributes: [
-        "id",
-        "customerId",
-        "name",
-        "email",
-        "mobile",
-        "status",
-        "createdAt",
-      ],
-      include: [
-        {
-          model: Order,
-          as: "orders",
-          attributes: ["id", "totalAmount", "status", "createdAt"],
-          separate: true,
-          limit: 1,
-          order: [["createdAt", "DESC"]],
-        },
-      ],
-      order, // ✅ dynamic sorting applied here
+      attributes: ["id", "customerId", "name", "email", "mobile", "status", "createdAt", "profilePhoto"],
+      order,
       limit: parseInt(limit),
       offset: parseInt(offset),
     });
 
-    // ✅ Compute order stats
     const customersWithStats = await Promise.all(
       customers.map(async (customer) => {
         const totalOrders = await Order.count({ where: { userId: customer.id } });
-        const totalSpent =
-          (await Order.sum("totalAmount", { where: { userId: customer.id } })) || 0;
-        const lastOrder = customer.orders[0];
+        const totalSpent = (await Order.sum("totalAmount", { where: { userId: customer.id } })) || 0;
 
         return {
           id: customer.id,
@@ -82,9 +62,13 @@ exports.getAllCustomers = async (req, res) => {
           mobile: customer.mobile,
           status: customer.status,
           createdAt: customer.createdAt,
+          profilePhoto: customer.profilePhoto
+            ? customer.profilePhoto.startsWith('http')
+              ? customer.profilePhoto
+              : `${BASE_URL}${customer.profilePhoto}`
+            : null,
           totalOrders,
           totalSpent,
-          lastOrderDate: lastOrder ? lastOrder.createdAt : null,
         };
       })
     );
@@ -103,106 +87,69 @@ exports.getAllCustomers = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Error fetching customers:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch customers",
-      error: error.message,
-    });
+    console.error("❌ Error fetching customers:", error);
+    res.status(500).json({ success: false, message: "Failed to fetch customers", error: error.message });
   }
 };
 
-
-
-/**
- * Get single customer details with all information
- */
+// ------------------- Get Customer By ID -------------------
 exports.getCustomerById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Get customer basic info
     const customer = await User.findByPk(id, {
-      attributes: [
-        'id',
-        'customerId',
-        'name',
-        'email',
-        'mobile',
-        'birthday',
-        'anniversary',
-        'status',
-        'createdAt',
-      ],
+      attributes: ['id', 'customerId', 'name', 'email', 'mobile', 'birthday', 'anniversary', 'status', 'createdAt', 'profilePhoto'],
     });
 
-    if (!customer) {
-      return res.status(404).json({
-        success: false,
-        message: 'Customer not found',
-      });
-    }
+    if (!customer) return res.status(404).json({ success: false, message: 'Customer not found' });
 
-    // ✅ Generate a custom Customer ID (e.g. CUS1001)
-    const customerId = `CUS${String(customer.id).padStart(4, '0')}`;
-
-    // 🧾 Get order summary
     const totalOrders = await Order.count({ where: { userId: id } });
-    const totalSpent =
-      (await Order.sum('totalAmount', { where: { userId: id } })) || 0;
+    const totalSpent = (await Order.sum('totalAmount', { where: { userId: id } })) || 0;
+    const lastOrder = await Order.findOne({ where: { userId: id }, order: [['createdAt', 'DESC']], attributes: ['createdAt'] });
 
-    const lastOrder = await Order.findOne({
-      where: { userId: id },
-      order: [['createdAt', 'DESC']],
-      attributes: ['createdAt'],
-    });
-
-    // 🕒 Get recent orders (using orderNumber instead of id)
     const recentOrders = await Order.findAll({
       where: { userId: id },
-      attributes: ['id','orderNumber', 'totalAmount', 'status', 'createdAt'],
+      attributes: ['id', 'orderNumber', 'totalAmount', 'status', 'createdAt', 'paymentMethod'],
       order: [['createdAt', 'DESC']],
       limit: 5,
     });
 
-    // 📍 Get saved addresses
     const addresses = await Address.findAll({
       where: { userId: id },
-      attributes: ['id','street', 'city', 'state', 'pincode', 'isDefault'],
-      order: [
-        ['isDefault', 'DESC'],
-        ['createdAt', 'DESC'],
-      ],
+      attributes: ['id', 'street', 'city', 'state', 'pincode', 'isDefault'],
+      order: [['isDefault', 'DESC'], ['createdAt', 'DESC']],
     });
 
-    // ⭐ Get reviews & feedback
+    const paymentMethodsUsed = await Order.findAll({
+      where: { userId: id },
+      attributes: ['paymentMethod'],
+      group: ['paymentMethod'],
+      raw: true,
+    });
+
+    const formattedPaymentMethods = paymentMethodsUsed.map(pm => {
+      if (pm.paymentMethod === 'CARD') return 'Credit Card ending in **** 1234';
+      if (pm.paymentMethod === 'UPI') return 'UPI ID: user@upi';
+      return 'Cash on Delivery';
+    });
+
     const reviews = await ReviewDeliveryToCustomer.findAll({
       where: { userId: id },
       attributes: ['id', 'rating', 'comment', 'createdAt'],
-      include: [
-        {
-          model: Partner,
-          attributes: ['fullName'],
-        },
-      ],
+      include: [{ model: Partner, attributes: ['fullName'] }],
       order: [['createdAt', 'DESC']],
       limit: 5,
     });
 
-    // ⭐ Calculate average rating
-    const avgRating =
-      reviews.length > 0
-        ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
-        : 0;
+    const avgRating = reviews.length > 0 ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1) : 0;
 
-    // ✅ Send formatted response
     res.status(200).json({
       success: true,
       message: 'Customer details fetched successfully',
       data: {
-        // Personal Information
         personalInfo: {
-          id:customer.customerId, // ✅ Added custom customer ID
+          id: customer.id,
+          customerId: customer.customerId,
           name: customer.name,
           email: customer.email,
           mobile: customer.mobile,
@@ -210,37 +157,34 @@ exports.getCustomerById = async (req, res) => {
           anniversary: customer.anniversary,
           status: customer.status,
           memberSince: customer.createdAt,
+          profilePhoto: customer.profilePhoto
+            ? customer.profilePhoto.startsWith('http')
+              ? customer.profilePhoto
+              : `${BASE_URL}${customer.profilePhoto}`
+            : null,
         },
-
-        // Account Activity
         accountActivity: {
-          orderSummary: {
-            totalOrders,
-            totalSpent,
-            lastOrderDate: lastOrder ? lastOrder.createdAt : null,
-          },
-          recentOrders: recentOrders.map((order) => ({
-            orderId: order.orderNumber, // ✅ Changed from id → orderNumber
+          orderSummary: { totalOrders, totalSpent, lastOrderDate: lastOrder ? lastOrder.createdAt : null },
+          recentOrders: recentOrders.map(order => ({
+            orderId: order.orderNumber,
             amount: order.totalAmount,
             status: order.status,
             date: order.createdAt,
+            paymentMethod: order.paymentMethod,
           })),
         },
-
-        // Reviews & Feedback
+        paymentMethods: formattedPaymentMethods,
         reviewsAndFeedback: {
           averageRating: parseFloat(avgRating),
           totalReviews: reviews.length,
-          recentReviews: reviews.map((review) => ({
+          recentReviews: reviews.map(review => ({
             rating: review.rating,
             comment: review.comment,
             restaurantName: review.Partner?.fullName || null,
             date: review.createdAt,
           })),
         },
-
-        // Saved Addresses
-        savedAddresses: addresses.map((addr) => ({
+        savedAddresses: addresses.map(addr => ({
           id: addr.id,
           type: addr.isDefault ? 'Home (Default)' : 'Other',
           fullAddress: `${addr.street}, ${addr.city}, ${addr.state} - ${addr.pincode}`,
@@ -250,11 +194,7 @@ exports.getCustomerById = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error fetching customer details:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch customer details',
-      error: error.message,
-    });
+    res.status(500).json({ success: false, message: 'Failed to fetch customer details', error: error.message });
   }
 };
 
@@ -268,7 +208,6 @@ exports.getCustomerStats = async (req, res) => {
     const activeCustomers = await User.count({ where: { status: 'active' } });
     const blockedCustomers = await User.count({ where: { status: 'blocked' } });
     
-    // New customers this month
     const startOfMonth = new Date();
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
@@ -305,7 +244,7 @@ exports.getCustomerStats = async (req, res) => {
 exports.updateCustomerStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status } = req.body; // 'active' or 'blocked'
+    const { status } = req.body;
 
     if (!['active', 'blocked'].includes(status)) {
       return res.status(400).json({

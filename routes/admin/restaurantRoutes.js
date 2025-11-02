@@ -1,7 +1,7 @@
+// routes/admin/restaurantRoutes.js
 const express = require('express');
 const router = express.Router();
 const restaurantController = require('../../controllers/admin/restaurantController');
-// const { authenticate, isAdmin } = require('../../middleware/auth');
 
 // Get all restaurants with filters and pagination
 router.get('/restaurants', restaurantController.getAllRestaurants);
@@ -15,10 +15,7 @@ router.get('/restaurants/cuisines', restaurantController.getCuisineTypes);
 // Get single restaurant details
 router.get('/restaurants/:id', restaurantController.getRestaurantById);
 
-// Update restaurant status (Approve/Reject/Block/Unblock)
+// Update restaurant status (Approve/Reject/Block/Unblock/Inactive)
 router.put('/restaurants/:id/status', restaurantController.updateRestaurantStatus);
-
-
-
 
 module.exports = router;

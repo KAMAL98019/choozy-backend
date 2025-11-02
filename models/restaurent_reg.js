@@ -18,6 +18,14 @@ module.exports = (sequelize, DataTypes) => {
       primaryKey: true,
       allowNull: false
     },
+
+    // 🆕 Human-readable restaurant code
+    restaurant_code: {
+      type: DataTypes.STRING(20),
+      allowNull: false,
+      unique: true
+    },
+
     rest_name: { type: DataTypes.STRING(255), allowNull: false },
     rest_address: { type: DataTypes.TEXT, allowNull: false },
     avg_cost_two: { type: DataTypes.DECIMAL(10, 2), allowNull: true },
@@ -35,16 +43,15 @@ module.exports = (sequelize, DataTypes) => {
     agree_to_terms: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
     status: { type: DataTypes.STRING, allowNull: false, defaultValue: 'active' },
 
-    // 🔹 Delivery settings
+    // Delivery settings
     deliveryType: { type: DataTypes.ENUM('RADIUS','ZONE'), allowNull: false, defaultValue: 'RADIUS' },
-    deliveryRadius: { type: DataTypes.FLOAT, allowNull: true }, // km
-    deliveryZones: { type: DataTypes.JSON, allowNull: true },   // polygon points [{latitude, longitude}]
+    deliveryRadius: { type: DataTypes.FLOAT, allowNull: true },
+    deliveryZones: { type: DataTypes.JSON, allowNull: true },
     restaurantLatitude: { type: DataTypes.FLOAT, allowNull: true },
     restaurantLongitude: { type: DataTypes.FLOAT, allowNull: true },
     minOrderAmount: { type: DataTypes.DECIMAL(10,2), allowNull: false, defaultValue: 500 },
     baseDeliveryFee: { type: DataTypes.DECIMAL(10,2), allowNull: false, defaultValue: 50 },
 
-    // 🔹 OTP (optional)
     otp: { type: DataTypes.STRING(6), allowNull: true },
     otpExpiry: { type: DataTypes.DATE, allowNull: true },
     otpVerified: { type: DataTypes.BOOLEAN, defaultValue: false }
@@ -55,9 +62,23 @@ module.exports = (sequelize, DataTypes) => {
     tableName: 'restaurant_reg'
   });
 
-  // UUID before create
-  RestaurantReg.beforeCreate((instance) => {
+  // UUID + REST code generation
+  RestaurantReg.beforeCreate(async (instance) => {
     if (!instance.id) instance.id = uuidv4();
+
+    // Find last restaurant code
+    const last = await RestaurantReg.findOne({
+      order: [['createdAt', 'DESC']],
+      attributes: ['restaurant_code']
+    });
+
+    let nextNumber = 1;
+    if (last && last.restaurant_code) {
+      const match = last.restaurant_code.match(/\d+$/);
+      if (match) nextNumber = parseInt(match[0]) + 1;
+    }
+
+    instance.restaurant_code = `REST${String(nextNumber).padStart(4, '0')}`;
   });
 
   return RestaurantReg;

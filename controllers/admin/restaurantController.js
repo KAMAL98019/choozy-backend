@@ -104,50 +104,78 @@ exports.getRestaurantById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Fetch restaurant with related food items
+    const BASE_URL = process.env.BASE_URL || "http://localhost:5000";
+
+    // Fetch restaurant + associations
     const restaurant = await RestaurantReg.findByPk(id, {
       include: [
         {
           model: FoodItem,
-          as: 'foodItems',
-          attributes: ['id', 'dishname', 'price', 'veg'],
+          as: "foodItems",
+          attributes: ["id", "dishname", "price", "veg"],
           include: [
-            { model: Cuisine, as: 'cuisine', attributes: ['id', 'name'] },
-            { model: Category, as: 'category', attributes: ['id', 'name'] }
-          ]
-        }
-      ]
+            { model: Cuisine, as: "cuisine", attributes: ["id", "name"] },
+            { model: Category, as: "category", attributes: ["id", "name"] },
+          ],
+        },
+      ],
     });
 
-    if (!restaurant) {
-      return res.status(404).json({ success: false, message: 'Restaurant not found' });
-    }
+    if (!restaurant)
+      return res.status(404).json({
+        success: false,
+        message: "Restaurant not found",
+      });
 
-    // Transform operational hours into standard array format
+    // ✅ Fix logo full path
+    let rest_logo = restaurant.rest_logo
+      ? restaurant.rest_logo.startsWith("http")
+        ? restaurant.rest_logo
+        : `${BASE_URL}${restaurant.rest_logo}`
+      : null;
+
+    // ✅ Fix operational hours
     let operationalHours = [];
-    if (restaurant.operational_hours && typeof restaurant.operational_hours === 'object') {
-      // Assuming operational_hours stored as an object keyed by day
-      operationalHours = Object.keys(restaurant.operational_hours).map(day => {
-        const dayData = restaurant.operational_hours[day];
+    if (restaurant.operational_hours && typeof restaurant.operational_hours === "object") {
+      operationalHours = Object.keys(restaurant.operational_hours).map((day) => {
+        const d = restaurant.operational_hours[day] || {};
         return {
           day,
-          enabled: dayData.enabled || false,
-          from: dayData.from || '',
-          to: dayData.to || ''
+          enabled: !!d.enabled,
+          from: d.from || "",
+          to: d.to || "",
         };
       });
     }
 
-    // Transform delivery zones if needed
-    let deliveryZones = [];
-    if (restaurant.deliveryZones && Array.isArray(restaurant.deliveryZones)) {
-      deliveryZones = restaurant.deliveryZones.map(zone => zone.name || zone);
-    }
+    // ✅ Fix document URLs
+    const fssaiUrl = restaurant.fssai_certificate
+      ? `${BASE_URL}${restaurant.fssai_certificate}`
+      : null;
+    const gstUrl = restaurant.gst_certificate
+      ? `${BASE_URL}${restaurant.gst_certificate}`
+      : null;
 
-    // Prepare response
+    const documents = [
+      {
+        name: "FSSAI License",
+        status: fssaiUrl ? "Verified" : "Pending",
+        date: "-",
+        file: fssaiUrl,
+      },
+      {
+        name: "GST Certificate",
+        status: gstUrl ? "Verified" : "Pending",
+        date: "-",
+        file: gstUrl,
+      },
+    ];
+
     const responseData = {
       id: restaurant.id,
+      restaurant_code: restaurant.restaurant_code,
       rest_name: restaurant.rest_name,
+      rest_logo,
       rest_address: restaurant.rest_address,
       contact_number: restaurant.contact_number,
       contact_email: restaurant.contact_email,
@@ -155,29 +183,34 @@ exports.getRestaurantById = async (req, res) => {
       bankAccountNumber: restaurant.account_number,
       ifscCode: restaurant.ifsc_code,
       deliveryRadius: restaurant.deliveryRadius,
-      deliveryZones,
-      operationalHours, // <-- send as array for frontend
+      deliveryZones: restaurant.deliveryZones || [],
+      operationalHours,
       status: restaurant.status,
       rating: restaurant.rating || 4.5,
       reviewCount: restaurant.reviewCount || 0,
-      commissionRate: restaurant.commissionRate || '15%',
-      totalPayouts: restaurant.totalPayouts || '₹0',
+      commissionRate: restaurant.commissionRate || "15%",
+      totalPayouts: restaurant.totalPayouts || "₹0",
       totalOrders: restaurant.totalOrders || 0,
       totalBookings: restaurant.totalBookings || 0,
-      avgPrepTime: restaurant.avgPrepTime || '-',
-      orderAcceptanceRate: restaurant.orderAcceptanceRate || '-',
+      avgPrepTime: restaurant.avgPrepTime || "-",
+      orderAcceptanceRate: restaurant.orderAcceptanceRate || "-",
       customerComplaints: restaurant.customerComplaints || 0,
       foodItems: restaurant.foodItems,
-      documents: [
-        { name: 'FSSAI License', status: restaurant.fssai_certificate ? 'Verified' : 'Pending', date: '-' },
-        { name: 'GST Certificate', status: restaurant.gst_certificate ? 'Verified' : 'Pending', date: '-' },
-      ],
+      documents,
     };
 
-    res.status(200).json({ success: true, message: 'Restaurant details fetched', data: responseData });
+    res.status(200).json({
+      success: true,
+      message: "Restaurant details fetched successfully",
+      data: responseData,
+    });
   } catch (error) {
-    console.error('Error fetching restaurant details:', error);
-    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+    console.error("Error fetching restaurant details:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
   }
 };
 
@@ -268,42 +301,6 @@ exports.getCuisineTypes = async (req, res) => {
       message: 'Failed to fetch cuisines',
       error: error.message
     });
-  }
-};
-
-/**
- * Update delivery settings
- */
-exports.updateDeliverySettings = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const {
-      deliveryType,
-      deliveryRadius,
-      deliveryZones,
-      restaurantLatitude,
-      restaurantLongitude,
-      minOrderAmount,
-      baseDeliveryFee
-    } = req.body;
-
-    const restaurant = await RestaurantReg.findByPk(id);
-    if (!restaurant)
-      return res.status(404).json({ error: 'Restaurant not found' });
-
-    await restaurant.update({
-      deliveryType,
-      deliveryRadius,
-      deliveryZones,
-      restaurantLatitude,
-      restaurantLongitude,
-      minOrderAmount,
-      baseDeliveryFee
-    });
-
-    res.json({ message: 'Delivery settings updated', data: restaurant });
-  } catch (e) {
-    res.status(500).json({ error: 'Failed to update delivery settings' });
   }
 };
 

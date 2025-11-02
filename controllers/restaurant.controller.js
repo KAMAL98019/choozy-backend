@@ -63,9 +63,23 @@ exports.create = async (req, res) => {
     // ---------------- PASSWORD HASH ----------------
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // ---------------- GENERATE RESTAURANT CODE ----------------
+    const last = await RestaurantReg.findOne({
+      order: [['createdAt', 'DESC']],
+      attributes: ['restaurant_code']
+    });
+
+    let nextNumber = 1;
+    if (last && last.restaurant_code) {
+      const match = last.restaurant_code.match(/\d+$/);
+      if (match) nextNumber = parseInt(match[0]) + 1;
+    }
+    const restaurant_code = `REST${String(nextNumber).padStart(4, '0')}`;
+
     // ---------------- PAYLOAD ----------------
     const payload = {
       id: uuidv4(),
+      restaurant_code, // ✅ guaranteed
       rest_name,
       rest_address,
       avg_cost_two: Number(avg_cost_two) || 0,
@@ -99,6 +113,7 @@ exports.create = async (req, res) => {
     return res.status(201).json({
       success: true,
       message: 'Restaurant registered successfully and set to OFFLINE status',
+      restaurant_code: data.restaurant_code, // ✅ Show generated restaurant code
       data
     });
 

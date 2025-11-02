@@ -15,6 +15,11 @@ module.exports = {
         type: Sequelize.STRING(255),
         allowNull: false,
       },
+      restaurant_code: {
+        type: Sequelize.STRING(20),
+        allowNull: false,
+        unique: true,
+      },
 
       rest_address: {
         type: Sequelize.TEXT,
