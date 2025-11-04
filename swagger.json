@@ -1232,50 +1232,107 @@
                 }
             }
         },
-        "/api/carts/active/{userId}/{restId}": {
+        "/api/cart/active": {
             "get": {
-                "summary": "Get active cart for a user for a specific restaurant",
+                "summary": "Get user's active cart (any restaurant)",
                 "tags": [
                     "Cart"
                 ],
                 "parameters": [
                     {
                         "name": "userId",
-                        "in": "path",
+                        "in": "query",
                         "required": true,
                         "schema": {
                             "type": "string",
                             "format": "uuid"
                         },
-                        "description": "User ID"
-                    },
-                    {
-                        "name": "restId",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid"
-                        },
-                        "description": "Restaurant ID to fetch the active cart for"
+                        "description": "User ID",
+                        "example": "a3f4d02b-4d8b-4b1d-b26d-5c32a11e1f55"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Active cart returned successfully"
-                    },
-                    "404": {
-                        "description": "No active cart found for this user and restaurant"
+                        "description": "Active cart returned successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Active cart fetched successfully."
+                                        },
+                                        "cart": {
+                                            "oneOf": [
+                                                {
+                                                    "type": "null"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "string",
+                                                            "format": "uuid"
+                                                        },
+                                                        "userId": {
+                                                            "type": "string",
+                                                            "format": "uuid"
+                                                        },
+                                                        "rest_id": {
+                                                            "type": "string",
+                                                            "format": "uuid"
+                                                        },
+                                                        "status": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "active",
+                                                                "checked_out",
+                                                                "abandoned",
+                                                                "expired"
+                                                            ]
+                                                        },
+                                                        "expiresAt": {
+                                                            "type": "string",
+                                                            "format": "date-time"
+                                                        },
+                                                        "restaurantOnline": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "items": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "type": "object"
+                                                            }
+                                                        },
+                                                        "restaurant": {
+                                                            "type": "object"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     },
                     "400": {
-                        "description": "Invalid or missing parameters"
+                        "description": "Invalid or missing userId"
+                    },
+                    "500": {
+                        "description": "Server error"
                     }
                 }
             }
         },
-        "/api/carts/ensure": {
+        "/api/cart/items": {
             "post": {
-                "summary": "Ensure a user has a cart for a specific restaurant",
+                "summary": "Add item to cart (with restaurant conflict detection)",
                 "tags": [
                     "Cart"
                 ],
@@ -1285,52 +1342,15 @@
                         "application/json": {
                             "schema": {
                                 "type": "object",
+                                "required": [
+                                    "userId",
+                                    "foodId"
+                                ],
                                 "properties": {
                                     "userId": {
                                         "type": "string",
-                                        "format": "uuid"
-                                    },
-                                    "restId": {
-                                        "type": "string",
                                         "format": "uuid",
-                                        "example": "abc123-rest-uuid"
-                                    }
-                                },
-                                "required": [
-                                    "userId",
-                                    "restId"
-                                ]
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "201": {
-                        "description": "Cart ensured"
-                    },
-                    "400": {
-                        "description": "Failed to create/find cart"
-                    }
-                }
-            }
-        },
-        "/api/carts/items": {
-            "post": {
-                "summary": "Add item to cart",
-                "tags": [
-                    "Cart"
-                ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "cartId": {
-                                        "type": "string",
-                                        "format": "uuid",
-                                        "example": "411adec9-4cd5-4e5b-aca7-30ed87d2573c"
+                                        "example": "a3f4d02b-4d8b-4b1d-b26d-5c32a11e1f55"
                                     },
                                     "foodId": {
                                         "type": "string",
@@ -1339,6 +1359,7 @@
                                     },
                                     "quantity": {
                                         "type": "integer",
+                                        "default": 1,
                                         "example": 2
                                     },
                                     "selectedAddOns": {
@@ -1371,27 +1392,245 @@
                                             }
                                         ]
                                     }
-                                },
-                                "required": [
-                                    "cartId",
-                                    "foodId",
-                                    "quantity"
-                                ]
+                                }
                             }
                         }
                     }
                 },
                 "responses": {
                     "201": {
-                        "description": "Item added successfully"
+                        "description": "Item added successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Item added to cart"
+                                        },
+                                        "cart": {
+                                            "type": "object"
+                                        },
+                                        "addedItem": {
+                                            "type": "object"
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     },
                     "400": {
-                        "description": "Invalid input"
+                        "description": "Invalid input or item unavailable",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "error": {
+                                            "type": "string",
+                                            "example": "Paneer Tikka is currently unavailable"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Restaurant offline",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "code": {
+                                            "type": "string",
+                                            "example": "RESTAURANT_OFFLINE"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Spice Garden is currently closed or offline."
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Food item not found"
+                    },
+                    "409": {
+                        "description": "Cart contains items from different restaurant (Conflict)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "code": {
+                                            "type": "string",
+                                            "example": "DIFFERENT_RESTAURANT"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Items already in cart from a different restaurant"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "currentCart": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "cartId": {
+                                                            "type": "string",
+                                                            "format": "uuid"
+                                                        },
+                                                        "restaurantId": {
+                                                            "type": "string",
+                                                            "format": "uuid"
+                                                        },
+                                                        "restaurantName": {
+                                                            "type": "string",
+                                                            "example": "Pizza Palace"
+                                                        },
+                                                        "itemCount": {
+                                                            "type": "integer",
+                                                            "example": 3
+                                                        },
+                                                        "items": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "id": {
+                                                                        "type": "string",
+                                                                        "format": "uuid"
+                                                                    },
+                                                                    "name": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "quantity": {
+                                                                        "type": "integer"
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "newItem": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "restaurantId": {
+                                                            "type": "string",
+                                                            "format": "uuid"
+                                                        },
+                                                        "restaurantName": {
+                                                            "type": "string",
+                                                            "example": "Burger King"
+                                                        },
+                                                        "foodId": {
+                                                            "type": "string",
+                                                            "format": "uuid"
+                                                        },
+                                                        "foodName": {
+                                                            "type": "string",
+                                                            "example": "Whopper Burger"
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error"
                     }
                 }
             }
         },
-        "/api/carts/items/{id}": {
+        "/api/cart/clear-and-add": {
+            "post": {
+                "summary": "Clear current cart and add item from different restaurant",
+                "tags": [
+                    "Cart"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "userId",
+                                    "foodId"
+                                ],
+                                "properties": {
+                                    "userId": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "example": "a3f4d02b-4d8b-4b1d-b26d-5c32a11e1f55"
+                                    },
+                                    "foodId": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "example": "232c2163-53d7-4c1a-86ec-c3ca5eee0fa8"
+                                    },
+                                    "quantity": {
+                                        "type": "integer",
+                                        "default": 1,
+                                        "example": 2
+                                    },
+                                    "selectedAddOns": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object",
+                                            "properties": {
+                                                "name": {
+                                                    "type": "string"
+                                                },
+                                                "price": {
+                                                    "type": "number"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Cart cleared and item added successfully"
+                    },
+                    "400": {
+                        "description": "Invalid input"
+                    },
+                    "500": {
+                        "description": "Server error"
+                    }
+                }
+            }
+        },
+        "/api/cart/items/{id}": {
             "put": {
                 "summary": "Update cart item quantity",
                 "tags": [
@@ -1405,7 +1644,8 @@
                         "schema": {
                             "type": "string",
                             "format": "uuid"
-                        }
+                        },
+                        "description": "Cart Item ID"
                     }
                 ],
                 "requestBody": {
@@ -1414,10 +1654,21 @@
                         "application/json": {
                             "schema": {
                                 "type": "object",
+                                "required": [
+                                    "userId",
+                                    "quantity"
+                                ],
                                 "properties": {
+                                    "userId": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "example": "a3f4d02b-4d8b-4b1d-b26d-5c32a11e1f55"
+                                    },
                                     "quantity": {
                                         "type": "integer",
-                                        "example": 3
+                                        "minimum": 0,
+                                        "example": 3,
+                                        "description": "Set to 0 to remove item"
                                     }
                                 }
                             }
@@ -1426,10 +1677,38 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Item updated"
+                        "description": "Item updated or removed",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Item updated"
+                                        },
+                                        "item": {
+                                            "type": "object"
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     },
                     "400": {
-                        "description": "Invalid quantity"
+                        "description": "Invalid quantity or missing userId"
+                    },
+                    "403": {
+                        "description": "Unauthorized or restaurant offline"
+                    },
+                    "404": {
+                        "description": "Item not found"
+                    },
+                    "500": {
+                        "description": "Server error"
                     }
                 }
             },
@@ -1446,19 +1725,69 @@
                         "schema": {
                             "type": "string",
                             "format": "uuid"
-                        }
+                        },
+                        "description": "Cart Item ID"
                     }
                 ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "userId"
+                                ],
+                                "properties": {
+                                    "userId": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "example": "a3f4d02b-4d8b-4b1d-b26d-5c32a11e1f55"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
                 "responses": {
                     "200": {
-                        "description": "Item removed"
+                        "description": "Item removed",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Item removed from cart"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Missing userId"
+                    },
+                    "403": {
+                        "description": "Unauthorized"
+                    },
+                    "404": {
+                        "description": "Item not found"
+                    },
+                    "500": {
+                        "description": "Server error"
                     }
                 }
             }
         },
-        "/api/carts/summary/{cartId}": {
+        "/api/cart/summary/{cartId}": {
             "get": {
-                "summary": "Get cart summary for a specific restaurant",
+                "summary": "Get cart summary with pricing details",
                 "tags": [
                     "Cart"
                 ],
@@ -1470,23 +1799,289 @@
                         "schema": {
                             "type": "string",
                             "format": "uuid"
-                        }
+                        },
+                        "description": "Cart ID",
+                        "example": "411adec9-4cd5-4e5b-aca7-30ed87d2573c"
+                    },
+                    {
+                        "name": "userId",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "description": "User ID",
+                        "example": "a3f4d02b-4d8b-4b1d-b26d-5c32a11e1f55"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Cart summary returned"
+                        "description": "Cart summary returned",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "cartId": {
+                                            "type": "string",
+                                            "format": "uuid"
+                                        },
+                                        "items": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        },
+                                        "subtotal": {
+                                            "type": "number",
+                                            "format": "float",
+                                            "example": 500.0
+                                        },
+                                        "tax": {
+                                            "type": "number",
+                                            "format": "float",
+                                            "example": 25.0
+                                        },
+                                        "deliveryFee": {
+                                            "type": "number",
+                                            "format": "float",
+                                            "example": 40.0
+                                        },
+                                        "total": {
+                                            "type": "number",
+                                            "format": "float",
+                                            "example": 565.0
+                                        },
+                                        "minOrderAmount": {
+                                            "type": "number",
+                                            "example": 500
+                                        },
+                                        "isBelowMinOrder": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "restaurant": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "string",
+                                                    "format": "uuid"
+                                                },
+                                                "name": {
+                                                    "type": "string",
+                                                    "example": "Spice Garden"
+                                                },
+                                                "minOrderAmount": {
+                                                    "type": "number"
+                                                },
+                                                "baseDeliveryFee": {
+                                                    "type": "number"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     },
                     "400": {
-                        "description": "Cart is empty or invalid"
+                        "description": "Cart is empty or invalid userId"
                     },
                     "404": {
-                        "description": "Restaurant not found"
+                        "description": "Cart or restaurant not found"
+                    },
+                    "500": {
+                        "description": "Server error"
                     }
                 }
             }
         },
-        "/api/checkout": {
+        "/api/cart/validate/{cartId}": {
+            "get": {
+                "summary": "Validate cart before checkout (price updates, availability, stock)",
+                "tags": [
+                    "Cart"
+                ],
+                "parameters": [
+                    {
+                        "name": "cartId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "description": "Cart ID",
+                        "example": "411adec9-4cd5-4e5b-aca7-30ed87d2573c"
+                    },
+                    {
+                        "name": "userId",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "description": "User ID",
+                        "example": "a3f4d02b-4d8b-4b1d-b26d-5c32a11e1f55"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Validation completed",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "valid": {
+                                            "type": "boolean",
+                                            "example": true,
+                                            "description": "Whether cart is valid for checkout"
+                                        },
+                                        "issues": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "type": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                            "ITEM_DELETED",
+                                                            "ITEM_UNAVAILABLE",
+                                                            "INSUFFICIENT_STOCK"
+                                                        ]
+                                                    },
+                                                    "itemId": {
+                                                        "type": "string",
+                                                        "format": "uuid"
+                                                    },
+                                                    "foodName": {
+                                                        "type": "string"
+                                                    },
+                                                    "message": {
+                                                        "type": "string"
+                                                    },
+                                                    "requested": {
+                                                        "type": "integer"
+                                                    },
+                                                    "available": {
+                                                        "type": "integer"
+                                                    }
+                                                }
+                                            },
+                                            "example": [
+                                                {
+                                                    "type": "ITEM_UNAVAILABLE",
+                                                    "itemId": "232c2163-53d7-4c1a-86ec-c3ca5eee0fa8",
+                                                    "foodName": "Paneer Tikka",
+                                                    "message": "Paneer Tikka is currently unavailable"
+                                                }
+                                            ]
+                                        },
+                                        "priceUpdates": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "type": {
+                                                        "type": "string",
+                                                        "example": "PRICE_CHANGED"
+                                                    },
+                                                    "itemId": {
+                                                        "type": "string",
+                                                        "format": "uuid"
+                                                    },
+                                                    "foodName": {
+                                                        "type": "string"
+                                                    },
+                                                    "oldPrice": {
+                                                        "type": "number"
+                                                    },
+                                                    "newPrice": {
+                                                        "type": "number"
+                                                    },
+                                                    "difference": {
+                                                        "type": "number"
+                                                    },
+                                                    "increased": {
+                                                        "type": "boolean"
+                                                    },
+                                                    "message": {
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            },
+                                            "example": [
+                                                {
+                                                    "type": "PRICE_CHANGED",
+                                                    "itemId": "232c2163-53d7-4c1a-86ec-c3ca5eee0fa8",
+                                                    "foodName": "Butter Chicken",
+                                                    "oldPrice": 250,
+                                                    "newPrice": 280,
+                                                    "difference": 30,
+                                                    "increased": true,
+                                                    "message": "Price increased by ₹30.00"
+                                                }
+                                            ]
+                                        },
+                                        "requiresConfirmation": {
+                                            "type": "boolean",
+                                            "example": false,
+                                            "description": "Whether user confirmation is needed before checkout"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Cart is valid and ready for checkout"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Cart is empty or missing userId"
+                    },
+                    "403": {
+                        "description": "Restaurant offline",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "valid": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "code": {
+                                            "type": "string",
+                                            "example": "RESTAURANT_OFFLINE"
+                                        },
+                                        "error": {
+                                            "type": "string",
+                                            "example": "Restaurant is currently closed. Cannot proceed with checkout."
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error"
+                    }
+                }
+            }
+        },
+        "/api/orders/checkout": {
             "post": {
                 "summary": "Create an order from cart (checkout process)",
                 "tags": [
@@ -1501,7 +2096,6 @@
                                 "required": [
                                     "userId",
                                     "cartId",
-                                    "rest_id",
                                     "address",
                                     "paymentMethod"
                                 ],
@@ -1516,11 +2110,6 @@
                                         "format": "uuid",
                                         "example": "b7d1c70c-8571-4f8e-b24c-f8f4b5ef6b3d"
                                     },
-                                    "rest_id": {
-                                        "type": "string",
-                                        "format": "uuid",
-                                        "example": "f47ac10b-58cc-4372-a567-0e02b2c3d479"
-                                    },
                                     "address": {
                                         "type": "string",
                                         "example": "123, MG Road, Bangalore"
@@ -1529,6 +2118,7 @@
                                         "type": "string",
                                         "enum": [
                                             "CASH",
+                                            "COD",
                                             "CARD",
                                             "UPI"
                                         ],
@@ -1561,6 +2151,10 @@
                                             "type": "boolean",
                                             "example": true
                                         },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Order placed successfully"
+                                        },
                                         "order": {
                                             "type": "object",
                                             "properties": {
@@ -1569,10 +2163,9 @@
                                                     "format": "uuid",
                                                     "example": "9cfcfa2e-9af5-4a74-b9b0-3cf3ac4c6fda"
                                                 },
-                                                "cartId": {
+                                                "orderNumber": {
                                                     "type": "string",
-                                                    "format": "uuid",
-                                                    "example": "b7d1c70c-8571-4f8e-b24c-f8f4b5ef6b3d"
+                                                    "example": "ORD-20250103-0001"
                                                 },
                                                 "restaurant": {
                                                     "type": "object",
@@ -1595,7 +2188,7 @@
                                                         }
                                                     }
                                                 },
-                                                "user": {
+                                                "customer": {
                                                     "type": "object",
                                                     "properties": {
                                                         "id": {
@@ -1605,10 +2198,6 @@
                                                         "name": {
                                                             "type": "string",
                                                             "example": "John Doe"
-                                                        },
-                                                        "email": {
-                                                            "type": "string",
-                                                            "example": "john@example.com"
                                                         },
                                                         "phone": {
                                                             "type": "string",
@@ -1621,10 +2210,6 @@
                                                     "items": {
                                                         "type": "object",
                                                         "properties": {
-                                                            "foodId": {
-                                                                "type": "string",
-                                                                "format": "uuid"
-                                                            },
                                                             "foodName": {
                                                                 "type": "string",
                                                                 "example": "Paneer Butter Masala"
@@ -1675,12 +2260,12 @@
                                                 "deliveryFee": {
                                                     "type": "number",
                                                     "format": "float",
-                                                    "example": 30.0
+                                                    "example": 40.0
                                                 },
                                                 "totalAmount": {
                                                     "type": "number",
                                                     "format": "float",
-                                                    "example": 555.0
+                                                    "example": 565.0
                                                 },
                                                 "paymentMethod": {
                                                     "type": "string",
@@ -1694,21 +2279,9 @@
                                                     "type": "string",
                                                     "example": "PAID"
                                                 },
-                                                "customerName": {
+                                                "deliveryAddress": {
                                                     "type": "string",
-                                                    "example": "John Doe"
-                                                },
-                                                "customerPhone": {
-                                                    "type": "string",
-                                                    "example": "+91 9123456789"
-                                                },
-                                                "latitude": {
-                                                    "type": "number",
-                                                    "example": 12.9716
-                                                },
-                                                "longitude": {
-                                                    "type": "number",
-                                                    "example": 77.5946
+                                                    "example": "123, MG Road, Bangalore"
                                                 }
                                             }
                                         }
@@ -1718,20 +2291,51 @@
                         }
                     },
                     "400": {
-                        "description": "Cart empty or stock insufficient",
+                        "description": "Cart empty, invalid input, or stock insufficient",
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "type": "object",
                                     "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
                                         "error": {
                                             "type": "string",
-                                            "example": "Cart is empty or already checked out"
+                                            "example": "Cart is empty or not found"
                                         }
                                     }
                                 }
                             }
                         }
+                    },
+                    "403": {
+                        "description": "Restaurant offline",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "code": {
+                                            "type": "string",
+                                            "example": "RESTAURANT_OFFLINE"
+                                        },
+                                        "error": {
+                                            "type": "string",
+                                            "example": "Restaurant went offline. Cannot complete checkout."
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "User or restaurant not found"
                     },
                     "500": {
                         "description": "Server error",
@@ -1740,6 +2344,10 @@
                                 "schema": {
                                     "type": "object",
                                     "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
                                         "error": {
                                             "type": "string",
                                             "example": "Checkout failed"
@@ -9226,27 +9834,68 @@
                     }
                 }
             },
+            "Cart": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "userId": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "rest_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "active",
+                            "checked_out",
+                            "abandoned",
+                            "expired"
+                        ]
+                    },
+                    "expiresAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "Cart expires 24 hours after last activity"
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updatedAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                }
+            },
             "CartItem": {
                 "type": "object",
                 "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "cartId": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
                     "foodId": {
                         "type": "string",
-                        "format": "uuid",
-                        "example": "70ad3246-4b20-44da-aa3a-a433311d7932"
+                        "format": "uuid"
                     },
                     "quantity": {
                         "type": "integer",
-                        "example": 2
+                        "minimum": 1
                     },
-                    "price": {
+                    "unitPrice": {
                         "type": "number",
-                        "format": "float",
-                        "example": 250
-                    },
-                    "totalPrice": {
-                        "type": "number",
-                        "format": "float",
-                        "example": 500
+                        "format": "decimal",
+                        "description": "Price at time of adding to cart"
                     },
                     "selectedAddOns": {
                         "type": "array",
@@ -9260,11 +9909,25 @@
                                     "type": "number"
                                 }
                             }
-                        },
-                        "description": "List of selected addons for this cart item"
+                        }
+                    }
+                }
+            },
+            "Error": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": false
                     },
-                    "food": {
-                        "$ref": "#/components/schemas/FoodItem"
+                    "error": {
+                        "type": "string"
+                    },
+                    "code": {
+                        "type": "string"
+                    },
+                    "details": {
+                        "type": "string"
                     }
                 }
             },

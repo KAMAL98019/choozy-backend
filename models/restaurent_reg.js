@@ -44,17 +44,17 @@ module.exports = (sequelize, DataTypes) => {
     status: { type: DataTypes.STRING, allowNull: false, defaultValue: 'active' },
 
     // Delivery settings
-    deliveryType: { type: DataTypes.ENUM('RADIUS','ZONE'), allowNull: false, defaultValue: 'RADIUS' },
+    deliveryType: { type: DataTypes.ENUM('RADIUS', 'ZONE'), allowNull: false, defaultValue: 'RADIUS' },
     deliveryRadius: { type: DataTypes.FLOAT, allowNull: true },
     deliveryZones: { type: DataTypes.JSON, allowNull: true },
     restaurantLatitude: { type: DataTypes.FLOAT, allowNull: true },
     restaurantLongitude: { type: DataTypes.FLOAT, allowNull: true },
-    minOrderAmount: { type: DataTypes.DECIMAL(10,2), allowNull: false, defaultValue: 500 },
-    baseDeliveryFee: { type: DataTypes.DECIMAL(10,2), allowNull: false, defaultValue: 50 },
+    minOrderAmount: { type: DataTypes.DECIMAL(10, 2), allowNull: false, defaultValue: 500 },
+    baseDeliveryFee: { type: DataTypes.DECIMAL(10, 2), allowNull: false, defaultValue: 50 },
 
     otp: { type: DataTypes.STRING(6), allowNull: true },
     otpExpiry: { type: DataTypes.DATE, allowNull: true },
-    otpVerified: { type: DataTypes.BOOLEAN, defaultValue: false }
+    otpVerified: { type: DataTypes.BOOLEAN, defaultValue: false },
 
   }, {
     sequelize,

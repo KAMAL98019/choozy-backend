@@ -135,11 +135,18 @@ const getAvailableTimeSlots = async (req, res) => {
 };
 
 // -------------------- Create booking --------------------
-
-
 const createBooking = async (req, res) => {
   try {
-    const { userId, restaurantId, eventId, bookingDate, bookingTime, numberOfGuests, specialRequests, purpose } = req.body;
+    const {
+      userId,
+      restaurantId,
+      eventId,
+      bookingDate,
+      bookingTime,
+      numberOfGuests,
+      specialRequests,
+      purpose
+    } = req.body;
 
     // Required fields
     if (!userId || !restaurantId || !eventId || !bookingDate || !bookingTime || !numberOfGuests) {
@@ -164,9 +171,24 @@ const createBooking = async (req, res) => {
     const restaurant = await RestaurantReg.findByPk(restaurantId);
     if (!restaurant) return res.status(404).json({ success: false, error: 'Restaurant not found' });
 
-    // Create booking
+    // 🧮 Generate booking number like #BK-0001, #BK-0002 ...
+    const lastBooking = await DiningBooking.findOne({
+      order: [['createdAt', 'DESC']]
+    });
+
+    let nextNumber = 1;
+    if (lastBooking && lastBooking.bookingNumber) {
+      const match = lastBooking.bookingNumber.match(/BK-(\d+)/);
+      if (match) {
+        nextNumber = parseInt(match[1], 10) + 1;
+      }
+    }
+
+    const bookingNumber = `#BK-${String(nextNumber).padStart(4, '0')}`;
+
+    // ✅ Create booking
     const booking = await DiningBooking.create({
-      bookingNumber: uuidv4(),
+      bookingNumber,
       rest_id: restaurantId,
       eventId,
       userId,
@@ -182,10 +204,14 @@ const createBooking = async (req, res) => {
       bookedAt: new Date()
     });
 
-    return res.status(201).json({ success: true, message: 'Booking created successfully', data: booking });
+    return res.status(201).json({
+      success: true,
+      message: 'Booking created successfully',
+      data: booking
+    });
 
   } catch (error) {
-    console.error(error);
+    console.error('Error in createBooking:', error);
     return res.status(500).json({ success: false, error: error.message });
   }
 };

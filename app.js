@@ -24,7 +24,7 @@ app.use(express.json());
 
 // ✅ Routes
 app.use("/api/users", require("./routes/user.routes"));
-app.use('/api/carts', require('./routes/cart.routes'));
+app.use('/api/cart', require('./routes/cart.routes'));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use('/api/restaurants', require('./routes/restaurant.routes'));
 app.use('/api/food-items', require('./routes/fooditem.routes'));

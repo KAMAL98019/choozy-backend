@@ -265,7 +265,7 @@ exports.createDiningSpace = async (req, res) => {
     if (!restaurant) return res.status(404).json({ success: false, error: 'Restaurant not found or inactive' });
 
     // Handle uploaded photos
-    const photos = req.files ? req.files.map(f => `/uploads/diningSpacesPhotos/${f.filename}`) : [];
+    const photos = req.files ? req.files.map(f => `/uploads/dining/${f.filename}`) : [];
 
     const space = await DiningSpace.create({
       rest_id: restaurantId,

@@ -9,10 +9,6 @@ const checkoutController = require('../controllers/checkout.controller');
 router.post('/checkout', checkoutController.checkout);
 
 
-// Customer order tracking
-router.get('/track/:orderId', checkoutController.trackOrder);
-
-
 // ------------------- ORDER ROUTES -------------------
 router.get('/orders', orderController.getOrders);
 router.get('/orders/:id', orderController.getOrder);

@@ -1,8 +1,168 @@
-const { Partner, Order, PartnerAttendance,ReviewCustomerToDelivery } = require('../../models');
+// =============================================
+// FILE: controllers/admin/deliveryPartnerController.js
+// FIXED: URL duplication issue
+// =============================================
+
+const { Partner, Order, PartnerAttendance, ReviewCustomerToDelivery } = require('../../models');
 const { Op } = require('sequelize');
 const sequelize = require('../../models').sequelize;
 const { fn, col } = require('sequelize');
+const path = require("path"); // ✅ FIX: Import path module
 
+/**
+ * ✅ Helper: Generate proper URL for partner uploads
+ */
+const getFileUrl = (req, filename) => {
+  if (!filename) return null;
+  const cleanName = path.basename(filename); // remove extra directories
+  return `${req.protocol}://${req.get("host")}/uploads/partners/${cleanName}`;
+};
+
+/**
+ * ✅ Controller: Get Partner by ID
+ */
+exports.getPartnerById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const partner = await Partner.findByPk(id, {
+      attributes: [
+        "id",
+        "partnerCode",
+        "fullName",
+        "mobile",
+        "email",
+        "dob",
+        "gender",
+        "profilePhoto",
+        "address",
+        "city",
+        "state",
+        "pincode",
+        "emergencyName",
+        "emergencyMobile",
+        "vehicleType",
+        "vehicleModel",
+        "licensePlate",
+        "rcFile",
+        "dlFile",
+        "idProofFile",
+        "workType",
+        "breakStart",
+        "breakEnd",
+        "bankName",
+        "accountNumber",
+        "ifsc",
+        "status",
+        "createdAt",
+      ],
+    });
+
+    if (!partner) {
+      return res.status(404).json({
+        success: false,
+        message: "Delivery partner not found",
+      });
+    }
+
+    // ✅ Build file URLs
+    const rcFileUrl = getFileUrl(req, partner.rcFile);
+    const dlFileUrl = getFileUrl(req, partner.dlFile);
+    const idProofFileUrl = getFileUrl(req, partner.idProofFile);
+    const profilePhotoUrl = getFileUrl(req, partner.profilePhoto);
+
+    // ✅ Attendance (current month)
+    const now = new Date();
+    const attendanceRecords = await PartnerAttendance.findAll({
+      where: {
+        partnerId: id,
+        attendanceTime: {
+          [Op.gte]: new Date(now.getFullYear(), now.getMonth(), 1),
+          [Op.lt]: new Date(now.getFullYear(), now.getMonth() + 1, 1),
+        },
+      },
+    });
+
+    const daysPresent = attendanceRecords.filter(a => a.status === "ONLINE").length;
+    const daysAbsent = attendanceRecords.filter(a => a.status === "OFFLINE").length;
+
+    // ✅ Documents array
+    const documents = [
+      {
+        name: "ID Proof (Aadhar / PAN)",
+        status: idProofFileUrl ? "Uploaded" : "Pending",
+        file: idProofFileUrl,
+      },
+      {
+        name: "Driving License",
+        status: dlFileUrl ? "Uploaded" : "Pending",
+        file: dlFileUrl,
+      },
+      {
+        name: "Vehicle RC",
+        status: rcFileUrl ? "Uploaded" : "Pending",
+        file: rcFileUrl,
+      },
+    ];
+
+    // ✅ Build structured response
+    const responseData = {
+      id: partner.id,
+      partnerCode: partner.partnerCode,
+      personalInfo: {
+        fullName: partner.fullName,
+        mobile: partner.mobile,
+        email: partner.email,
+        dob: partner.dob,
+        gender: partner.gender,
+        profilePhoto: profilePhotoUrl,
+        address: `${partner.address}, ${partner.city}, ${partner.state} - ${partner.pincode}`,
+        emergencyContact: {
+          name: partner.emergencyName,
+          mobile: partner.emergencyMobile,
+        },
+        status: partner.status,
+        joinedDate: partner.createdAt,
+      },
+      vehicleInfo: {
+        vehicleType: partner.vehicleType,
+        vehicleModel: partner.vehicleModel,
+        licensePlate: partner.licensePlate,
+        rcFile: rcFileUrl,
+        dlFile: dlFileUrl,
+      },
+      payoutBankDetails: {
+        bankName: partner.bankName,
+        accountNumber: partner.accountNumber,
+        ifsc: partner.ifsc,
+        idProofFile: idProofFileUrl,
+      },
+      workAndAttendance: {
+        workType: partner.workType,
+        breakTime:
+          partner.breakStart && partner.breakEnd
+            ? `${partner.breakStart} - ${partner.breakEnd}`
+            : "Not set",
+        daysPresent,
+        daysAbsent,
+      },
+      documents,
+    };
+
+    return res.status(200).json({
+      success: true,
+      message: "Delivery partner details fetched successfully",
+      data: responseData,
+    });
+  } catch (error) {
+    console.error("❌ Error fetching partner details:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
 
 /**
  * Get all delivery partners with filters and pagination
@@ -19,20 +179,16 @@ exports.getAllPartners = async (req, res) => {
 
     const offset = (page - 1) * limit;
 
-    // Build where clause
     const whereClause = {};
 
-    // Filter by status
     if (status) {
       whereClause.status = status;
     }
 
-    // Filter by vehicle type
     if (vehicleType) {
       whereClause.vehicleType = vehicleType;
     }
 
-    // Search by name, email, or mobile
     if (search) {
       whereClause[Op.or] = [
         { fullName: { [Op.like]: `%${search}%` } },
@@ -42,7 +198,6 @@ exports.getAllPartners = async (req, res) => {
       ];
     }
 
-    // Fetch partners
     const { count, rows: partners } = await Partner.findAndCountAll({
       where: whereClause,
       attributes: [
@@ -59,36 +214,33 @@ exports.getAllPartners = async (req, res) => {
       offset: parseInt(offset)
     });
 
-    // Calculate rating for each partner (from orders)
     const partnersWithRating = await Promise.all(
-  partners.map(async (partner) => {
-    // Total orders if needed
-    const orders = await Order.count({ where: { partnerId: partner.id } });
+      partners.map(async (partner) => {
+        const orders = await Order.count({ where: { partnerId: partner.id } });
 
-    // Average rating from reviews
-    const ratingData = await ReviewCustomerToDelivery.findOne({
-      where: { partnerId: partner.id },
-      attributes: [[fn('AVG', col('rating')), 'avgRating']],
-      raw: true
-    });
+        const ratingData = await ReviewCustomerToDelivery.findOne({
+          where: { partnerId: partner.id },
+          attributes: [[fn('AVG', col('rating')), 'avgRating']],
+          raw: true
+        });
 
-    const rating = ratingData && ratingData.avgRating 
-      ? parseFloat(ratingData.avgRating).toFixed(1) 
-      : 'N/A';
+        const rating = ratingData && ratingData.avgRating 
+          ? parseFloat(ratingData.avgRating).toFixed(1) 
+          : 'N/A';
 
-    return {
-      id: partner.id,
-      fullName: partner.fullName,
-      email: partner.email,
-      mobile: partner.mobile,
-      vehicleType: partner.vehicleType,
-      status: partner.status,
-      registrationDate: partner.createdAt,
-      totalOrders: orders,
-      rating
-    };
-  })
-);
+        return {
+          id: partner.id,
+          fullName: partner.fullName,
+          email: partner.email,
+          mobile: partner.mobile,
+          vehicleType: partner.vehicleType,
+          status: partner.status,
+          registrationDate: partner.createdAt,
+          totalOrders: orders,
+          rating
+        };
+      })
+    );
 
     res.status(200).json({
       success: true,
@@ -113,159 +265,6 @@ exports.getAllPartners = async (req, res) => {
   }
 };
 
-/**
- * Get single delivery partner details
- */
-exports.getPartnerById = async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const partner = await Partner.findByPk(id, {
-      attributes: [
-        'id',
-        'fullName',
-        'mobile',
-        'email',
-        'dob',
-        'gender',
-        'address',
-        'city',
-        'state',
-        'pincode',
-        'emergencyName',
-        'emergencyMobile',
-        'vehicleType',
-        'vehicleModel',
-        'licensePlate',
-        'rcFile',
-        'dlFile',
-        'workType',
-        'breakStart',
-        'breakEnd',
-        'bankName',
-        'accountNumber',
-        'ifsc',
-        'idProofFile',
-        'status',
-        'createdAt'
-      ]
-    });
-
-    if (!partner) {
-      return res.status(404).json({
-        success: false,
-        message: 'Delivery partner not found'
-      });
-    }
-
-    // Get total deliveries
-    const totalDeliveries = await Order.count({
-      where: { 
-        partnerId: id,
-        status: 'DELIVERED'
-      }
-    });
-
-    // Get average delivery time (mock data for now)
-    const avgDeliveryTime = '25 min';
-
-    // Get cancellation rate (mock data)
-    const cancellationRate = '2%';
-
-    // Get customer complaints (mock data)
-    const customerComplaints = 5;
-
-    // Get total earnings to date
-    const totalEarnings = await Order.sum('deliveryFee', {
-      where: {
-        partnerId: id,
-        status: 'DELIVERED'
-      }
-    }) || 0;
-
-    // Get attendance data
-    const currentMonth = new Date().getMonth();
-    const currentYear = new Date().getFullYear();
-    
-    const attendanceRecords = await PartnerAttendance.findAll({
-      where: {
-        partnerId: id,
-        attendanceTime: {
-          [Op.gte]: new Date(currentYear, currentMonth, 1),
-          [Op.lt]: new Date(currentYear, currentMonth + 1, 1)
-        }
-      },
-      order: [['attendanceTime', 'ASC']]
-    });
-
-    const daysPresent = attendanceRecords.filter(a => a.status === 'ONLINE').length;
-    const daysAbsent = attendanceRecords.filter(a => a.status === 'OFFLINE').length;
-
-    res.status(200).json({
-      success: true,
-      message: 'Delivery partner details fetched successfully',
-      data: {
-        personalInfo: {
-          id: partner.id,
-          fullName: partner.fullName,
-          mobile: partner.mobile,
-          email: partner.email,
-          dob: partner.dob,
-          gender: partner.gender,
-          address: `${partner.address}, ${partner.city}, ${partner.state} - ${partner.pincode}`,
-          emergencyContact: {
-            name: partner.emergencyName,
-            mobile: partner.emergencyMobile
-          },
-          status: partner.status,
-          joinedDate: partner.createdAt
-        },
-        vehicleInfo: {
-          vehicleType: partner.vehicleType,
-          vehicleModel: partner.vehicleModel,
-          licensePlate: partner.licensePlate,
-          rcStatus: partner.rcFile ? 'Verified' : 'Pending',
-          dlStatus: partner.dlFile ? 'Verified' : 'Pending'
-        },
-        performanceActivity: {
-          totalDeliveries,
-          avgDeliveryTime,
-          cancellationRate,
-          customerComplaints
-        },
-        payoutBankDetails: {
-          bankName: partner.bankName,
-          accountNumber: partner.accountNumber,
-          ifsc: partner.ifsc,
-          totalEarningsToDate: totalEarnings,
-          idProofStatus: partner.idProofFile ? 'Verified' : 'Pending'
-        },
-        workTypeAttendance: {
-          workType: partner.workType,
-          breakTime: partner.breakStart && partner.breakEnd 
-            ? `${partner.breakStart} - ${partner.breakEnd}` 
-            : 'Not set',
-          daysPresent,
-          daysAbsent
-        },
-        uploadedDocuments: {
-          aadharCard: partner.idProofFile ? 'Verified' : 'Pending',
-          panCard: 'Pending',
-          drivingLicense: partner.dlFile ? 'Verified' : 'Pending',
-          vehicleRC: partner.rcFile ? 'Verified' : 'Pending',
-          policeVerification: 'Pending'
-        }
-      }
-    });
-  } catch (error) {
-    console.error('Error fetching partner details:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch partner details',
-      error: error.message
-    });
-  }
-};
 
 /**
  * Get delivery partner statistics
@@ -307,7 +306,6 @@ exports.updatePartnerStatus = async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
 
-    // Validate status
     const validStatuses = ['pending', 'active', 'on-duty', 'inactive', 'blocked'];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({
@@ -357,7 +355,7 @@ exports.updatePartnerStatus = async (req, res) => {
 };
 
 /**
- * Get unique vehicle types (for filter dropdown)
+ * Get unique vehicle types
  */
 exports.getVehicleTypes = async (req, res) => {
   try {
@@ -393,7 +391,6 @@ exports.getPartnerAttendance = async (req, res) => {
     const { partnerId } = req.params;
     const { period = 'this-month', startDate, endDate } = req.query;
 
-    // Check if partner exists
     const partner = await Partner.findByPk(partnerId);
     if (!partner) {
       return res.status(404).json({
@@ -402,7 +399,6 @@ exports.getPartnerAttendance = async (req, res) => {
       });
     }
 
-    // Calculate date range based on period
     let dateRange = {};
     const now = new Date();
 
@@ -429,7 +425,6 @@ exports.getPartnerAttendance = async (req, res) => {
       };
     }
 
-    // Get attendance records
     const attendanceRecords = await PartnerAttendance.findAll({
       where: {
         partnerId,
@@ -439,7 +434,6 @@ exports.getPartnerAttendance = async (req, res) => {
       attributes: ['id', 'attendancePhoto', 'status', 'attendanceTime', 'createdAt', 'updatedAt']
     });
 
-    // Group by date and calculate check-in/check-out
     const attendanceByDate = {};
     
     attendanceRecords.forEach(record => {
@@ -450,32 +444,26 @@ exports.getPartnerAttendance = async (req, res) => {
           date,
           checkIn: null,
           checkOut: null,
-          workType: null,
           photo: null,
           status: 'absent'
         };
       }
 
-      // First record of day is check-in
       if (!attendanceByDate[date].checkIn) {
         attendanceByDate[date].checkIn = record.attendanceTime;
-        attendanceByDate[date].photo = record.attendancePhoto;
+        attendanceByDate[date].photo = getFileUrl(req, record.attendancePhoto);
         attendanceByDate[date].status = 'present';
       }
-      // Last record of day is check-out
       attendanceByDate[date].checkOut = record.attendanceTime;
     });
 
-    // Convert to array and sort by date
     const attendanceList = Object.values(attendanceByDate).sort((a, b) => 
       new Date(b.date) - new Date(a.date)
     );
 
-    // Calculate statistics
     const totalDaysPresent = attendanceList.filter(a => a.status === 'present').length;
     const totalDaysAbsent = attendanceList.filter(a => a.status === 'absent').length;
     
-    // Calculate late check-ins (after 10:30 AM)
     const lateCheckIns = attendanceList.filter(a => {
       if (!a.checkIn) return false;
       const checkInTime = new Date(a.checkIn);
@@ -540,7 +528,6 @@ exports.downloadAttendanceReport = async (req, res) => {
       attributes: ['attendanceTime', 'status']
     });
 
-    // Generate CSV
     const csvHeader = 'Date,Day,Check-In Time,Check-Out Time,Status\n';
     const csvRows = [];
 
