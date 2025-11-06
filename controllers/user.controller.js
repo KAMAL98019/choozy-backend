@@ -1,14 +1,14 @@
-const { User,sequelize } = require("../models");
+const { User, sequelize } = require("../models");
 const bcrypt = require("bcryptjs");
+const { generateToken } = require("../utils/jwt.utils");
 require("dotenv").config();
 const { v4: uuidv4 } = require('uuid');
 
-
 const SALT_ROUNDS = Number(process.env.BCRYPT_SALT_ROUNDS || 10);
 
-
+// ------------------- Create User -------------------
 exports.createUser = async (req, res) => {
-  const transaction = await sequelize.transaction(); // 🔹 Start transaction
+  const transaction = await sequelize.transaction();
   try {
     const { name, email, password, mobile, birthday, anniversary } = req.body;
     if (!mobile) {
@@ -16,7 +16,6 @@ exports.createUser = async (req, res) => {
       return res.status(400).json({ error: "Mobile is required" });
     }
 
-    // 🔹 Check duplicates
     if (await User.findOne({ where: { mobile } })) {
       await transaction.rollback();
       return res.status(400).json({ error: "Mobile already used" });
@@ -27,11 +26,10 @@ exports.createUser = async (req, res) => {
       return res.status(400).json({ error: "Email already used" });
     }
 
-    // 🔹 Get latest customerId safely inside transaction
     const lastUser = await User.findOne({
       order: [['createdAt', 'DESC']],
       attributes: ['customerId'],
-      lock: transaction.LOCK.UPDATE, // 👈 prevents concurrent reads
+      lock: transaction.LOCK.UPDATE,
       transaction,
     });
 
@@ -42,10 +40,8 @@ exports.createUser = async (req, res) => {
       newCustomerId = 'CUST' + nextNumber.toString().padStart(4, '0');
     }
 
-    // 🔹 Hash password
     const hashed = password ? await bcrypt.hash(password, SALT_ROUNDS) : null;
 
-    // 🔹 Create user safely
     const user = await User.create({
       customerId: newCustomerId,
       name: name || null,
@@ -54,14 +50,29 @@ exports.createUser = async (req, res) => {
       mobile,
       birthday: birthday || null,
       anniversary: anniversary || null,
+      status: 'active'
     }, { transaction });
 
-    await transaction.commit(); // ✅ Commit only if all ok
+    await transaction.commit();
 
-    return res.status(201).json({ message: "Account created", user });
+    const userData = user.toJSON();
+    delete userData.password;
+
+    const token = generateToken({
+      id: user.id,
+      customerId: user.customerId,
+      mobile: user.mobile,
+      role: 'user'
+    });
+
+    return res.status(201).json({ 
+      message: "Account created", 
+      user: userData,
+      token 
+    });
   } catch (err) {
     console.error(err);
-    await transaction.rollback(); // ❌ Rollback on error
+    await transaction.rollback();
     return res.status(500).json({ error: "Account creation failed" });
   }
 };
@@ -69,7 +80,9 @@ exports.createUser = async (req, res) => {
 // ------------------- Get All Users -------------------
 exports.getUsers = async (req, res) => {
   try {
-    const users = await User.findAll();
+    const users = await User.findAll({
+      attributes: { exclude: ['password', 'otp', 'otpExpiry'] }
+    });
     return res.json(users);
   } catch (err) {
     console.error(err);
@@ -80,7 +93,9 @@ exports.getUsers = async (req, res) => {
 // ------------------- Get User By ID -------------------
 exports.getUserById = async (req, res) => {
   try {
-    const user = await User.findByPk(req.params.id);
+    const user = await User.findByPk(req.params.id, {
+      attributes: { exclude: ['password', 'otp', 'otpExpiry'] }
+    });
     if (!user) return res.status(404).json({ error: "User not found" });
     return res.json(user);
   } catch (err) {
@@ -104,7 +119,11 @@ exports.updateUser = async (req, res) => {
     if (req.file) patch.profilePhoto = `/uploads/users/${req.file.filename}`;
 
     await user.update(patch);
-    return res.json({ message: "User updated", user });
+    
+    const userData = user.toJSON();
+    delete userData.password;
+    
+    return res.json({ message: "User updated", user: userData });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "Failed to update user" });
@@ -124,42 +143,61 @@ exports.deleteUser = async (req, res) => {
   }
 };
 
+// ------------------- Send Mobile OTP (Firebase Removed) -------------------
 exports.sendMobileOTP = async (req, res) => {
+  const transaction = await sequelize.transaction();
   try {
     const { mobile } = req.body;
 
     if (!mobile)
       return res.status(400).json({ success: false, message: "Mobile number required" });
 
-    // Generate OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const otpExpiry = new Date(Date.now() + 5 * 60 * 1000); // 5 min expiry
+    const otpExpiry = new Date(Date.now() + 5 * 60 * 1000);
 
-    let user = await User.findOne({ where: { mobile } });
+    let user = await User.findOne({ where: { mobile }, transaction });
 
     if (user) {
-      await user.update({ otp, otpExpiry, otpVerified: false });
+      await user.update({ otp, otpExpiry, otpVerified: false }, { transaction });
     } else {
+      const lastUser = await User.findOne({
+        order: [['createdAt', 'DESC']],
+        attributes: ['customerId'],
+        lock: transaction.LOCK.UPDATE,
+        transaction,
+      });
+
+      let newCustomerId = 'CUST0001';
+      if (lastUser && lastUser.customerId) {
+        const lastNumber = parseInt(lastUser.customerId.replace('CUST', ''), 10);
+        const nextNumber = lastNumber + 1;
+        newCustomerId = 'CUST' + nextNumber.toString().padStart(4, '0');
+      }
+
       user = await User.create({
-        id: uuidv4(), // if 'id' is also a UUID field
-        customerId: uuidv4(), // 🔥 Added fix
+        id: uuidv4(),
+        customerId: newCustomerId,
         mobile,
         otp,
         otpExpiry,
         otpVerified: false,
         status: "pending",
-      });
+      }, { transaction });
     }
 
+    await transaction.commit();
+
     console.log(`🔥 OTP for ${mobile}: ${otp}`);
+    // TODO: Send SMS via SMS gateway
 
     res.json({
       success: true,
-      message: "OTP generated successfully",
+      message: "OTP sent successfully",
       isNewUser: !user.name,
-      otp, // for testing only
+      otp, // Remove in production
     });
   } catch (err) {
+    await transaction.rollback();
     console.error(err);
     res.status(500).json({ success: false, error: err.message });
   }
@@ -175,16 +213,35 @@ exports.verifyMobileOTP = async (req, res) => {
     const user = await User.findOne({ where: { mobile } });
     if (!user) return res.status(404).json({ success: false, message: "User not found" });
     if (!user.otp || new Date() > user.otpExpiry)
-      return res.status(400).json({ success: false, message: "OTP expired. Request new one." });
-    if (user.otp !== otp) return res.status(400).json({ success: false, message: "Invalid OTP" });
+      return res.status(400).json({ success: false, message: "OTP expired" });
+    if (user.otp !== otp) 
+      return res.status(400).json({ success: false, message: "Invalid OTP" });
 
-    await user.update({ otp: null, otpExpiry: null, otpVerified: true, status: "active" });
+    await user.update({ 
+      otp: null, 
+      otpExpiry: null, 
+      otpVerified: true, 
+      status: user.name ? "active" : "pending"
+    });
 
     const isNewUser = !user.name || !user.email;
     const userData = user.toJSON();
     delete userData.password;
 
-    res.json({ success: true, message: "OTP verified", isNewUser, data: userData });
+    const token = user.name ? generateToken({
+      id: user.id,
+      customerId: user.customerId,
+      mobile: user.mobile,
+      role: 'user'
+    }) : null;
+
+    res.json({ 
+      success: true, 
+      message: "OTP verified", 
+      isNewUser,
+      data: userData,
+      token
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, error: err.message });
@@ -195,23 +252,45 @@ exports.verifyMobileOTP = async (req, res) => {
 exports.completeRegistration = async (req, res) => {
   try {
     const { mobile, name, email, password, birthday, anniversary } = req.body;
-    if (!mobile || !name) return res.status(400).json({ success: false, message: "Mobile and name required" });
+    if (!mobile || !name) 
+      return res.status(400).json({ success: false, message: "Mobile and name required" });
 
     const user = await User.findOne({ where: { mobile } });
     if (!user) return res.status(404).json({ success: false, message: "User not found" });
-    if (!user.otpVerified) return res.status(403).json({ success: false, message: "Please verify OTP first" });
+    if (!user.otpVerified) 
+      return res.status(403).json({ success: false, message: "Please verify OTP first" });
 
     if (email && await User.findOne({ where: { email }, attributes: ['id'] }).then(e => e && e.id !== user.id))
       return res.status(400).json({ success: false, message: "Email already used" });
 
     const hashedPassword = password ? await bcrypt.hash(password, SALT_ROUNDS) : null;
 
-    await user.update({ name, email: email || null, password: hashedPassword, birthday: birthday || null, anniversary: anniversary || null, otpVerified: false });
+    await user.update({ 
+      name, 
+      email: email || null, 
+      password: hashedPassword, 
+      birthday: birthday || null, 
+      anniversary: anniversary || null, 
+      otpVerified: false,
+      status: 'active'
+    });
 
     const userData = user.toJSON();
     delete userData.password;
 
-    res.json({ success: true, message: "Registration completed successfully", data: userData });
+    const token = generateToken({
+      id: user.id,
+      customerId: user.customerId,
+      mobile: user.mobile,
+      role: 'user'
+    });
+
+    res.json({ 
+      success: true, 
+      message: "Registration completed", 
+      data: userData,
+      token 
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, error: err.message });
@@ -222,98 +301,132 @@ exports.completeRegistration = async (req, res) => {
 exports.login = async (req, res) => {
   try {
     const { emailOrMobile, password } = req.body;
-    if (!emailOrMobile || !password) return res.status(400).json({ success: false, message: "Email/Mobile and password required" });
+    if (!emailOrMobile || !password) 
+      return res.status(400).json({ success: false, message: "Email/Mobile and password required" });
 
     const isEmail = emailOrMobile.includes('@');
-    const user = await User.findOne({ where: isEmail ? { email: emailOrMobile } : { mobile: emailOrMobile } });
+    const user = await User.findOne({ 
+      where: isEmail ? { email: emailOrMobile } : { mobile: emailOrMobile } 
+    });
 
-    if (!user) return res.status(404).json({ success: false, message: isEmail ? "Email not found" : "Mobile not found" });
-    if (user.status !== 'active') return res.status(403).json({ success: false, message: "Account not active" });
-    if (!user.password) return res.status(400).json({ success: false, message: "Use OTP to login" });
+    if (!user) 
+      return res.status(404).json({ success: false, message: isEmail ? "Email not found" : "Mobile not found" });
+      
+    if (user.status !== 'active') 
+      return res.status(403).json({ success: false, message: "Account not active" });
+      
+    if (!user.password) 
+      return res.status(400).json({ success: false, message: "Use OTP to login" });
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(401).json({ success: false, message: "Incorrect password" });
+    if (!isMatch) 
+      return res.status(401).json({ success: false, message: "Incorrect password" });
 
     const userData = user.toJSON();
     delete userData.password;
 
-    res.json({ success: true, message: "Login successful", data: userData });
+    const token = generateToken({
+      id: user.id,
+      customerId: user.customerId,
+      mobile: user.mobile,
+      role: 'user'
+    });
+
+    res.json({ 
+      success: true, 
+      message: "Login successful", 
+      data: userData,
+      token 
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, error: err.message });
   }
 };
 
-// ------------------- Resend OTP -------------------
-// ------------------- Resend OTP -------------------
+// ------------------- Resend OTP (Firebase Removed) -------------------
 exports.resendOTP = async (req, res) => {
   try {
-    const { emailOrMobile, fcmToken } = req.body;
+    const { emailOrMobile } = req.body;
 
-    if (!emailOrMobile || !fcmToken)
-      return res.status(400).json({ success: false, message: "Email/Mobile and FCM token required" });
+    if (!emailOrMobile)
+      return res.status(400).json({ success: false, message: "Email or Mobile required" });
 
     const isEmail = emailOrMobile.includes("@");
-
     const user = await User.findOne({
       where: isEmail ? { email: emailOrMobile } : { mobile: emailOrMobile }
     });
 
     if (!user)
-      return res.status(404).json({
-        success: false,
-        message: isEmail ? "Email not registered" : "Mobile not registered"
-      });
+      return res.status(404).json({ success: false, message: isEmail ? "Email not registered" : "Mobile not registered" });
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const otpExpiry = new Date(Date.now() + 5 * 60 * 1000);
 
     await user.update({ otp, otpExpiry });
 
-    const sent = await sendFirebaseOTP(fcmToken, otp);
-    if (!sent)
-      return res.status(500).json({ success: false, message: "Failed to resend OTP" });
+    console.log(`🔥 OTP for ${emailOrMobile}: ${otp}`);
+    // TODO: Send SMS
 
-    res.json({ success: true, message: "OTP resent successfully" });
+    res.json({ 
+      success: true, 
+      message: "OTP resent successfully",
+      otp // Remove in production
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, error: err.message });
   }
 };
 
-
-// ------------------- Forgot & Reset Password -------------------
 exports.sendPasswordResetOTP = async (req, res) => {
   try {
-    const { mobile, fcmToken } = req.body;
-    if (!mobile || !fcmToken) return res.status(400).json({ success: false, message: "Mobile and FCM token required" });
+    const { emailOrMobile } = req.body;
+    if (!emailOrMobile) 
+      return res.status(400).json({ success: false, message: "Email or Mobile required" });
 
-    const user = await User.findOne({ where: { mobile } });
-    if (!user) return res.status(404).json({ success: false, message: "Mobile not registered" });
+    const isEmail = emailOrMobile.includes("@");
+    const queryValue = isEmail ? emailOrMobile.toLowerCase().trim() : emailOrMobile.trim();
+
+    const user = await User.findOne({
+      where: isEmail ? { email: queryValue } : { mobile: queryValue }
+    });
+
+    if (!user) 
+      return res.status(404).json({ success: false, message: isEmail ? "Email not registered" : "Mobile not registered" });
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const otpExpiry = new Date(Date.now() + 5 * 60 * 1000);
 
     await user.update({ otp, otpExpiry, otpVerified: false });
-    const sent = await sendFirebaseOTP(fcmToken, otp);
-    if (!sent) return res.status(500).json({ success: false, message: "Failed to send OTP" });
-
-    res.json({ success: true, message: "OTP sent for password reset" });
+    
+    console.log(`🔥 Password Reset OTP for ${emailOrMobile}: ${otp}`);
+    res.json({ success: true, message: "OTP sent for password reset", otp });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, error: err.message });
   }
 };
 
+
 exports.verifyPasswordResetOTP = async (req, res) => {
   try {
-    const { mobile, otp } = req.body;
-    if (!mobile || !otp) return res.status(400).json({ success: false, message: "Mobile and OTP required" });
+    const { emailOrMobile, otp } = req.body;
+    if (!emailOrMobile || !otp)
+      return res.status(400).json({ success: false, message: "Email/Mobile and OTP required" });
 
-    const user = await User.findOne({ where: { mobile } });
+    const isEmail = emailOrMobile.includes("@");
+    const queryValue = isEmail ? emailOrMobile.toLowerCase().trim() : emailOrMobile.trim();
+
+    const user = await User.findOne({
+      where: isEmail ? { email: queryValue } : { mobile: queryValue }
+    });
+
     if (!user) return res.status(404).json({ success: false, message: "User not found" });
-    if (!user.otp || new Date() > user.otpExpiry) return res.status(400).json({ success: false, message: "OTP expired" });
-    if (user.otp !== otp) return res.status(400).json({ success: false, message: "Invalid OTP" });
+    if (!user.otp || new Date() > user.otpExpiry) 
+      return res.status(400).json({ success: false, message: "OTP expired" });
+    if (user.otp !== otp) 
+      return res.status(400).json({ success: false, message: "Invalid OTP" });
 
     await user.update({ otpVerified: true });
     res.json({ success: true, message: "OTP verified successfully" });
@@ -323,14 +436,23 @@ exports.verifyPasswordResetOTP = async (req, res) => {
   }
 };
 
+
 exports.resetPassword = async (req, res) => {
   try {
-    const { mobile, newPassword } = req.body;
-    if (!mobile || !newPassword) return res.status(400).json({ success: false, message: "Mobile and new password required" });
+    const { emailOrMobile, newPassword } = req.body;
+    if (!emailOrMobile || !newPassword)
+      return res.status(400).json({ success: false, message: "Email/Mobile and new password required" });
 
-    const user = await User.findOne({ where: { mobile } });
+    const isEmail = emailOrMobile.includes("@");
+    const queryValue = isEmail ? emailOrMobile.toLowerCase().trim() : emailOrMobile.trim();
+
+    const user = await User.findOne({
+      where: isEmail ? { email: queryValue } : { mobile: queryValue }
+    });
+
     if (!user) return res.status(404).json({ success: false, message: "User not found" });
-    if (!user.otpVerified) return res.status(403).json({ success: false, message: "OTP not verified" });
+    if (!user.otpVerified) 
+      return res.status(403).json({ success: false, message: "OTP not verified" });
 
     const hashedPassword = await bcrypt.hash(newPassword, SALT_ROUNDS);
     await user.update({ password: hashedPassword, otp: null, otpExpiry: null, otpVerified: false });
@@ -345,32 +467,28 @@ exports.resetPassword = async (req, res) => {
 // ------------------- Logout -------------------
 exports.logout = async (req, res) => {
   try {
-    const { emailOrMobile } = req.body;
-
-    if (!emailOrMobile)
-      return res.status(400).json({
-        success: false,
-        message: "Email or Mobile number is required to logout"
-      });
-
-    const isEmail = emailOrMobile.includes("@");
-
-    const user = await User.findOne({
-      where: isEmail ? { email: emailOrMobile } : { mobile: emailOrMobile }
-    });
-
-    if (!user)
-      return res.status(404).json({
-        success: false,
-        message: "User not found with given email or mobile"
-      });
-
-    // Optional: track logout time or clear session tokens
-    await user.update({ lastLogout: new Date() });
-
+    // Client will delete the JWT token
     return res.json({ success: true, message: "Logout successful" });
   } catch (err) {
     console.error("Logout Error:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+// ------------------- Get Profile -------------------
+exports.getProfile = async (req, res) => {
+  try {
+    const user = await User.findByPk(req.user.id, {
+      attributes: { exclude: ['password', 'otp', 'otpExpiry'] }
+    });
+    
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    res.json({ success: true, data: user });
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ success: false, error: err.message });
   }
 };

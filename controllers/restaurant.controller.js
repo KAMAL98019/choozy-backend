@@ -1,35 +1,21 @@
-'use strict';
-
 const { Op } = require('sequelize');
-const { RestaurantReg,RestaurantStatus,FoodItem } = require('../models');
+const { RestaurantReg, RestaurantStatus, FoodItem } = require('../models');
 const { v4: uuidv4 } = require('uuid');
 const bcrypt = require("bcryptjs");
-
+const { generateToken } = require("../utils/jwt.utils");
 
 exports.create = async (req, res) => {
   try {
-    // ---------------- TEXT FIELDS ----------------
     const {
-      rest_name,
-      rest_address,
-      avg_cost_two,
-      contact_person_name,
-      contact_email,
-      password,
-      contact_number,
-      operational_hours,
-      bank_account_name,
-      account_number,
-      ifsc_code,
-      agree_to_terms
+      rest_name, rest_address, avg_cost_two, contact_person_name,
+      contact_email, password, contact_number, operational_hours,
+      bank_account_name, account_number, ifsc_code, agree_to_terms
     } = req.body;
 
-    // ---------------- FILES ----------------
     const rest_logo = req.files?.rest_logo?.[0]?.path || null;
     const fssai_certificate = req.files?.fssai_certificate?.[0]?.path || null;
     const gst_certificate = req.files?.gst_certificate?.[0]?.path || null;
 
-    // ---------------- VALIDATION ----------------
     const missingFields = [];
     if (!rest_name) missingFields.push("rest_name");
     if (!rest_address) missingFields.push("rest_address");
@@ -39,31 +25,20 @@ exports.create = async (req, res) => {
     if (!fssai_certificate) missingFields.push("fssai_certificate");
 
     if (missingFields.length > 0) {
-      return res.status(400).json({
-        error: `Missing required fields: ${missingFields.join(", ")}`
-      });
+      return res.status(400).json({ error: `Missing: ${missingFields.join(", ")}` });
     }
 
-    // ---------------- UNIQUE CHECKS ----------------
     const existingRestaurant = await RestaurantReg.findOne({
       where: {
-        [Op.or]: [
-          { contact_email },
-          { contact_number },
-          { rest_name }
-        ]
+        [Op.or]: [{ contact_email }, { contact_number }, { rest_name }]
       }
     });
     if (existingRestaurant) {
-      return res.status(400).json({
-        error: "Restaurant already registered with same email, phone, or name"
-      });
+      return res.status(400).json({ error: "Restaurant already registered" });
     }
 
-    // ---------------- PASSWORD HASH ----------------
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // ---------------- GENERATE RESTAURANT CODE ----------------
     const last = await RestaurantReg.findOne({
       order: [['createdAt', 'DESC']],
       attributes: ['restaurant_code']
@@ -76,58 +51,51 @@ exports.create = async (req, res) => {
     }
     const restaurant_code = `REST${String(nextNumber).padStart(4, '0')}`;
 
-    // ---------------- PAYLOAD ----------------
     const payload = {
       id: uuidv4(),
-      restaurant_code, // ✅ guaranteed
-      rest_name,
-      rest_address,
+      restaurant_code,
+      rest_name, rest_address,
       avg_cost_two: Number(avg_cost_two) || 0,
-      rest_logo,
-      contact_person_name,
-      contact_email,
-      password: hashedPassword,
-      contact_number,
+      rest_logo, contact_person_name, contact_email,
+      password: hashedPassword, contact_number,
       operational_hours: JSON.stringify(operational_hours || []),
-      fssai_certificate,
-      gst_certificate,
-      bank_account_name,
-      account_number,
-      ifsc_code,
+      fssai_certificate, gst_certificate,
+      bank_account_name, account_number, ifsc_code,
       agree_to_terms: !!agree_to_terms
     };
 
-    // ---------------- SAVE TO DB ----------------
     const row = await RestaurantReg.create(payload);
 
-    // ✅ Add default OFFLINE status
     await RestaurantStatus.create({
       rest_id: row.id,
       status: 'OFFLINE',
-      reason: 'New restaurant — awaiting approval or activation'
+      reason: 'New restaurant — awaiting approval'
     });
 
     const data = row.toJSON();
     delete data.password;
 
+    const token = generateToken({
+      id: row.id,
+      restaurant_code: row.restaurant_code,
+      email: row.contact_email,
+      role: 'restaurant'
+    });
+
     return res.status(201).json({
       success: true,
-      message: 'Restaurant registered successfully and set to OFFLINE status',
-      restaurant_code: data.restaurant_code, // ✅ Show generated restaurant code
-      data
+      message: 'Restaurant registered successfully',
+      restaurant_code: data.restaurant_code,
+      data,
+      token
     });
 
   } catch (e) {
     console.error("Create Restaurant Error:", e);
-    return res.status(500).json({
-      success: false,
-      error: e.message || 'Create failed'
-    });
+    return res.status(500).json({ success: false, error: e.message });
   }
 };
 
-
-// ---------------- LIST RESTAURANTS ----------------
 exports.list = async (req, res) => {
   try {
     const { q, minCost, maxCost, page = 1, pageSize = 20 } = req.query;
@@ -150,9 +118,7 @@ exports.list = async (req, res) => {
     const offset = (Math.max(Number(page) || 1, 1) - 1) * limit;
 
     const { count, rows } = await RestaurantReg.findAndCountAll({
-      where,
-      limit,
-      offset,
+      where, limit, offset,
       order: [['createdAt', 'DESC']]
     });
 
@@ -162,19 +128,13 @@ exports.list = async (req, res) => {
       return obj;
     });
 
-    return res.json({
-      total: count,
-      page: Number(page),
-      pageSize: limit,
-      data
-    });
+    return res.json({ total: count, page: Number(page), pageSize: limit, data });
   } catch (e) {
     console.error(e);
     return res.status(500).json({ error: 'List failed' });
   }
 };
 
-// ---------------- GET BY ID ----------------
 exports.getById = async (req, res) => {
   try {
     const row = await RestaurantReg.findByPk(req.params.id);
@@ -188,7 +148,6 @@ exports.getById = async (req, res) => {
   }
 };
 
-// ---------------- UPDATE ----------------
 exports.update = async (req, res) => {
   try {
     const row = await RestaurantReg.findByPk(req.params.id);
@@ -211,7 +170,6 @@ exports.update = async (req, res) => {
       agree_to_terms: typeof req.body.agree_to_terms === 'boolean' ? req.body.agree_to_terms : undefined
     };
 
-    // Hash password if provided
     if (req.body.password) {
       patch.password = await bcrypt.hash(req.body.password, 10);
     }
@@ -228,7 +186,6 @@ exports.update = async (req, res) => {
   }
 };
 
-// ---------------- DELETE ----------------
 exports.remove = async (req, res) => {
   try {
     const row = await RestaurantReg.findByPk(req.params.id);
@@ -253,13 +210,11 @@ exports.getRestaurantFoods = async (req, res) => {
     if (!restStatus || restStatus.status !== 'ONLINE') {
       return res.status(403).json({
         success: false,
-        message: 'Restaurant is currently offline. You cannot view its menu.',
+        message: 'Restaurant is currently offline',
       });
     }
 
-    // Fetch all foods for the restaurant without the isActive filter
     const foods = await FoodItem.findAll({ where: { rest_id: id } });
-
     res.json({ success: true, data: foods });
   } catch (err) {
     console.error(err);
@@ -267,185 +222,97 @@ exports.getRestaurantFoods = async (req, res) => {
   }
 };
 
-
-
-// ------------------- Login (Email OR Mobile) -------------------
+// ------------------- Login -------------------
 exports.login = async (req, res) => {
   try {
     const { emailOrMobile, password } = req.body;
 
     if (!emailOrMobile || !password) {
-      return res.status(400).json({
-        success: false,
-        message: "Email/Mobile and password are required"
-      });
+      return res.status(400).json({ success: false, message: "Email/Mobile and password required" });
     }
 
-    // Check if input is email or mobile
     const isEmail = emailOrMobile.includes('@');
-    
-    // Find restaurant by email OR mobile
     const restaurant = await RestaurantReg.findOne({ 
       where: isEmail ? { contact_email: emailOrMobile } : { contact_number: emailOrMobile }
     });
 
     if (!restaurant) {
-      return res.status(404).json({
-        success: false,
-        message: isEmail ? "Email not found" : "Mobile number not found",
-        field: "emailOrMobile"
-      });
+      return res.status(404).json({ success: false, message: isEmail ? "Email not found" : "Mobile not found" });
     }
 
-    // Check account status
     if (restaurant.status === "blocked") {
-      return res.status(403).json({
-        success: false,
-        message: "Your account is blocked. Please contact support."
-      });
+      return res.status(403).json({ success: false, message: "Account blocked" });
     }
 
     if (restaurant.status === "pending") {
-      return res.status(403).json({
-        success: false,
-        message: "Your account is still pending approval by admin."
-      });
+      return res.status(403).json({ success: false, message: "Account pending approval" });
     }
 
-    // Verify password
     const isMatch = await bcrypt.compare(password, restaurant.password);
     if (!isMatch) {
-      return res.status(401).json({
-        success: false,
-        message: "Incorrect password",
-        field: "password"
-      });
+      return res.status(401).json({ success: false, message: "Incorrect password" });
     }
 
-    // Success - return data without password
     const data = restaurant.toJSON();
     delete data.password;
 
-    res.json({
-      success: true,
-      message: "Login successful",
-      data
+    const token = generateToken({
+      id: restaurant.id,
+      restaurant_code: restaurant.restaurant_code,
+      email: restaurant.contact_email,
+      role: 'restaurant'
     });
+
+    res.json({ success: true, message: "Login successful", data, token });
 
   } catch (err) {
     console.error("Login Error:", err);
-    res.status(500).json({
-      success: false,
-      error: err.message
-    });
+    res.status(500).json({ success: false, error: err.message });
   }
 };
 
 // ------------------- Logout -------------------
 exports.logout = async (req, res) => {
   try {
-    const { emailOrMobile } = req.body;
-
-    // ---------------- VALIDATION ----------------
-    if (!emailOrMobile) {
-      return res.status(400).json({
-        success: false,
-        message: "Email or mobile number is required to logout"
-      });
-    }
-
-    // ---------------- FIND RESTAURANT ----------------
-    const isEmail = emailOrMobile.includes('@');
-    const restaurant = await RestaurantReg.findOne({
-      where: isEmail
-        ? { contact_email: emailOrMobile }
-        : { contact_number: emailOrMobile }
-    });
-
-    if (!restaurant) {
-      return res.status(404).json({
-        success: false,
-        message: "Restaurant not found with given email or mobile number"
-      });
-    }
-
-    // ---------------- LOGOUT HANDLING ----------------
-    // If you use JWT, just ask client to delete the token.
-    // Optionally, track logout time in DB for auditing
-    await restaurant.update({ lastLogout: new Date() });
-
-    return res.status(200).json({
-      success: true,
-      message: "Logout successful"
-    });
-
+    // Client will delete the JWT token
+    return res.json({ success: true, message: "Logout successful" });
   } catch (err) {
     console.error("Logout Error:", err);
-    return res.status(500).json({
-      success: false,
-      message: "Something went wrong during logout",
-      error: err.message
-    });
+    return res.status(500).json({ success: false, error: err.message });
   }
 };
 
-
-// ------------------- Send OTP (Email OR Mobile) -------------------
+// ------------------- Send OTP -------------------
 exports.sendOTP = async (req, res) => {
   try {
     const { emailOrMobile } = req.body;
     
     if (!emailOrMobile) {
-      return res.status(400).json({
-        success: false,
-        message: "Email or Mobile number is required"
-      });
+      return res.status(400).json({ success: false, message: "Email or Mobile required" });
     }
 
     const isEmail = emailOrMobile.includes('@');
-    
     const restaurant = await RestaurantReg.findOne({ 
       where: isEmail ? { contact_email: emailOrMobile } : { contact_number: emailOrMobile }
     });
 
     if (!restaurant) {
-      return res.status(404).json({
-        success: false,
-        message: isEmail ? "Email not registered" : "Mobile number not registered"
-      });
+      return res.status(404).json({ success: false, message: isEmail ? "Email not registered" : "Mobile not registered" });
     }
 
-    // Generate 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    
-    // Store OTP with expiry (5 minutes)
     const otpExpiry = new Date(Date.now() + 5 * 60 * 1000);
     
-    await restaurant.update({
-      otp,
-      otpExpiry,
-      otpVerified: false
-    });
+    await restaurant.update({ otp, otpExpiry, otpVerified: false });
 
-    // Send OTP via SMS if mobile, email if email
-    if (isEmail) {
-      console.log(`📧 Email OTP for ${emailOrMobile}: ${otp}`);
-    } else {
-      console.log(`📱 SMS OTP for ${emailOrMobile}: ${otp}`);
-    }
+    console.log(`🔥 OTP for ${emailOrMobile}: ${otp}`);
+    // TODO: Send SMS/Email
 
-    res.json({
-      success: true,
-      message: "Verification code sent successfully",
-      sentTo: isEmail ? "email" : "mobile"
-    });
+    res.json({ success: true, message: "Verification code sent", otp });
 
   } catch (err) {
     console.error("Send OTP Error:", err);
-    res.status(500).json({
-      success: false,
-      error: err.message
-    });
+    res.status(500).json({ success: false, error: err.message });
   }
 };
 
@@ -455,67 +322,37 @@ exports.verifyOTP = async (req, res) => {
     const { emailOrMobile, otp } = req.body;
 
     if (!emailOrMobile || !otp) {
-      return res.status(400).json({
-        success: false,
-        message: "Email/Mobile and OTP are required"
-      });
+      return res.status(400).json({ success: false, message: "Email/Mobile and OTP required" });
     }
 
     const isEmail = emailOrMobile.includes('@');
-    
     const restaurant = await RestaurantReg.findOne({ 
       where: isEmail ? { contact_email: emailOrMobile } : { contact_number: emailOrMobile }
     });
 
     if (!restaurant) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found"
-      });
+      return res.status(404).json({ success: false, message: "User not found" });
     }
 
-    // Check if OTP exists
     if (!restaurant.otp) {
-      return res.status(400).json({
-        success: false,
-        message: "No OTP found. Please request a new code."
-      });
+      return res.status(400).json({ success: false, message: "No OTP found" });
     }
 
-    // Check if OTP expired
     if (new Date() > restaurant.otpExpiry) {
-      return res.status(400).json({
-        success: false,
-        message: "OTP expired. Please request a new code."
-      });
+      return res.status(400).json({ success: false, message: "OTP expired" });
     }
 
-    // Verify OTP
     if (restaurant.otp !== otp) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid OTP"
-      });
+      return res.status(400).json({ success: false, message: "Invalid OTP" });
     }
 
-    // OTP verified
-    await restaurant.update({
-      otp: null,
-      otpExpiry: null,
-      otpVerified: true
-    });
+    await restaurant.update({ otp: null, otpExpiry: null, otpVerified: true });
 
-    res.json({
-      success: true,
-      message: "OTP verified successfully"
-    });
+    res.json({ success: true, message: "OTP verified successfully" });
 
   } catch (err) {
     console.error("Verify OTP Error:", err);
-    res.status(500).json({
-      success: false,
-      error: err.message
-    });
+    res.status(500).json({ success: false, error: err.message });
   }
 };
 
@@ -525,52 +362,30 @@ exports.resetPassword = async (req, res) => {
     const { emailOrMobile, newPassword } = req.body;
 
     if (!emailOrMobile || !newPassword) {
-      return res.status(400).json({
-        success: false,
-        message: "Email/Mobile and new password are required"
-      });
+      return res.status(400).json({ success: false, message: "Email/Mobile and new password required" });
     }
 
     const isEmail = emailOrMobile.includes('@');
-    
     const restaurant = await RestaurantReg.findOne({ 
       where: isEmail ? { contact_email: emailOrMobile } : { contact_number: emailOrMobile }
     });
 
     if (!restaurant) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found"
-      });
+      return res.status(404).json({ success: false, message: "User not found" });
     }
 
-    // Check if OTP was verified (security check)
     if (!restaurant.otpVerified) {
-      return res.status(403).json({
-        success: false,
-        message: "Please verify OTP first"
-      });
+      return res.status(403).json({ success: false, message: "Please verify OTP first" });
     }
 
-    // Hash new password
     const hashedPassword = await bcrypt.hash(newPassword, 10);
-    
-    await restaurant.update({
-      password: hashedPassword,
-      otpVerified: false
-    });
+    await restaurant.update({ password: hashedPassword, otpVerified: false });
 
-    res.json({
-      success: true,
-      message: "Password reset successful"
-    });
+    res.json({ success: true, message: "Password reset successful" });
 
   } catch (err) {
     console.error("Reset Password Error:", err);
-    res.status(500).json({
-      success: false,
-      error: err.message
-    });
+    res.status(500).json({ success: false, error: err.message });
   }
 };
 
@@ -580,53 +395,34 @@ exports.resendOTP = async (req, res) => {
     const { emailOrMobile } = req.body;
 
     if (!emailOrMobile) {
-      return res.status(400).json({
-        success: false,
-        message: "Email or Mobile number is required"
-      });
+      return res.status(400).json({ success: false, message: "Email or Mobile required" });
     }
 
     const isEmail = emailOrMobile.includes('@');
-    
     const restaurant = await RestaurantReg.findOne({ 
       where: isEmail ? { contact_email: emailOrMobile } : { contact_number: emailOrMobile }
     });
 
     if (!restaurant) {
-      return res.status(404).json({
-        success: false,
-        message: isEmail ? "Email not registered" : "Mobile number not registered"
-      });
+      return res.status(404).json({ success: false, message: isEmail ? "Email not registered" : "Mobile not registered" });
     }
 
-    // Generate new OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const otpExpiry = new Date(Date.now() + 5 * 60 * 1000);
     
-    await restaurant.update({
-      otp,
-      otpExpiry
-    });
+    await restaurant.update({ otp, otpExpiry });
 
-    if (isEmail) {
-      console.log(`📧 Resent Email OTP for ${emailOrMobile}: ${otp}`);
-    } else {
-      console.log(`📱 Resent SMS OTP for ${emailOrMobile}: ${otp}`);
-    }
+    console.log(`🔥 Resent OTP for ${emailOrMobile}: ${otp}`);
+    // TODO: Send SMS/Email
 
-    res.json({
-      success: true,
-      message: "Verification code resent successfully"
-    });
+    res.json({ success: true, message: "Verification code resent", otp });
 
   } catch (err) {
     console.error("Resend OTP Error:", err);
-    res.status(500).json({
-      success: false,
-      error: err.message
-    });
+    res.status(500).json({ success: false, error: err.message });
   }
-};// PUT /restaurants/:id/delivery-settings
+};
+
 exports.updateDeliverySettings = async (req,res)=>{
   try{
     const { id } = req.params;
@@ -646,6 +442,3 @@ exports.updateDeliverySettings = async (req,res)=>{
     res.status(500).json({ error: "Failed to update delivery settings" });
   }
 };
-
-
-

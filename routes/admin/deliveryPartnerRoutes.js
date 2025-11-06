@@ -1,28 +1,28 @@
 const express = require('express');
 const router = express.Router();
 const deliveryPartnerController = require('../../controllers/admin/deliveryPartnerController');
-// const { authenticate, isAdmin } = require('../../middleware/auth');
+const { authenticateAdmin } = require('../../middlewares/auth.middleware');
 
 // Get all delivery partners with filters and pagination
-router.get('/delivery-partners', deliveryPartnerController.getAllPartners);
+router.get('/delivery-partners',authenticateAdmin, deliveryPartnerController.getAllPartners);
 
 // Get partner statistics
-router.get('/delivery-partners/stats', deliveryPartnerController.getPartnerStats);
+router.get('/delivery-partners/stats',authenticateAdmin, deliveryPartnerController.getPartnerStats);
 
 // Get vehicle types for filter
-router.get('/delivery-partners/vehicles', deliveryPartnerController.getVehicleTypes);
+router.get('/delivery-partners/vehicles',authenticateAdmin, deliveryPartnerController.getVehicleTypes);
 
 // Get single partner details
-router.get('/delivery-partners/:id', deliveryPartnerController.getPartnerById);
+router.get('/delivery-partners/:id',authenticateAdmin, deliveryPartnerController.getPartnerById);
 
 // Update partner status (Approve/Reject/Block/Activate)
-router.put('/delivery-partners/:id/status', deliveryPartnerController.updatePartnerStatus);
+router.put('/delivery-partners/:id/status',authenticateAdmin, deliveryPartnerController.updatePartnerStatus);
 
 // Get partner attendance log
-router.get('/delivery-partners/:partnerId/attendance', deliveryPartnerController.getPartnerAttendance);
+router.get('/delivery-partners/:partnerId/attendance',authenticateAdmin, deliveryPartnerController.getPartnerAttendance);
 
 // Download attendance report
-router.get('/delivery-partners/:partnerId/attendance/download', deliveryPartnerController.downloadAttendanceReport);
+router.get('/delivery-partners/:partnerId/attendance/download',authenticateAdmin, deliveryPartnerController.downloadAttendanceReport);
 
 
 module.exports = router;

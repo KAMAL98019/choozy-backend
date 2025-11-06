@@ -1,33 +1,29 @@
+// ==================== routes/user.routes.js ====================
 const express = require("express");
 const router = express.Router();
 const userCtrl = require("../controllers/user.controller");
-const upload = require("../middlewares/uploadUser"); // multer config file
+const upload = require("../middlewares/uploadUser");
+const { authenticateUser } = require("../middlewares/auth.middleware");
 
-// 👇 Create User — NO photo upload
-router.post("/", userCtrl.createUser);
-
-// Get all users
-router.get("/", userCtrl.getUsers);
-
-// Get user by ID
-router.get("/:id", userCtrl.getUserById);
-
-// 👇 Update User — photo upload allowed here only
-router.put("/:id", upload.single("profilePhoto"), userCtrl.updateUser);
-
-// Delete user
-router.delete("/:id", userCtrl.deleteUser);
+// ============= PUBLIC ROUTES (No JWT Required) =============
 router.post('/auth/send-mobile-otp', userCtrl.sendMobileOTP);
 router.post('/auth/verify-mobile-otp', userCtrl.verifyMobileOTP);
-
 router.post('/auth/complete-registration', userCtrl.completeRegistration);
 router.post('/auth/login', userCtrl.login);
 router.post('/auth/forgot-password/send-otp', userCtrl.sendPasswordResetOTP);
 router.post('/auth/forgot-password/verify-otp', userCtrl.verifyPasswordResetOTP);
 router.post('/auth/forgot-password/reset-password', userCtrl.resetPassword);
 router.post('/auth/resend-otp', userCtrl.resendOTP);
-router.post('/auth/logout', userCtrl.logout);
 
+// ============= PROTECTED ROUTES (JWT Required) =============
+router.post('/auth/logout', authenticateUser, userCtrl.logout);
+router.get('/profile', authenticateUser, userCtrl.getProfile);
 
+// Admin routes (require JWT + admin check)
+router.post("/", authenticateUser, userCtrl.createUser);
+router.get("/", authenticateUser, userCtrl.getUsers);
+router.get("/:id", authenticateUser, userCtrl.getUserById);
+router.put("/:id", authenticateUser, upload.single("profilePhoto"), userCtrl.updateUser);
+router.delete("/:id", authenticateUser, userCtrl.deleteUser);
 
 module.exports = router;

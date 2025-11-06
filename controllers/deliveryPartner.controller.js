@@ -1,5 +1,6 @@
 const { Partner } = require("../models");
 const bcrypt = require("bcryptjs");
+const { generateToken } = require("../utils/jwt.utils");
 
 // ------------------- Register -------------------
 exports.register = async (req, res) => {
@@ -15,7 +16,6 @@ exports.register = async (req, res) => {
     const dlFile = req.files?.dlFile ? `${req.protocol}://${req.get("host")}/uploads/${req.files.dlFile[0].filename}` : null;
     const idProofFile = req.files?.idProofFile ? `${req.protocol}://${req.get("host")}/uploads/${req.files.idProofFile[0].filename}` : null;
 
-    // ---------------- GENERATE PARTNERCODE ----------------
     const lastPartner = await Partner.findOne({
       order: [['createdAt', 'DESC']],
       attributes: ['partnerCode'],
@@ -30,14 +30,29 @@ exports.register = async (req, res) => {
 
     const partner = await Partner.create({
       ...req.body,
-      partnerCode, // ✅ guaranteed
+      partnerCode,
       password: hash,
       rcFile,
       dlFile,
       idProofFile,
     });
 
-    res.status(201).json({ success: true, message: "Registered successfully", partner });
+    const data = partner.toJSON();
+    delete data.password;
+
+    const token = generateToken({
+      id: partner.id,
+      partnerCode: partner.partnerCode,
+      email: partner.email,
+      role: 'partner'
+    });
+
+    res.status(201).json({ 
+      success: true, 
+      message: "Registered successfully", 
+      partner: data,
+      token 
+    });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -46,7 +61,9 @@ exports.register = async (req, res) => {
 // ------------------- CRUD -------------------
 exports.getAll = async (req, res) => {
   try {
-    const partners = await Partner.findAll();
+    const partners = await Partner.findAll({
+      attributes: { exclude: ['password', 'otp', 'otpExpiry'] }
+    });
     res.json({ success: true, data: partners });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -55,7 +72,9 @@ exports.getAll = async (req, res) => {
 
 exports.getOne = async (req, res) => {
   try {
-    const partner = await Partner.findByPk(req.params.id);
+    const partner = await Partner.findByPk(req.params.id, {
+      attributes: { exclude: ['password', 'otp', 'otpExpiry'] }
+    });
     if (!partner) return res.status(404).json({ success: false, message: "Partner not found" });
 
     res.json({ success: true, data: partner });
@@ -72,11 +91,7 @@ exports.update = async (req, res) => {
     const rcFile = req.files?.rcFile ? `${req.protocol}://${req.get("host")}/uploads/${req.files.rcFile[0].filename}` : partner.rcFile;
     const dlFile = req.files?.dlFile ? `${req.protocol}://${req.get("host")}/uploads/${req.files.dlFile[0].filename}` : partner.dlFile;
     const idProofFile = req.files?.idProofFile ? `${req.protocol}://${req.get("host")}/uploads/${req.files.idProofFile[0].filename}` : partner.idProofFile;
-
-    // ✅ Add new logic for profile photo
-    const profilePhoto = req.files?.profilePhoto
-      ? `${req.protocol}://${req.get("host")}/uploads/${req.files.profilePhoto[0].filename}`
-      : partner.profilePhoto;
+    const profilePhoto = req.files?.profilePhoto ? `${req.protocol}://${req.get("host")}/uploads/${req.files.profilePhoto[0].filename}` : partner.profilePhoto;
 
     let password = partner.password;
     if (req.body.password) {
@@ -89,15 +104,17 @@ exports.update = async (req, res) => {
       rcFile,
       dlFile,
       idProofFile,
-      profilePhoto, // ✅ include new field
+      profilePhoto,
     });
 
-    res.json({ success: true, message: "Updated successfully", data: partner });
+    const data = partner.toJSON();
+    delete data.password;
+
+    res.json({ success: true, message: "Updated successfully", data });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 };
-
 
 exports.remove = async (req, res) => {
   try {
@@ -111,123 +128,82 @@ exports.remove = async (req, res) => {
   }
 };
 
-
-// ------------------- Login (Email OR Mobile) -------------------
+// ------------------- Login -------------------
 exports.login = async (req, res) => {
   try {
     const { emailOrMobile, password } = req.body;
     
     if (!emailOrMobile || !password) {
-      return res.status(400).json({
-        success: false,
-        message: "Email/Mobile and password are required"
-      });
+      return res.status(400).json({ success: false, message: "Email/Mobile and password required" });
     }
 
-    // Check if input is email or mobile (simple check)
     const isEmail = emailOrMobile.includes('@');
-    
-    // Find partner by email OR mobile
     const partner = await Partner.findOne({ 
       where: isEmail ? { email: emailOrMobile } : { mobile: emailOrMobile }
     });
 
     if (!partner) {
-      return res.status(404).json({
-        success: false,
-        message: isEmail ? "Email not found" : "Mobile number not found",
-        field: "emailOrMobile"
-      });
+      return res.status(404).json({ success: false, message: isEmail ? "Email not found" : "Mobile not found" });
     }
 
-    // Check status
     if (partner.status === "blocked") {
-      return res.status(403).json({
-        success: false,
-        message: "Your account is blocked. Please contact support."
-      });
+      return res.status(403).json({ success: false, message: "Account blocked" });
     }
 
     if (partner.status === "inactive") {
-      return res.status(403).json({
-        success: false,
-        message: "Your account is inactive. Please contact support."
-      });
+      return res.status(403).json({ success: false, message: "Account inactive" });
     }
 
-    // Password check
     const isMatch = await bcrypt.compare(password, partner.password);
     if (!isMatch) {
-      return res.status(401).json({
-        success: false,
-        message: "Incorrect password",
-        field: "password"
-      });
+      return res.status(401).json({ success: false, message: "Incorrect password" });
     }
 
     const partnerData = partner.toJSON();
     delete partnerData.password;
 
-    res.json({
-      success: true,
-      message: "Login successful",
-      data: partnerData
+    const token = generateToken({
+      id: partner.id,
+      partnerCode: partner.partnerCode,
+      email: partner.email,
+      role: 'partner'
     });
+
+    res.json({ success: true, message: "Login successful", data: partnerData, token });
 
   } catch (err) {
     console.error("Login Error:", err);
-    res.status(500).json({
-      success: false,
-      error: err.message
-    });
+    res.status(500).json({ success: false, error: err.message });
   }
 };
 
-// ------------------- Send OTP (Email OR Mobile) -------------------
+// ------------------- Send OTP -------------------
 exports.sendOTP = async (req, res) => {
   try {
     const { emailOrMobile } = req.body;
     
     if (!emailOrMobile) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Email or Mobile number is required" 
-      });
+      return res.status(400).json({ success: false, message: "Email or Mobile required" });
     }
 
     const isEmail = emailOrMobile.includes('@');
-    
     const partner = await Partner.findOne({ 
       where: isEmail ? { email: emailOrMobile } : { mobile: emailOrMobile }
     });
 
     if (!partner) {
-      return res.status(404).json({ 
-        success: false, 
-        message: isEmail ? "Email not registered" : "Mobile number not registered"
-      });
+      return res.status(404).json({ success: false, message: isEmail ? "Email not registered" : "Mobile not registered" });
     }
 
-    // Generate 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const otpExpiry = new Date(Date.now() + 5 * 60 * 1000);
 
     await partner.update({ otp, otpExpiry, otpVerified: false });
 
-    // Send OTP via SMS if mobile, email if email
-    if (isEmail) {
-      // Send via email
-      console.log(`📧 Email OTP for ${emailOrMobile}: ${otp}`);
-    } else {
-      // Send via SMS
-      console.log(`📱 SMS OTP for ${emailOrMobile}: ${otp}`);
-    }
+    console.log(`🔥 OTP for ${emailOrMobile}: ${otp}`);
+    // TODO: Send SMS/Email
 
-    res.json({ 
-      success: true, 
-      message: "Verification code sent successfully",
-      sentTo: isEmail ? "email" : "mobile"
-    });
+    res.json({ success: true, message: "Verification code sent", otp });
 
   } catch (err) {
     console.error("Send OTP Error:", err);
@@ -241,52 +217,33 @@ exports.verifyOTP = async (req, res) => {
     const { emailOrMobile, otp } = req.body;
 
     if (!emailOrMobile || !otp) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Email/Mobile and OTP are required" 
-      });
+      return res.status(400).json({ success: false, message: "Email/Mobile and OTP required" });
     }
 
     const isEmail = emailOrMobile.includes('@');
-    
     const partner = await Partner.findOne({ 
       where: isEmail ? { email: emailOrMobile } : { mobile: emailOrMobile }
     });
 
     if (!partner) {
-      return res.status(404).json({ 
-        success: false, 
-        message: "User not found" 
-      });
+      return res.status(404).json({ success: false, message: "User not found" });
     }
 
     if (!partner.otp) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "No OTP found. Please request a new one." 
-      });
+      return res.status(400).json({ success: false, message: "No OTP found" });
     }
 
     if (new Date() > partner.otpExpiry) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "OTP expired. Please request a new one." 
-      });
+      return res.status(400).json({ success: false, message: "OTP expired" });
     }
 
     if (partner.otp !== otp) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Invalid OTP" 
-      });
+      return res.status(400).json({ success: false, message: "Invalid OTP" });
     }
 
     await partner.update({ otpVerified: true });
 
-    res.json({ 
-      success: true, 
-      message: "OTP verified successfully" 
-    });
+    res.json({ success: true, message: "OTP verified successfully" });
 
   } catch (err) {
     console.error("Verify OTP Error:", err);
@@ -300,30 +257,20 @@ exports.resetPassword = async (req, res) => {
     const { emailOrMobile, newPassword } = req.body;
 
     if (!emailOrMobile || !newPassword) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Email/Mobile and new password are required" 
-      });
+      return res.status(400).json({ success: false, message: "Email/Mobile and new password required" });
     }
 
     const isEmail = emailOrMobile.includes('@');
-    
     const partner = await Partner.findOne({ 
       where: isEmail ? { email: emailOrMobile } : { mobile: emailOrMobile }
     });
 
     if (!partner) {
-      return res.status(404).json({ 
-        success: false, 
-        message: "User not found" 
-      });
+      return res.status(404).json({ success: false, message: "User not found" });
     }
 
     if (!partner.otpVerified) {
-      return res.status(403).json({ 
-        success: false, 
-        message: "Please verify OTP first" 
-      });
+      return res.status(403).json({ success: false, message: "Please verify OTP first" });
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
@@ -335,10 +282,7 @@ exports.resetPassword = async (req, res) => {
       otpVerified: false
     });
 
-    res.json({ 
-      success: true, 
-      message: "Password reset successful" 
-    });
+    res.json({ success: true, message: "Password reset successful" });
 
   } catch (err) {
     console.error("Reset Password Error:", err);
@@ -352,23 +296,16 @@ exports.resendOTP = async (req, res) => {
     const { emailOrMobile } = req.body;
 
     if (!emailOrMobile) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Email or Mobile number is required" 
-      });
+      return res.status(400).json({ success: false, message: "Email or Mobile required" });
     }
 
     const isEmail = emailOrMobile.includes('@');
-    
     const partner = await Partner.findOne({ 
       where: isEmail ? { email: emailOrMobile } : { mobile: emailOrMobile }
     });
 
     if (!partner) {
-      return res.status(404).json({ 
-        success: false, 
-        message: isEmail ? "Email not registered" : "Mobile number not registered"
-      });
+      return res.status(404).json({ success: false, message: isEmail ? "Email not registered" : "Mobile not registered" });
     }
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -376,16 +313,10 @@ exports.resendOTP = async (req, res) => {
 
     await partner.update({ otp, otpExpiry });
 
-    if (isEmail) {
-      console.log(`📧 Resent Email OTP for ${emailOrMobile}: ${otp}`);
-    } else {
-      console.log(`📱 Resent SMS OTP for ${emailOrMobile}: ${otp}`);
-    }
+    console.log(`🔥 Resent OTP for ${emailOrMobile}: ${otp}`);
+    // TODO: Send SMS/Email
 
-    res.json({ 
-      success: true, 
-      message: "Verification code resent successfully" 
-    });
+    res.json({ success: true, message: "Verification code resent", otp });
 
   } catch (err) {
     console.error("Resend OTP Error:", err);
@@ -396,36 +327,10 @@ exports.resendOTP = async (req, res) => {
 // ------------------- Logout -------------------
 exports.logout = async (req, res) => {
   try {
-    const { emailOrMobile } = req.body;
-    
-    if (!emailOrMobile) {
-      return res.status(400).json({
-        success: false,
-        message: "Email or Mobile number is required"
-      });
-    }
-
-    const isEmail = emailOrMobile.includes('@');
-    
-    const partner = await Partner.findOne({ 
-      where: isEmail ? { email: emailOrMobile } : { mobile: emailOrMobile }
-    });
-
-    if (partner) {
-      // Optional: Clear session data
-      // await partner.update({ sessionToken: null, lastLogout: new Date() });
-    }
-
-    res.json({
-      success: true,
-      message: "Logout successful"
-    });
-
+    // Client will delete the JWT token
+    return res.json({ success: true, message: "Logout successful" });
   } catch (err) {
     console.error("Logout Error:", err);
-    res.status(500).json({
-      success: false,
-      error: err.message
-    });
+    res.status(500).json({ success: false, error: err.message });
   }
 };
