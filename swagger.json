@@ -7,7 +7,7 @@
     },
     "servers": [
         {
-            "url": "https://backend.zenzio.in"
+            "url": "http://localhost:5000"
         }
     ],
     "paths": {
@@ -2972,7 +2972,7 @@
                 }
             }
         },
-        "/api/categories": {
+        "/api/admin/categories": {
             "get": {
                 "summary": "Get all categories",
                 "tags": [
@@ -3014,7 +3014,7 @@
                 }
             }
         },
-        "/api/categories/{id}": {
+        "/api/admin/categories/{id}": {
             "get": {
                 "summary": "Get category by ID",
                 "tags": [
@@ -7771,29 +7771,18 @@
                 }
             }
         },
-        "/api/admin/bookings": {
+        "/api/admin/events/pending": {
             "get": {
-                "summary": "Get all bookings (Admin view)",
+                "summary": "Get all pending events awaiting approval",
+                "description": "Returns all events with isAdminVerified=false that need admin review",
                 "tags": [
-                    "Admin-Bookings"
+                    "Admin-Event-Approval"
                 ],
                 "parameters": [
                     {
-                        "name": "status",
-                        "in": "query",
-                        "schema": {
-                            "type": "string",
-                            "enum": [
-                                "Pending",
-                                "Confirmed",
-                                "Completed",
-                                "Cancelled"
-                            ]
-                        }
-                    },
-                    {
                         "name": "search",
                         "in": "query",
+                        "description": "Search by event name or restaurant name",
                         "schema": {
                             "type": "string"
                         }
@@ -7801,38 +7790,105 @@
                     {
                         "name": "page",
                         "in": "query",
+                        "description": "Page number for pagination",
                         "schema": {
                             "type": "integer",
-                            "default": 1
+                            "default": 1,
+                            "minimum": 1
                         }
                     },
                     {
                         "name": "pageSize",
                         "in": "query",
+                        "description": "Number of items per page",
                         "schema": {
                             "type": "integer",
-                            "default": 20
+                            "default": 20,
+                            "minimum": 1,
+                            "maximum": 100
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "List of bookings"
+                        "description": "List of pending events",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "events": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "string",
+                                                                "format": "uuid"
+                                                            },
+                                                            "requestId": {
+                                                                "type": "string",
+                                                                "example": "#REQ-00124"
+                                                            },
+                                                            "restaurantName": {
+                                                                "type": "string"
+                                                            },
+                                                            "dateSubmitted": {
+                                                                "type": "string",
+                                                                "format": "date-time"
+                                                            },
+                                                            "status": {
+                                                                "type": "string",
+                                                                "example": "Awaiting Review"
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "total": {
+                                                    "type": "integer"
+                                                },
+                                                "page": {
+                                                    "type": "integer"
+                                                },
+                                                "pageSize": {
+                                                    "type": "integer"
+                                                },
+                                                "pages": {
+                                                    "type": "integer"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error"
                     }
                 }
             }
         },
-        "/api/admin/bookings/{id}": {
+        "/api/admin/events/approval/{id}": {
             "get": {
-                "summary": "Get booking details by ID (Admin view)",
+                "summary": "Get event details for approval review",
+                "description": "Returns complete event details including restaurant and dining area information",
                 "tags": [
-                    "Admin-Bookings"
+                    "Admin-Event-Approval"
                 ],
                 "parameters": [
                     {
                         "name": "id",
                         "in": "path",
                         "required": true,
+                        "description": "Event ID",
                         "schema": {
                             "type": "string",
                             "format": "uuid"
@@ -7841,22 +7897,137 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Booking details"
+                        "description": "Event details for approval",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "string",
+                                                    "format": "uuid"
+                                                },
+                                                "eventName": {
+                                                    "type": "string",
+                                                    "example": "Wine Tasting Night"
+                                                },
+                                                "eventDescription": {
+                                                    "type": "string"
+                                                },
+                                                "frequency": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "WEEKLY",
+                                                        "MONTHLY",
+                                                        "SPECIFIC_DATES"
+                                                    ]
+                                                },
+                                                "eventDay": {
+                                                    "type": "string",
+                                                    "example": "Every Friday"
+                                                },
+                                                "eventDate": {
+                                                    "type": "string",
+                                                    "format": "date"
+                                                },
+                                                "eventTimes": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    },
+                                                    "example": [
+                                                        "18:30",
+                                                        "21:00"
+                                                    ]
+                                                },
+                                                "isAdminVerified": {
+                                                    "type": "boolean",
+                                                    "example": false
+                                                },
+                                                "isActive": {
+                                                    "type": "boolean",
+                                                    "example": false
+                                                },
+                                                "restaurant": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "string"
+                                                        },
+                                                        "rest_name": {
+                                                            "type": "string"
+                                                        },
+                                                        "rest_address": {
+                                                            "type": "string"
+                                                        },
+                                                        "contact_number": {
+                                                            "type": "string"
+                                                        },
+                                                        "contact_email": {
+                                                            "type": "string"
+                                                        }
+                                                    }
+                                                },
+                                                "diningArea": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "string"
+                                                        },
+                                                        "areaName": {
+                                                            "type": "string"
+                                                        },
+                                                        "seatingCapacity": {
+                                                            "type": "integer"
+                                                        },
+                                                        "description": {
+                                                            "type": "string"
+                                                        }
+                                                    }
+                                                },
+                                                "createdAt": {
+                                                    "type": "string",
+                                                    "format": "date-time"
+                                                },
+                                                "updatedAt": {
+                                                    "type": "string",
+                                                    "format": "date-time"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Event not found"
+                    },
+                    "500": {
+                        "description": "Server error"
                     }
                 }
             }
         },
-        "/api/admin/bookings/verify/{eventId}": {
+        "/api/admin/events/approve/{id}": {
             "put": {
-                "summary": "Verify booking (Admin approves and sends to restaurant)",
+                "summary": "Approve a pending event",
+                "description": "Sets isAdminVerified=true and isActive=true. Customers can now book this event.",
                 "tags": [
-                    "Admin-Bookings"
+                    "Admin-Event-Approval"
                 ],
                 "parameters": [
                     {
-                        "name": "eventId",
+                        "name": "id",
                         "in": "path",
                         "required": true,
+                        "description": "Event ID",
                         "schema": {
                             "type": "string",
                             "format": "uuid"
@@ -7865,22 +8036,67 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Booking verified"
+                        "description": "Event approved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Event approved successfully. Customers can now book."
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "string",
+                                                    "format": "uuid"
+                                                },
+                                                "isAdminVerified": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                },
+                                                "isActive": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Event already verified"
+                    },
+                    "404": {
+                        "description": "Event not found"
+                    },
+                    "500": {
+                        "description": "Server error"
                     }
                 }
             }
         },
-        "/api/admin/bookings/{id}/modify": {
+        "/api/admin/events/reject/{id}": {
             "put": {
-                "summary": "Modify booking (Admin can edit booking details)",
+                "summary": "Reject a pending event",
+                "description": "Sets isAdminVerified=false and isActive=false with rejection reason",
                 "tags": [
-                    "Admin-Bookings"
+                    "Admin-Event-Approval"
                 ],
                 "parameters": [
                     {
                         "name": "id",
                         "in": "path",
                         "required": true,
+                        "description": "Event ID",
                         "schema": {
                             "type": "string",
                             "format": "uuid"
@@ -7893,60 +8109,14 @@
                         "application/json": {
                             "schema": {
                                 "type": "object",
-                                "properties": {
-                                    "bookingDate": {
-                                        "type": "string",
-                                        "format": "date"
-                                    },
-                                    "bookingTime": {
-                                        "type": "string"
-                                    },
-                                    "numberOfGuests": {
-                                        "type": "integer"
-                                    },
-                                    "specialRequests": {
-                                        "type": "string"
-                                    },
-                                    "staffNotes": {
-                                        "type": "string"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Booking modified successfully"
-                    }
-                }
-            }
-        },
-        "/api/admin/bookings/{id}/cancel": {
-            "put": {
-                "summary": "Cancel booking",
-                "tags": [
-                    "Admin-Bookings"
-                ],
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
+                                "required": [
+                                    "reason"
+                                ],
                                 "properties": {
                                     "reason": {
-                                        "type": "string"
+                                        "type": "string",
+                                        "description": "Reason for rejecting the event",
+                                        "example": "Event capacity exceeded"
                                     }
                                 }
                             }
@@ -7955,68 +8125,190 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Booking cancelled successfully"
+                        "description": "Event rejected successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Event rejected successfully"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "string",
+                                                    "format": "uuid"
+                                                },
+                                                "isAdminVerified": {
+                                                    "type": "boolean",
+                                                    "example": false
+                                                },
+                                                "isActive": {
+                                                    "type": "boolean",
+                                                    "example": false
+                                                },
+                                                "rejectionReason": {
+                                                    "type": "string"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Event already verified or missing rejection reason"
+                    },
+                    "404": {
+                        "description": "Event not found"
+                    },
+                    "500": {
+                        "description": "Server error"
                     }
                 }
             }
         },
-        "/api/admin/bookings/{id}/status": {
-            "put": {
-                "summary": "Change booking status",
+        "/api/admin/events": {
+            "get": {
+                "summary": "Get all events (Admin view)",
+                "description": "Returns all events with filtering options for approved, rejected, and pending",
                 "tags": [
-                    "Admin-Bookings"
+                    "Admin-Events"
                 ],
                 "parameters": [
                     {
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
+                        "name": "status",
+                        "in": "query",
+                        "description": "Filter by event status",
                         "schema": {
                             "type": "string",
-                            "format": "uuid"
+                            "enum": [
+                                "Approved",
+                                "Rejected"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "description": "Search by event name or restaurant name",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Page number for pagination",
+                        "schema": {
+                            "type": "integer",
+                            "default": 1,
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "pageSize",
+                        "in": "query",
+                        "description": "Number of items per page",
+                        "schema": {
+                            "type": "integer",
+                            "default": 20,
+                            "minimum": 1,
+                            "maximum": 100
                         }
                     }
                 ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "status": {
-                                        "type": "string",
-                                        "enum": [
-                                            "PENDING",
-                                            "ADMIN_VERIFIED",
-                                            "CONFIRMED",
-                                            "SEATED",
-                                            "COMPLETED",
-                                            "CANCELLED"
-                                        ]
+                "responses": {
+                    "200": {
+                        "description": "List of events",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "events": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "string",
+                                                                "format": "uuid"
+                                                            },
+                                                            "eventName": {
+                                                                "type": "string"
+                                                            },
+                                                            "restaurantName": {
+                                                                "type": "string"
+                                                            },
+                                                            "frequency": {
+                                                                "type": "string"
+                                                            },
+                                                            "isVerified": {
+                                                                "type": "boolean"
+                                                            },
+                                                            "isActive": {
+                                                                "type": "boolean"
+                                                            },
+                                                            "createdAt": {
+                                                                "type": "string",
+                                                                "format": "date-time"
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "total": {
+                                                    "type": "integer"
+                                                },
+                                                "page": {
+                                                    "type": "integer"
+                                                },
+                                                "pageSize": {
+                                                    "type": "integer"
+                                                },
+                                                "pages": {
+                                                    "type": "integer"
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                             }
                         }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Booking status updated"
+                    },
+                    "500": {
+                        "description": "Server error"
                     }
                 }
             }
         },
-        "/api/admin/bookings/stats": {
+        "/api/admin/events/stats": {
             "get": {
-                "summary": "Get booking statistics",
+                "summary": "Get event statistics",
+                "description": "Returns aggregated event statistics",
                 "tags": [
-                    "Admin-Bookings"
+                    "Admin-Events"
                 ],
                 "parameters": [
                     {
                         "name": "startDate",
                         "in": "query",
+                        "description": "Start date for statistics",
                         "schema": {
                             "type": "string",
                             "format": "date"
@@ -8025,6 +8317,7 @@
                     {
                         "name": "endDate",
                         "in": "query",
+                        "description": "End date for statistics",
                         "schema": {
                             "type": "string",
                             "format": "date"
@@ -8033,7 +8326,444 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Booking statistics"
+                        "description": "Event statistics",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "totalEvents": {
+                                                    "type": "integer"
+                                                },
+                                                "verifiedEvents": {
+                                                    "type": "integer"
+                                                },
+                                                "pendingEvents": {
+                                                    "type": "integer"
+                                                },
+                                                "rejectedEvents": {
+                                                    "type": "integer"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error"
+                    }
+                }
+            }
+        },
+        "/api/admin/bookings": {
+            "get": {
+                "summary": "Get all bookings (Simple view)",
+                "description": "Returns all bookings. No approval workflow needed.",
+                "tags": [
+                    "Admin-Bookings"
+                ],
+                "parameters": [
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "description": "Filter by booking status",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "Confirmed",
+                                "Cancelled",
+                                "Completed"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "description": "Search by booking ID, customer name, mobile, or restaurant name",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "dateRange",
+                        "in": "query",
+                        "description": "Date range filter in format: startDate,endDate",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "2023-10-01,2023-10-31"
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Page number for pagination",
+                        "schema": {
+                            "type": "integer",
+                            "default": 1,
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "pageSize",
+                        "in": "query",
+                        "description": "Number of items per page",
+                        "schema": {
+                            "type": "integer",
+                            "default": 20,
+                            "minimum": 1,
+                            "maximum": 100
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of bookings",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "bookings": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "string",
+                                                                "format": "uuid"
+                                                            },
+                                                            "bookingId": {
+                                                                "type": "string"
+                                                            },
+                                                            "customerName": {
+                                                                "type": "string"
+                                                            },
+                                                            "restaurantName": {
+                                                                "type": "string"
+                                                            },
+                                                            "eventName": {
+                                                                "type": "string"
+                                                            },
+                                                            "dateTime": {
+                                                                "type": "string"
+                                                            },
+                                                            "guests": {
+                                                                "type": "integer"
+                                                            },
+                                                            "status": {
+                                                                "type": "string",
+                                                                "enum": [
+                                                                    "Confirmed",
+                                                                    "Cancelled",
+                                                                    "Completed"
+                                                                ]
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "total": {
+                                                    "type": "integer"
+                                                },
+                                                "page": {
+                                                    "type": "integer"
+                                                },
+                                                "pageSize": {
+                                                    "type": "integer"
+                                                },
+                                                "pages": {
+                                                    "type": "integer"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error"
+                    }
+                }
+            }
+        },
+        "/api/admin/bookings/{id}": {
+            "get": {
+                "summary": "Get booking details by ID (View only)",
+                "description": "Returns complete booking information with timeline",
+                "tags": [
+                    "Admin-Bookings"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "description": "Booking ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Booking details",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "string",
+                                                    "format": "uuid"
+                                                },
+                                                "bookingNumber": {
+                                                    "type": "string"
+                                                },
+                                                "status": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "CONFIRMED",
+                                                        "SEATED",
+                                                        "COMPLETED",
+                                                        "CANCELLED"
+                                                    ]
+                                                },
+                                                "bookingDate": {
+                                                    "type": "string",
+                                                    "format": "date"
+                                                },
+                                                "bookingTime": {
+                                                    "type": "string"
+                                                },
+                                                "numberOfGuests": {
+                                                    "type": "integer"
+                                                },
+                                                "specialRequests": {
+                                                    "type": "string"
+                                                },
+                                                "user": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "string"
+                                                        },
+                                                        "name": {
+                                                            "type": "string"
+                                                        },
+                                                        "email": {
+                                                            "type": "string"
+                                                        },
+                                                        "mobile": {
+                                                            "type": "string"
+                                                        }
+                                                    }
+                                                },
+                                                "restaurant": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "string"
+                                                        },
+                                                        "rest_name": {
+                                                            "type": "string"
+                                                        },
+                                                        "rest_address": {
+                                                            "type": "string"
+                                                        },
+                                                        "contact_number": {
+                                                            "type": "string"
+                                                        },
+                                                        "contact_email": {
+                                                            "type": "string"
+                                                        }
+                                                    }
+                                                },
+                                                "diningArea": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "string"
+                                                        },
+                                                        "areaName": {
+                                                            "type": "string"
+                                                        },
+                                                        "seatingCapacity": {
+                                                            "type": "integer"
+                                                        }
+                                                    }
+                                                },
+                                                "event": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "string"
+                                                        },
+                                                        "eventName": {
+                                                            "type": "string"
+                                                        },
+                                                        "isAdminVerified": {
+                                                            "type": "boolean"
+                                                        }
+                                                    }
+                                                },
+                                                "timeline": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "event": {
+                                                                "type": "string"
+                                                            },
+                                                            "timestamp": {
+                                                                "type": "string",
+                                                                "format": "date-time"
+                                                            },
+                                                            "status": {
+                                                                "type": "string",
+                                                                "enum": [
+                                                                    "completed",
+                                                                    "pending"
+                                                                ]
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Booking not found"
+                    },
+                    "500": {
+                        "description": "Server error"
+                    }
+                }
+            }
+        },
+        "/api/admin/bookings/stats": {
+            "get": {
+                "summary": "Get booking statistics",
+                "description": "Returns aggregated booking statistics",
+                "tags": [
+                    "Admin-Bookings"
+                ],
+                "parameters": [
+                    {
+                        "name": "startDate",
+                        "in": "query",
+                        "description": "Start date for statistics",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "endDate",
+                        "in": "query",
+                        "description": "End date for statistics",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Booking statistics",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "statusCounts": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "status": {
+                                                                "type": "string"
+                                                            },
+                                                            "count": {
+                                                                "type": "integer"
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "totalBookings": {
+                                                    "type": "integer"
+                                                },
+                                                "popularRestaurants": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "restaurantId": {
+                                                                "type": "string"
+                                                            },
+                                                            "bookingCount": {
+                                                                "type": "integer"
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "popularEvents": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "eventId": {
+                                                                "type": "string"
+                                                            },
+                                                            "eventName": {
+                                                                "type": "string"
+                                                            },
+                                                            "bookingCount": {
+                                                                "type": "integer"
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error"
                     }
                 }
             }
@@ -8284,7 +9014,7 @@
                                         "type": "string",
                                         "example": "uuid-67890"
                                     },
-                                    "offerName": {
+                                    "title": {
                                         "type": "string",
                                         "example": "Diwali Special Offer"
                                     },
@@ -8362,7 +9092,7 @@
                             "schema": {
                                 "type": "object",
                                 "properties": {
-                                    "offerName": {
+                                    "title": {
                                         "type": "string",
                                         "example": "Updated Offer"
                                     },
@@ -8459,55 +9189,92 @@
                         "multipart/form-data": {
                             "schema": {
                                 "type": "object",
+                                "required": [
+                                    "restaurantId",
+                                    "categoryId",
+                                    "title",
+                                    "discountType",
+                                    "discountValue",
+                                    "startDate",
+                                    "endDate"
+                                ],
                                 "properties": {
                                     "restaurantId": {
-                                        "type": "string"
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "description": "Restaurant UUID"
+                                    },
+                                    "categoryId": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "description": "Category UUID (replaces applicableItems)"
                                     },
                                     "title": {
-                                        "type": "string"
+                                        "type": "string",
+                                        "description": "Offer title",
+                                        "example": "50% Off on All Pizzas"
                                     },
                                     "description": {
-                                        "type": "string"
+                                        "type": "string",
+                                        "description": "Detailed offer description"
                                     },
                                     "discountType": {
                                         "type": "string",
                                         "enum": [
                                             "PERCENTAGE",
                                             "FLAT"
-                                        ]
+                                        ],
+                                        "description": "Type of discount"
                                     },
                                     "discountValue": {
-                                        "type": "number"
+                                        "type": "number",
+                                        "description": "Discount amount (percentage or flat value)",
+                                        "example": 50
                                     },
                                     "minOrderValue": {
-                                        "type": "number"
+                                        "type": "number",
+                                        "description": "Minimum order value to avail offer",
+                                        "example": 500
+                                    },
+                                    "maxUsagePerUser": {
+                                        "type": "integer",
+                                        "description": "Maximum times a user can use this offer",
+                                        "default": 1
+                                    },
+                                    "totalUsageLimit": {
+                                        "type": "integer",
+                                        "description": "Total usage limit across all users"
                                     },
                                     "startDate": {
                                         "type": "string",
-                                        "format": "date"
+                                        "format": "date",
+                                        "description": "Offer start date",
+                                        "example": "2025-11-05"
                                     },
                                     "endDate": {
                                         "type": "string",
-                                        "format": "date"
+                                        "format": "date",
+                                        "description": "Offer end date",
+                                        "example": "2025-12-31"
                                     },
                                     "startTime": {
-                                        "type": "string"
+                                        "type": "string",
+                                        "description": "Offer start time (HH:MM format)",
+                                        "example": "10:00"
                                     },
                                     "endTime": {
-                                        "type": "string"
-                                    },
-                                    "applicableItems": {
-                                        "type": "array",
-                                        "items": {
-                                            "type": "string"
-                                        }
+                                        "type": "string",
+                                        "description": "Offer end time (HH:MM format)",
+                                        "example": "22:00"
                                     },
                                     "termsConditions": {
-                                        "type": "string"
+                                        "type": "string",
+                                        "description": "Terms and conditions for the offer"
                                     },
                                     "offerImage": {
                                         "type": "string",
-                                        "format": "binary"
+                                        "format": "binary",
+                                        "description": "Offer banner image"
                                     }
                                 }
                             }
@@ -8516,7 +9283,36 @@
                 },
                 "responses": {
                     "201": {
-                        "description": "Offer created successfully (pending approval)"
+                        "description": "Offer created successfully (pending approval)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Offer created successfully. Waiting for admin approval."
+                                        },
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request - Missing required fields"
+                    },
+                    "404": {
+                        "description": "Category not found"
+                    },
+                    "500": {
+                        "description": "Internal server error"
                     }
                 }
             },
@@ -8531,7 +9327,8 @@
                         "name": "restaurantId",
                         "required": true,
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "format": "uuid"
                         },
                         "description": "Restaurant UUID"
                     },
@@ -8547,12 +9344,72 @@
                                 "expired"
                             ]
                         },
-                        "description": "Filter offers by status"
+                        "description": "Filter offers by status: active (approved + not expired), pending (awaiting approval), expired (end date passed)"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "List of restaurant offers"
+                        "description": "List of restaurant offers with category details",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "count": {
+                                            "type": "integer",
+                                            "example": 5
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "string"
+                                                    },
+                                                    "title": {
+                                                        "type": "string"
+                                                    },
+                                                    "categoryId": {
+                                                        "type": "string"
+                                                    },
+                                                    "category": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "string"
+                                                            },
+                                                            "name": {
+                                                                "type": "string"
+                                                            },
+                                                            "image": {
+                                                                "type": "string"
+                                                            }
+                                                        }
+                                                    },
+                                                    "approvalStatus": {
+                                                        "type": "string"
+                                                    },
+                                                    "status": {
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request - restaurantId is required"
+                    },
+                    "500": {
+                        "description": "Internal server error"
                     }
                 }
             }
@@ -8569,7 +9426,8 @@
                         "name": "id",
                         "required": true,
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "format": "uuid"
                         },
                         "description": "Offer ID"
                     },
@@ -8578,14 +9436,79 @@
                         "name": "restaurantId",
                         "required": true,
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "format": "uuid"
                         },
                         "description": "Restaurant UUID"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Offer details"
+                        "description": "Offer details with restaurant and category information",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "string"
+                                                },
+                                                "title": {
+                                                    "type": "string"
+                                                },
+                                                "categoryId": {
+                                                    "type": "string"
+                                                },
+                                                "restaurant": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "string"
+                                                        },
+                                                        "rest_name": {
+                                                            "type": "string"
+                                                        },
+                                                        "rest_logo": {
+                                                            "type": "string"
+                                                        }
+                                                    }
+                                                },
+                                                "category": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "string"
+                                                        },
+                                                        "name": {
+                                                            "type": "string"
+                                                        },
+                                                        "image": {
+                                                            "type": "string"
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request - restaurantId is required"
+                    },
+                    "404": {
+                        "description": "Offer not found"
+                    },
+                    "500": {
+                        "description": "Internal server error"
                     }
                 }
             },
@@ -8593,14 +9516,15 @@
                 "tags": [
                     "Restaurant Offers"
                 ],
-                "summary": "Update restaurant offer",
+                "summary": "Update restaurant offer (only if not approved)",
                 "parameters": [
                     {
                         "in": "path",
                         "name": "id",
                         "required": true,
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "format": "uuid"
                         },
                         "description": "Offer ID"
                     }
@@ -8611,10 +9535,19 @@
                         "multipart/form-data": {
                             "schema": {
                                 "type": "object",
+                                "required": [
+                                    "restaurantId"
+                                ],
                                 "properties": {
                                     "restaurantId": {
                                         "type": "string",
+                                        "format": "uuid",
                                         "description": "Restaurant UUID"
+                                    },
+                                    "categoryId": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "description": "Category UUID"
                                     },
                                     "title": {
                                         "type": "string"
@@ -8635,6 +9568,12 @@
                                     "minOrderValue": {
                                         "type": "number"
                                     },
+                                    "maxUsagePerUser": {
+                                        "type": "integer"
+                                    },
+                                    "totalUsageLimit": {
+                                        "type": "integer"
+                                    },
                                     "startDate": {
                                         "type": "string",
                                         "format": "date"
@@ -8649,12 +9588,6 @@
                                     "endTime": {
                                         "type": "string"
                                     },
-                                    "applicableItems": {
-                                        "type": "array",
-                                        "items": {
-                                            "type": "string"
-                                        }
-                                    },
                                     "termsConditions": {
                                         "type": "string"
                                     },
@@ -8662,17 +9595,46 @@
                                         "type": "string",
                                         "format": "binary"
                                     }
-                                },
-                                "required": [
-                                    "restaurantId"
-                                ]
+                                }
                             }
                         }
                     }
                 },
                 "responses": {
                     "200": {
-                        "description": "Offer updated successfully"
+                        "description": "Offer updated successfully (reset to PENDING status)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Offer updated successfully"
+                                        },
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request - restaurantId is required"
+                    },
+                    "403": {
+                        "description": "Forbidden - Cannot edit approved offer"
+                    },
+                    "404": {
+                        "description": "Offer or Category not found"
+                    },
+                    "500": {
+                        "description": "Internal server error"
                     }
                 }
             },
@@ -8687,7 +9649,8 @@
                         "name": "id",
                         "required": true,
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "format": "uuid"
                         },
                         "description": "Offer ID"
                     }
@@ -8698,64 +9661,144 @@
                         "application/json": {
                             "schema": {
                                 "type": "object",
+                                "required": [
+                                    "restaurantId"
+                                ],
                                 "properties": {
                                     "restaurantId": {
                                         "type": "string",
+                                        "format": "uuid",
                                         "description": "Restaurant UUID"
                                     }
-                                },
-                                "required": [
-                                    "restaurantId"
-                                ]
+                                }
                             }
                         }
                     }
                 },
                 "responses": {
                     "200": {
-                        "description": "Offer deleted successfully"
-                    }
-                }
-            }
-        },
-        "/api/offers": {
-            "get": {
-                "tags": [
-                    "Customer Offers"
-                ],
-                "summary": "Get all active offers (customer view)",
-                "parameters": [
-                    {
-                        "in": "query",
-                        "name": "restaurantId",
-                        "schema": {
-                            "type": "string"
-                        },
-                        "required": false,
-                        "description": "Filter offers by restaurant ID"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "List of active offers",
+                        "description": "Offer deleted successfully",
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "type": "object",
                                     "properties": {
                                         "success": {
-                                            "type": "boolean"
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Offer deleted successfully"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request - restaurantId is required"
+                    },
+                    "404": {
+                        "description": "Offer not found"
+                    },
+                    "500": {
+                        "description": "Internal server error"
+                    }
+                }
+            }
+        },
+        "/api/customer/offers": {
+            "get": {
+                "tags": [
+                    "Customer Offers"
+                ],
+                "summary": "Get all active offers (customer view)",
+                "description": "Retrieve all active, approved offers with optional filters for restaurant and category. Only shows offers that are currently valid.",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "restaurantId",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": false,
+                        "description": "Filter offers by specific restaurant ID. Also includes global admin offers."
+                    },
+                    {
+                        "in": "query",
+                        "name": "categoryId",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": false,
+                        "description": "Filter offers by food category ID"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of active offers with restaurant and category details",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
                                         },
                                         "count": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "example": 5
                                         },
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "type": "object"
+                                                "$ref": "#/components/schemas/OfferWithDetails"
                                             }
                                         }
                                     }
+                                },
+                                "example": {
+                                    "success": true,
+                                    "count": 2,
+                                    "data": [
+                                        {
+                                            "id": "uuid-123",
+                                            "title": "20% Off on Biryani",
+                                            "description": "Get 20% discount on all biryani items",
+                                            "discountType": "PERCENTAGE",
+                                            "discountValue": 20,
+                                            "minOrderValue": 200,
+                                            "maxUsagePerUser": 3,
+                                            "startDate": "2025-01-01T00:00:00Z",
+                                            "endDate": "2025-01-31T23:59:59Z",
+                                            "offerImage": "offers/biryani-offer.jpg",
+                                            "termsConditions": "Valid for dine-in and takeaway",
+                                            "restaurant": {
+                                                "id": "uuid-456",
+                                                "rest_name": "Food Paradise",
+                                                "rest_logo": "logos/paradise.jpg"
+                                            },
+                                            "category": {
+                                                "id": "uuid-789",
+                                                "name": "Biryani",
+                                                "image": "categories/biryani.jpg"
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
                                 }
                             }
                         }
@@ -8763,30 +9806,61 @@
                 }
             }
         },
-        "/api/offers/{id}": {
+        "/api/customer/offers/{id}": {
             "get": {
                 "tags": [
                     "Customer Offers"
                 ],
-                "summary": "Get offer details for customer",
+                "summary": "Get single offer details for customer",
+                "description": "Retrieve detailed information about a specific offer. Only returns if offer is active and approved.",
                 "parameters": [
                     {
                         "in": "path",
                         "name": "id",
                         "required": true,
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "format": "uuid"
                         },
                         "description": "Offer ID"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Offer details",
+                        "description": "Offer details retrieved successfully",
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object"
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/OfferWithDetails"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Offer not found or not available",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
                                 }
                             }
                         }
@@ -8794,12 +9868,327 @@
                 }
             }
         },
-        "/api/user/offers/book": {
+        "/api/customer/food-items-with-offers": {
+            "get": {
+                "tags": [
+                    "Customer Offers"
+                ],
+                "summary": "Get food items with calculated offer discounts",
+                "description": "Retrieve all food items from a restaurant with automatically calculated discounted prices based on applicable offers. This is the main endpoint for displaying menu with prices.",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "restaurantId",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true,
+                        "description": "Restaurant ID (required)"
+                    },
+                    {
+                        "in": "query",
+                        "name": "categoryId",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": false,
+                        "description": "Filter by food category ID"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Food items with calculated discounts",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "count": {
+                                            "type": "integer",
+                                            "example": 10
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/FoodItemWithOffer"
+                                            }
+                                        }
+                                    }
+                                },
+                                "example": {
+                                    "success": true,
+                                    "count": 2,
+                                    "data": [
+                                        {
+                                            "id": "food-uuid-1",
+                                            "dishname": "Chicken Biryani",
+                                            "description": "Delicious aromatic biryani",
+                                            "originalPrice": 250,
+                                            "discountedPrice": 200,
+                                            "discount": 50,
+                                            "discountPercentage": 20,
+                                            "hasOffer": true,
+                                            "veg": false,
+                                            "dishimage": "dishes/chicken-biryani.jpg",
+                                            "appliedOffer": {
+                                                "id": "offer-uuid",
+                                                "title": "20% Off on Biryani",
+                                                "discountType": "PERCENTAGE",
+                                                "discountValue": 20,
+                                                "categoryName": "Biryani"
+                                            },
+                                            "category": {
+                                                "id": "cat-uuid",
+                                                "name": "Biryani",
+                                                "image": "categories/biryani.jpg"
+                                            },
+                                            "restaurant": {
+                                                "id": "rest-uuid",
+                                                "rest_name": "Food Paradise",
+                                                "rest_logo": "logos/paradise.jpg"
+                                            },
+                                            "availableOffers": [
+                                                {
+                                                    "id": "offer-uuid",
+                                                    "title": "20% Off on Biryani",
+                                                    "discountType": "PERCENTAGE",
+                                                    "discountValue": 20
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request - restaurantId is required",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/customer/food-items/{foodItemId}/calculate-offer": {
+            "get": {
+                "tags": [
+                    "Customer Offers"
+                ],
+                "summary": "Calculate offer discount for a specific food item",
+                "description": "Get detailed pricing and offer information for a single food item including all applicable offers and the best discount calculation.",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "foodItemId",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "description": "Food Item ID"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Offer calculation successful",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "foodItem": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "string"
+                                                        },
+                                                        "dishname": {
+                                                            "type": "string"
+                                                        },
+                                                        "originalPrice": {
+                                                            "type": "number"
+                                                        },
+                                                        "category": {
+                                                            "type": "string"
+                                                        }
+                                                    }
+                                                },
+                                                "pricing": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "originalPrice": {
+                                                            "type": "number",
+                                                            "example": 250
+                                                        },
+                                                        "discount": {
+                                                            "type": "number",
+                                                            "example": 50
+                                                        },
+                                                        "discountedPrice": {
+                                                            "type": "number",
+                                                            "example": 200
+                                                        },
+                                                        "discountPercentage": {
+                                                            "type": "number",
+                                                            "example": 20
+                                                        }
+                                                    }
+                                                },
+                                                "appliedOffer": {
+                                                    "$ref": "#/components/schemas/OfferDetails"
+                                                },
+                                                "hasOffer": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                },
+                                                "totalApplicableOffers": {
+                                                    "type": "integer",
+                                                    "example": 2
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Food item not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/customer/offers-by-category": {
+            "get": {
+                "tags": [
+                    "Customer Offers"
+                ],
+                "summary": "Get offers filtered by restaurant and category",
+                "description": "Retrieve offers for a specific restaurant, optionally filtered by category. Results are sorted by discount value (highest first).",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "restaurantId",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true,
+                        "description": "Restaurant ID (required)"
+                    },
+                    {
+                        "in": "query",
+                        "name": "categoryId",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": false,
+                        "description": "Filter by category ID"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of offers",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "count": {
+                                            "type": "integer",
+                                            "example": 3
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/OfferWithDetails"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request - restaurantId is required",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/customer/book-offer": {
             "post": {
                 "tags": [
                     "Customer Offers"
                 ],
-                "summary": "Book an offer",
+                "summary": "Book/claim an offer",
+                "description": "Book an offer for a user. Validates usage limits, offer availability, and booking constraints.",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -8808,16 +10197,24 @@
                                 "type": "object",
                                 "properties": {
                                     "userId": {
-                                        "type": "string"
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "description": "User ID who is booking the offer"
                                     },
                                     "offerId": {
-                                        "type": "string"
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "description": "Offer ID to be booked"
                                     }
                                 },
                                 "required": [
                                     "userId",
                                     "offerId"
                                 ]
+                            },
+                            "example": {
+                                "userId": "user-uuid-123",
+                                "offerId": "offer-uuid-456"
                             }
                         }
                     }
@@ -8831,15 +10228,57 @@
                                     "type": "object",
                                     "properties": {
                                         "success": {
-                                            "type": "boolean"
+                                            "type": "boolean",
+                                            "example": true
                                         },
                                         "message": {
-                                            "type": "string"
+                                            "type": "string",
+                                            "example": "Offer booked successfully"
                                         },
                                         "data": {
-                                            "type": "object"
+                                            "$ref": "#/components/schemas/UserOfferBooking"
                                         }
                                     }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request - validation failed",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "You have already booked this offer 3 time(s)"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Offer not found or not active",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
                                 }
                             }
                         }
@@ -8847,21 +10286,23 @@
                 }
             }
         },
-        "/api/user/offers": {
+        "/api/customer/booked-offers": {
             "get": {
                 "tags": [
                     "Customer Offers"
                 ],
-                "summary": "Get offers booked by user",
+                "summary": "Get user's booked offers",
+                "description": "Retrieve all offers booked by a specific user with optional status filter.",
                 "parameters": [
                     {
                         "in": "query",
                         "name": "userId",
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "format": "uuid"
                         },
                         "required": true,
-                        "description": "User ID"
+                        "description": "User ID (required)"
                     },
                     {
                         "in": "query",
@@ -8871,7 +10312,8 @@
                             "enum": [
                                 "BOOKED",
                                 "USED",
-                                "EXPIRED"
+                                "EXPIRED",
+                                "CANCELLED"
                             ]
                         },
                         "required": false,
@@ -8887,18 +10329,74 @@
                                     "type": "object",
                                     "properties": {
                                         "success": {
-                                            "type": "boolean"
+                                            "type": "boolean",
+                                            "example": true
                                         },
                                         "count": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "example": 5
                                         },
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "type": "object"
+                                                "type": "object",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "string",
+                                                        "format": "uuid"
+                                                    },
+                                                    "userId": {
+                                                        "type": "string",
+                                                        "format": "uuid"
+                                                    },
+                                                    "offerId": {
+                                                        "type": "string",
+                                                        "format": "uuid"
+                                                    },
+                                                    "status": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                            "BOOKED",
+                                                            "USED",
+                                                            "EXPIRED",
+                                                            "CANCELLED"
+                                                        ]
+                                                    },
+                                                    "bookedAt": {
+                                                        "type": "string",
+                                                        "format": "date-time"
+                                                    },
+                                                    "expiresAt": {
+                                                        "type": "string",
+                                                        "format": "date-time"
+                                                    },
+                                                    "offer": {
+                                                        "$ref": "#/components/schemas/OfferWithDetails"
+                                                    }
+                                                }
                                             }
                                         }
                                     }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request - userId is required",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
                                 }
                             }
                         }
@@ -8906,19 +10404,21 @@
                 }
             }
         },
-        "/api/user/offers/{id}/cancel": {
+        "/api/customer/booked-offers/{id}/cancel": {
             "put": {
                 "tags": [
                     "Customer Offers"
                 ],
-                "summary": "Cancel booked offer",
+                "summary": "Cancel a booked offer",
+                "description": "Cancel a previously booked offer. Only offers with status 'BOOKED' can be cancelled.",
                 "parameters": [
                     {
                         "in": "path",
                         "name": "id",
                         "required": true,
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "format": "uuid"
                         },
                         "description": "UserOffer booking ID"
                     }
@@ -8931,23 +10431,78 @@
                                 "type": "object",
                                 "properties": {
                                     "userId": {
-                                        "type": "string"
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "description": "User ID for verification"
                                     }
                                 },
                                 "required": [
                                     "userId"
                                 ]
+                            },
+                            "example": {
+                                "userId": "user-uuid-123"
                             }
                         }
                     }
                 },
                 "responses": {
                     "200": {
-                        "description": "Offer booking cancelled",
+                        "description": "Offer booking cancelled successfully",
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object"
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Offer booking cancelled"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Cannot cancel this offer",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Cannot cancel this offer"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Booking not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
                                 }
                             }
                         }
@@ -10525,7 +12080,7 @@
                     }
                 }
             },
-            "Error": {
+            "Errors": {
                 "type": "object",
                 "properties": {
                     "success": {
@@ -10891,8 +12446,285 @@
                         }
                     }
                 }
+            },
+            "OfferWithDetails": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "restaurantId": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
+                    "categoryId": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
+                    "offerType": {
+                        "type": "string",
+                        "enum": [
+                            "RESTAURANT",
+                            "ADMIN"
+                        ]
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "discountType": {
+                        "type": "string",
+                        "enum": [
+                            "PERCENTAGE",
+                            "FLAT"
+                        ]
+                    },
+                    "discountValue": {
+                        "type": "number"
+                    },
+                    "minOrderValue": {
+                        "type": "number"
+                    },
+                    "maxUsagePerUser": {
+                        "type": "integer"
+                    },
+                    "totalUsageLimit": {
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "startDate": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "endDate": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "startTime": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "endTime": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "termsConditions": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "offerImage": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "ACTIVE",
+                            "INACTIVE"
+                        ]
+                    },
+                    "approvalStatus": {
+                        "type": "string",
+                        "enum": [
+                            "PENDING",
+                            "APPROVED",
+                            "REJECTED",
+                            "CHANGES_REQUESTED"
+                        ]
+                    },
+                    "restaurant": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "rest_name": {
+                                "type": "string"
+                            },
+                            "rest_logo": {
+                                "type": "string"
+                            },
+                            "contact_email": {
+                                "type": "string"
+                            },
+                            "contact_number": {
+                                "type": "string"
+                            },
+                            "rest_address": {
+                                "type": "string"
+                            }
+                        },
+                        "nullable": true
+                    },
+                    "category": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "name": {
+                                "type": "string"
+                            },
+                            "image": {
+                                "type": "string"
+                            }
+                        },
+                        "nullable": true
+                    }
+                }
+            },
+            "FoodItemWithOffer": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "dishname": {
+                        "type": "string"
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "originalPrice": {
+                        "type": "number"
+                    },
+                    "discountedPrice": {
+                        "type": "number"
+                    },
+                    "discount": {
+                        "type": "number"
+                    },
+                    "discountPercentage": {
+                        "type": "number"
+                    },
+                    "hasOffer": {
+                        "type": "boolean"
+                    },
+                    "veg": {
+                        "type": "boolean"
+                    },
+                    "contain_allergens": {
+                        "type": "boolean"
+                    },
+                    "dishimage": {
+                        "type": "string"
+                    },
+                    "appliedOffer": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "title": {
+                                "type": "string"
+                            },
+                            "discountType": {
+                                "type": "string"
+                            },
+                            "discountValue": {
+                                "type": "number"
+                            },
+                            "categoryName": {
+                                "type": "string"
+                            }
+                        },
+                        "nullable": true
+                    },
+                    "availableOffers": {
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        }
+                    },
+                    "category": {
+                        "type": "object"
+                    },
+                    "restaurant": {
+                        "type": "object"
+                    }
+                }
+            },
+            "OfferDetails": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "discountType": {
+                        "type": "string"
+                    },
+                    "discountValue": {
+                        "type": "number"
+                    },
+                    "minOrderValue": {
+                        "type": "number"
+                    },
+                    "termsConditions": {
+                        "type": "string"
+                    }
+                }
+            },
+            "UserOfferBooking": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "userId": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "offerId": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "BOOKED",
+                            "USED",
+                            "EXPIRED",
+                            "CANCELLED"
+                        ]
+                    },
+                    "bookedAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "expiresAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                }
+            },
+            "ErrorResponse": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "message": {
+                        "type": "string"
+                    }
+                }
             }
+            
         }
+        
     },
     "tags": [
         {

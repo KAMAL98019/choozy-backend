@@ -1,4 +1,4 @@
-const { Offer, RestaurantReg, Category } = require('../../models');
+const { Offer, RestaurantReg, Category, Admin } = require('../../models');
 const { Op } = require('sequelize');
 
 /** -----------------------------
@@ -9,19 +9,28 @@ const { Op } = require('sequelize');
 exports.getPendingOffers = async (req, res) => {
   try {
     const offers = await Offer.findAll({
-      where: { approvalStatus: { [Op.in]: ['PENDING', 'CHANGES_REQUESTED'] } },
+      where: { 
+        approvalStatus: { [Op.in]: ['PENDING', 'CHANGES_REQUESTED'] },
+        offerType: 'RESTAURANT'
+      },
       include: [
         {
           model: RestaurantReg,
           as: 'restaurant',
           attributes: ['id', 'rest_name', 'rest_logo', 'contact_email', 'contact_number', 'rest_address'],
         },
+        {
+          model: Category,
+          as: 'category',
+          attributes: ['id', 'name']
+        }
       ],
       order: [['createdAt', 'ASC']],
     });
 
     res.json({ success: true, count: offers.length, data: offers });
   } catch (error) {
+    console.error('Error fetching pending offers:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -29,13 +38,27 @@ exports.getPendingOffers = async (req, res) => {
 // 🔹 Get all offers (filter by status or restaurant)
 exports.getAllOffers = async (req, res) => {
   try {
-    const { approvalStatus, restaurantId } = req.query;
-    const whereClause = {};
+    const { approvalStatus, restaurantId, search, offerType, discountValue, page = 1, pageSize = 6 } = req.query;
+    const whereClause = { offerType: 'RESTAURANT' };
 
     if (approvalStatus) whereClause.approvalStatus = approvalStatus;
     if (restaurantId) whereClause.restaurantId = restaurantId;
+    if (search) {
+      whereClause[Op.or] = [
+        { title: { [Op.like]: `%${search}%` } },
+        { '$restaurant.rest_name$': { [Op.like]: `%${search}%` } }
+      ];
+    }
+    if (offerType) {
+      whereClause.discountType = offerType === 'Percentage' ? 'PERCENTAGE' : 'FLAT';
+    }
+    if (discountValue) {
+      whereClause.discountValue = discountValue;
+    }
 
-    const offers = await Offer.findAll({
+    const offset = (parseInt(page) - 1) * parseInt(pageSize);
+
+    const { count, rows: offers } = await Offer.findAndCountAll({
       where: whereClause,
       include: [
         {
@@ -43,12 +66,21 @@ exports.getAllOffers = async (req, res) => {
           as: 'restaurant',
           attributes: ['id', 'rest_name', 'rest_logo', 'contact_email', 'contact_number', 'rest_address'],
         },
+        {
+          model: Category,
+          as: 'category',
+          attributes: ['id', 'name']
+        }
       ],
       order: [['createdAt', 'DESC']],
+      limit: parseInt(pageSize),
+      offset: offset,
+      subQuery: false
     });
 
-    res.json({ success: true, count: offers.length, data: offers });
+    res.json({ success: true, count, data: offers });
   } catch (error) {
+    console.error('Error fetching all offers:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -60,19 +92,29 @@ exports.approveOffer = async (req, res) => {
     const { comments } = req.body;
 
     const offer = await Offer.findByPk(id, {
-      include: [{ model: RestaurantReg, as: 'restaurant', attributes: ['rest_name'] }],
+      include: [
+        { 
+          model: RestaurantReg, 
+          as: 'restaurant', 
+          attributes: ['rest_name', 'contact_email'] 
+        }
+      ],
     });
 
-    if (!offer)
+    if (!offer) {
       return res.status(404).json({ success: false, message: 'Offer not found' });
+    }
 
-    if (offer.approvalStatus === 'APPROVED')
+    if (offer.approvalStatus === 'APPROVED') {
       return res.status(400).json({ success: false, message: 'Offer already approved' });
+    }
+
+    const adminId = req.admin?.id || 'SYSTEM';
 
     await offer.update({
       approvalStatus: 'APPROVED',
       status: 'ACTIVE',
-      approvedBy: 'SYSTEM',
+      approvedBy: adminId,
       approvalDate: new Date(),
       rejectionReason: null,
       adminComments: comments || null,
@@ -84,6 +126,7 @@ exports.approveOffer = async (req, res) => {
       data: offer,
     });
   } catch (error) {
+    console.error('Error approving offer:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -94,17 +137,21 @@ exports.rejectOffer = async (req, res) => {
     const { id } = req.params;
     const { reason } = req.body;
 
-    if (!reason)
+    if (!reason) {
       return res.status(400).json({ success: false, message: 'Rejection reason is required' });
+    }
 
     const offer = await Offer.findByPk(id);
-    if (!offer)
+    if (!offer) {
       return res.status(404).json({ success: false, message: 'Offer not found' });
+    }
+
+    const adminId = req.admin?.id || 'SYSTEM';
 
     await offer.update({
       approvalStatus: 'REJECTED',
       status: 'INACTIVE',
-      approvedBy: 'SYSTEM',
+      approvedBy: adminId,
       approvalDate: new Date(),
       rejectionReason: reason,
       adminComments: null,
@@ -116,6 +163,7 @@ exports.rejectOffer = async (req, res) => {
       data: offer,
     });
   } catch (error) {
+    console.error('Error rejecting offer:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -126,17 +174,21 @@ exports.requestChanges = async (req, res) => {
     const { id } = req.params;
     const { comments } = req.body;
 
-    if (!comments)
+    if (!comments) {
       return res.status(400).json({ success: false, message: 'Comments are required' });
+    }
 
     const offer = await Offer.findByPk(id);
-    if (!offer)
+    if (!offer) {
       return res.status(404).json({ success: false, message: 'Offer not found' });
+    }
+
+    const adminId = req.admin?.id || 'SYSTEM';
 
     await offer.update({
       approvalStatus: 'CHANGES_REQUESTED',
       status: 'INACTIVE',
-      approvedBy: 'SYSTEM',
+      approvedBy: adminId,
       approvalDate: new Date(),
       adminComments: comments,
       rejectionReason: null,
@@ -148,6 +200,7 @@ exports.requestChanges = async (req, res) => {
       data: offer,
     });
   } catch (error) {
+    console.error('Error requesting changes:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -159,14 +212,26 @@ exports.getOfferDetails = async (req, res) => {
 
     const offer = await Offer.findByPk(id, {
       include: [
-        { model: RestaurantReg, as: 'restaurant', attributes: ['id', 'rest_name', 'rest_logo', 'contact_email', 'contact_number', 'rest_address'] },
+        { 
+          model: RestaurantReg, 
+          as: 'restaurant', 
+          attributes: ['id', 'rest_name', 'rest_logo', 'contact_email', 'contact_number', 'rest_address'] 
+        },
+        {
+          model: Category,
+          as: 'category',
+          attributes: ['id', 'name']
+        }
       ],
     });
 
-    if (!offer) return res.status(404).json({ success: false, message: 'Offer not found' });
+    if (!offer) {
+      return res.status(404).json({ success: false, message: 'Offer not found' });
+    }
 
     res.json({ success: true, data: offer });
   } catch (error) {
+    console.error('Error fetching offer details:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -177,35 +242,77 @@ exports.createOfferByAdmin = async (req, res) => {
     const {
       restaurantId,
       categoryId,
-      offerName,
+      title,
+      description,
       discountType,
       discountValue,
+      minOrderValue,
+      maxUsagePerUser,
+      totalUsageLimit,
       startDate,
       endDate,
+      startTime,
+      endTime,
+      termsConditions,
       isCommissionAuto,
       adminCommission,
-      offerDescription,
     } = req.body;
 
+    // Validate required fields
+    if (!title) {
+      return res.status(400).json({ success: false, message: 'Title is required' });
+    }
+
+    if (!discountType || !discountValue) {
+      return res.status(400).json({ success: false, message: 'Discount type and value are required' });
+    }
+
+    if (!startDate || !endDate) {
+      return res.status(400).json({ success: false, message: 'Start and end dates are required' });
+    }
+
+    // Verify category if provided
+    if (categoryId) {
+      const category = await Category.findByPk(categoryId);
+      if (!category) {
+        return res.status(404).json({ success: false, message: 'Category not found' });
+      }
+    }
+
+    // Verify restaurant if provided
+    if (restaurantId) {
+      const restaurant = await RestaurantReg.findByPk(restaurantId);
+      if (!restaurant) {
+        return res.status(404).json({ success: false, message: 'Restaurant not found' });
+      }
+    }
+
     let offerImage = null;
-    if (req.file) offerImage = `offers/${req.file.filename}`;
+    if (req.file) {
+      offerImage = `offers/${req.file.filename}`;
+    }
 
-    const adminId = req.admin?.id || null; // ✅ Real admin ID
+    const adminId = req.admin?.id || null;
 
-    // ✅ Create Offer
     const offer = await Offer.create({
       restaurantId: restaurantId || null,
       categoryId: categoryId || null,
       offerType: 'ADMIN',
-      createdBy: adminId, // ✅ correct foreign key
-      title: offerName,
-      description: offerDescription,
-      discountType,
-      discountValue,
+      createdBy: adminId,
+      title,
+      description,
+      discountType: discountType === 'PERCENTAGE' ? 'PERCENTAGE' : 'FLAT',
+      discountValue: parseFloat(discountValue),
+      minOrderValue: minOrderValue ? parseFloat(minOrderValue) : 0,
+      maxUsagePerUser: maxUsagePerUser ? parseInt(maxUsagePerUser) : 1,
+      totalUsageLimit: totalUsageLimit ? parseInt(totalUsageLimit) : null,
       startDate,
       endDate,
+      startTime: startTime || null,
+      endTime: endTime || null,
+      termsConditions: termsConditions || null,
       isCommissionAuto: isCommissionAuto === 'true' || isCommissionAuto === true,
-      adminCommission: adminCommission || 0,
+      adminCommission: adminCommission ? parseFloat(adminCommission) : 0,
       approvalStatus: 'APPROVED',
       status: 'ACTIVE',
       approvedBy: adminId,
@@ -226,33 +333,46 @@ exports.createOfferByAdmin = async (req, res) => {
   }
 };
 
-
 // ✅ Get all Admin Offers
 exports.getAdminOffers = async (req, res) => {
   try {
-    const offers = await Offer.findAll({
-      where: { offerType: 'ADMIN' },
+    const { search, page = 1, pageSize = 10 } = req.query;
+    const whereClause = { offerType: 'ADMIN' };
+
+    if (search) {
+      whereClause[Op.or] = [
+        { title: { [Op.like]: `%${search}%` } },
+        { '$restaurant.rest_name$': { [Op.like]: `%${search}%` } }
+      ];
+    }
+
+    const offset = (parseInt(page) - 1) * parseInt(pageSize);
+
+    const { count, rows: offers } = await Offer.findAndCountAll({
+      where: whereClause,
       include: [
         {
           model: RestaurantReg,
-          as: Offer.associations?.restaurant?.as || 'RestaurantReg', // safe alias fallback
+          as: 'restaurant',
           attributes: ['id', 'rest_name', 'rest_logo', 'contact_email', 'contact_number', 'rest_address'],
           required: false,
         },
         {
           model: Category,
-          as: Offer.associations?.category?.as || 'Category', // safe alias fallback
+          as: 'category',
           attributes: ['id', 'name'],
           required: false,
         },
       ],
       order: [['createdAt', 'DESC']],
+      limit: parseInt(pageSize),
+      offset: offset,
+      subQuery: false
     });
 
-    // ✅ Return empty array if no offers found (no error)
     res.json({
       success: true,
-      count: offers.length,
+      count,
       data: offers,
     });
   } catch (error) {
@@ -261,29 +381,58 @@ exports.getAdminOffers = async (req, res) => {
   }
 };
 
-
 // 🔹 Update Admin Offer
 exports.updateAdminOffer = async (req, res) => {
   try {
     const { id } = req.params;
     const offer = await Offer.findOne({ where: { id, offerType: 'ADMIN' } });
-    if (!offer)
+    
+    if (!offer) {
       return res.status(404).json({ success: false, message: 'Admin offer not found' });
-
-    const body = req.body || {};
-    let offerImage = offer.offerImage;
-    if (req.file) offerImage = `offers/${req.file.filename}`;
-    else if (req.files && req.files.length > 0) {
-      const imageFile = req.files.find(f => f.fieldname === 'offerImage');
-      if (imageFile) offerImage = `offers/${imageFile.filename}`;
     }
 
-    await offer.update({
+    const body = req.body || {};
+    
+    // Verify category if provided
+    if (body.categoryId) {
+      const category = await Category.findByPk(body.categoryId);
+      if (!category) {
+        return res.status(404).json({ success: false, message: 'Category not found' });
+      }
+    }
+
+    // Verify restaurant if provided
+    if (body.restaurantId) {
+      const restaurant = await RestaurantReg.findByPk(body.restaurantId);
+      if (!restaurant) {
+        return res.status(404).json({ success: false, message: 'Restaurant not found' });
+      }
+    }
+
+    let offerImage = offer.offerImage;
+    if (req.file) {
+      offerImage = `offers/${req.file.filename}`;
+    }
+
+    // Update data
+    const updateData = {
       ...body,
       offerImage,
-      isCommissionAuto:
-        body.isCommissionAuto === 'true' || body.isCommissionAuto === true,
-    });
+      isCommissionAuto: body.isCommissionAuto === 'true' || body.isCommissionAuto === true,
+    };
+
+    // Convert discountValue to float if provided
+    if (body.discountValue) {
+      updateData.discountValue = parseFloat(body.discountValue);
+    }
+
+    // Convert numeric fields
+    if (body.minOrderValue) updateData.minOrderValue = parseFloat(body.minOrderValue);
+    if (body.adminCommission) updateData.adminCommission = parseFloat(body.adminCommission);
+    if (body.maxUsagePerUser) updateData.maxUsagePerUser = parseInt(body.maxUsagePerUser);
+    if (body.totalUsageLimit) updateData.totalUsageLimit = parseInt(body.totalUsageLimit);
+
+    await offer.update(updateData);
 
     res.json({
       success: true,
@@ -301,8 +450,10 @@ exports.deleteAdminOffer = async (req, res) => {
   try {
     const { id } = req.params;
     const offer = await Offer.findOne({ where: { id, offerType: 'ADMIN' } });
-    if (!offer)
+    
+    if (!offer) {
       return res.status(404).json({ success: false, message: 'Admin offer not found' });
+    }
 
     await offer.destroy();
 
@@ -312,6 +463,40 @@ exports.deleteAdminOffer = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error deleting admin offer:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// 🔹 Get single admin offer details
+exports.getAdminOfferById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const offer = await Offer.findOne({
+      where: { id, offerType: 'ADMIN' },
+      include: [
+        {
+          model: RestaurantReg,
+          as: 'restaurant',
+          attributes: ['id', 'rest_name', 'rest_logo', 'contact_email', 'contact_number', 'rest_address'],
+          required: false,
+        },
+        {
+          model: Category,
+          as: 'category',
+          attributes: ['id', 'name'],
+          required: false,
+        },
+      ],
+    });
+
+    if (!offer) {
+      return res.status(404).json({ success: false, message: 'Admin offer not found' });
+    }
+
+    res.json({ success: true, data: offer });
+  } catch (error) {
+    console.error('Error fetching admin offer details:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };

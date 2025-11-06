@@ -29,7 +29,7 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use('/api/restaurants', require('./routes/restaurant.routes'));
 app.use('/api/food-items', require('./routes/fooditem.routes'));
 app.use("/api", require("./routes/upload.routes"));
-app.use('/api/categories', require('./routes/category.routes'));
+app.use('/api/admin/categories', require('./routes/category.routes'));
 app.use('/api/cuisines', require('./routes/cuisine.routes'));
 app.use("/api/delivery", require("./routes/deliveryPartner.routes"));
 app.use("/api", require("./routes/order.routes"));

@@ -1,7 +1,8 @@
 const { User,sequelize } = require("../models");
 const bcrypt = require("bcryptjs");
 require("dotenv").config();
-const { sendFirebaseOTP } = require("../utils/firebaseOTP");
+const { v4: uuidv4 } = require('uuid');
+
 
 const SALT_ROUNDS = Number(process.env.BCRYPT_SALT_ROUNDS || 10);
 
@@ -125,9 +126,10 @@ exports.deleteUser = async (req, res) => {
 
 exports.sendMobileOTP = async (req, res) => {
   try {
-    const { mobile, fcmToken } = req.body;
-    if (!mobile || !fcmToken)
-      return res.status(400).json({ success: false, message: "Mobile and FCM token required" });
+    const { mobile } = req.body;
+
+    if (!mobile)
+      return res.status(400).json({ success: false, message: "Mobile number required" });
 
     // Generate OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -138,17 +140,25 @@ exports.sendMobileOTP = async (req, res) => {
     if (user) {
       await user.update({ otp, otpExpiry, otpVerified: false });
     } else {
-      user = await User.create({ mobile, otp, otpExpiry, otpVerified: false, status: "pending" });
+      user = await User.create({
+        id: uuidv4(), // if 'id' is also a UUID field
+        customerId: uuidv4(), // 🔥 Added fix
+        mobile,
+        otp,
+        otpExpiry,
+        otpVerified: false,
+        status: "pending",
+      });
     }
 
-    // ⚡ LOG OTP FOR TESTING
     console.log(`🔥 OTP for ${mobile}: ${otp}`);
 
-    // Send OTP via Firebase FCM
-    const sent = await sendFirebaseOTP(fcmToken, otp);
-    if (!sent) return res.status(500).json({ success: false, message: "Failed to send OTP" });
-
-    res.json({ success: true, message: "OTP sent successfully", isNewUser: !user.name });
+    res.json({
+      success: true,
+      message: "OTP generated successfully",
+      isNewUser: !user.name,
+      otp, // for testing only
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, error: err.message });

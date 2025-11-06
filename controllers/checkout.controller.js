@@ -9,6 +9,7 @@ const {
   RestaurantStatus,
   User
 } = require('../models');
+const { validate: isUuid } = require('uuid');
 
 // ==================== CHECKOUT ====================
 exports.checkout = async (req, res) => {
@@ -23,18 +24,29 @@ exports.checkout = async (req, res) => {
       customerLng 
     } = req.body;
 
-    // Validate required fields
-    if (!userId || !cartId || !address || !paymentMethod) {
+    console.log('Checkout request body:', req.body);
+
+    // ----------------- UUID validation -----------------
+    if (!isUuid(userId) || !isUuid(cartId)) {
       await t.rollback();
       return res.status(400).json({
         success: false,
-        error: 'userId, cartId, address, and paymentMethod are required'
+        error: 'userId and cartId must be valid UUIDs'
       });
     }
 
-    // Get user
+    if (!address || !paymentMethod) {
+      await t.rollback();
+      return res.status(400).json({
+        success: false,
+        error: 'address and paymentMethod are required'
+      });
+    }
+
+    // ----------------- Fetch user -----------------
     const user = await User.findByPk(userId, { transaction: t });
     if (!user) {
+      console.error(`User not found with ID: ${userId}`);
       await t.rollback();
       return res.status(404).json({ 
         success: false,
@@ -42,7 +54,7 @@ exports.checkout = async (req, res) => {
       });
     }
 
-    // Get cart with lock
+    // ----------------- Fetch cart -----------------
     const cart = await Cart.findOne({
       where: { id: cartId, userId, status: 'active' },
       include: [
@@ -57,6 +69,7 @@ exports.checkout = async (req, res) => {
     });
 
     if (!cart || cart.items.length === 0) {
+      console.error(`Cart not found or empty for userId: ${userId}, cartId: ${cartId}`);
       await t.rollback();
       return res.status(400).json({
         success: false,
@@ -64,7 +77,7 @@ exports.checkout = async (req, res) => {
       });
     }
 
-    // ✅ CRITICAL: Final restaurant status check
+    // ----------------- Restaurant status -----------------
     const restStatus = await RestaurantStatus.findOne({
       where: { rest_id: cart.rest_id },
       order: [['createdAt', 'DESC']],
@@ -80,12 +93,10 @@ exports.checkout = async (req, res) => {
       });
     }
 
-    // Get restaurant
-    const restaurant = await RestaurantReg.findByPk(cart.rest_id, { 
-      transaction: t 
-    });
-    
+    // ----------------- Fetch restaurant -----------------
+    const restaurant = await RestaurantReg.findByPk(cart.rest_id, { transaction: t });
     if (!restaurant) {
+      console.error(`Restaurant not found with ID: ${cart.rest_id}`);
       await t.rollback();
       return res.status(404).json({ 
         success: false,
@@ -93,7 +104,7 @@ exports.checkout = async (req, res) => {
       });
     }
 
-    // ✅ Final validation: Check stock and availability
+    // ----------------- Validate stock & availability -----------------
     for (const item of cart.items) {
       if (!item.food || item.food.is_available === false) {
         await t.rollback();
@@ -112,7 +123,7 @@ exports.checkout = async (req, res) => {
       }
     }
 
-    // Calculate totals
+    // ----------------- Calculate totals -----------------
     let subtotal = 0;
     const orderItemsData = cart.items.map(item => {
       let addOns = [];
@@ -142,7 +153,7 @@ exports.checkout = async (req, res) => {
     const deliveryFee = subtotal >= minOrderAmount ? 0 : baseDeliveryFee;
     const totalAmount = +(subtotal + tax + deliveryFee).toFixed(2);
 
-    // Create Order
+    // ----------------- Create Order -----------------
     const order = await Order.create({
       userId,
       cartId,
@@ -161,11 +172,11 @@ exports.checkout = async (req, res) => {
       paymentStatus: paymentMethod === 'COD' ? 'PENDING' : 'PAID'
     }, { transaction: t });
 
-    // Create OrderItems (snapshot of prices at order time)
+    // ----------------- Create OrderItems -----------------
     orderItemsData.forEach(item => item.orderId = order.id);
     await OrderItem.bulkCreate(orderItemsData, { transaction: t });
 
-    // Deduct stock
+    // ----------------- Deduct stock -----------------
     for (const item of cart.items) {
       if (item.food.stock !== null) {
         await item.food.update(
@@ -175,7 +186,7 @@ exports.checkout = async (req, res) => {
       }
     }
 
-    // Mark cart as checked out
+    // ----------------- Mark cart as checked out -----------------
     await cart.update({ status: 'checked_out' }, { transaction: t });
 
     await t.commit();
@@ -227,4 +238,3 @@ exports.checkout = async (req, res) => {
 };
 
 module.exports = exports;
-

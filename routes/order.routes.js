@@ -6,7 +6,7 @@ const checkoutController = require('../controllers/checkout.controller');
 
 
 /// Checkout process
-router.post('/checkout', checkoutController.checkout);
+router.post('/orders/checkout', checkoutController.checkout);
 
 
 // ------------------- ORDER ROUTES -------------------
