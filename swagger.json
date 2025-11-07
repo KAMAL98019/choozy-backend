@@ -17,6 +17,11 @@
                 "tags": [
                     "Users"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "Array of users"
@@ -27,6 +32,11 @@
                 "summary": "Create user (direct create) - can be used by admin",
                 "tags": [
                     "Users"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "requestBody": {
                     "required": true,
@@ -50,6 +60,11 @@
                 "summary": "Get user by id",
                 "tags": [
                     "Users"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "parameters": [
                     {
@@ -75,6 +90,11 @@
                 "summary": "Update user",
                 "tags": [
                     "Users"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "parameters": [
                     {
@@ -141,6 +161,11 @@
                 "summary": "Delete user",
                 "tags": [
                     "Users"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "parameters": [
                     {
@@ -313,6 +338,11 @@
                 "tags": [
                     "Restaurants"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "parameters": [
                     {
                         "name": "id",
@@ -355,6 +385,11 @@
                 "tags": [
                     "Restaurants"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "parameters": [
                     {
                         "name": "id",
@@ -380,6 +415,11 @@
             "put": {
                 "tags": [
                     "Restaurants"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "summary": "Update delivery settings for a restaurant",
                 "parameters": [
@@ -650,6 +690,11 @@
             "post": {
                 "tags": [
                     "RestaurantAuth"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "summary": "Logout restaurant account",
                 "description": "Logs out a restaurant user using their email or mobile number. This endpoint may clear session data or simply indicate successful logout depending on implementation.",
@@ -3277,6 +3322,11 @@
                 "tags": [
                     "Delivery Partner"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "summary": "Get all partners",
                 "responses": {
                     "200": {
@@ -3289,6 +3339,11 @@
             "get": {
                 "tags": [
                     "Delivery Partner"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "summary": "Get a partner by ID",
                 "parameters": [
@@ -3311,6 +3366,11 @@
             "put": {
                 "tags": [
                     "Delivery Partner"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "summary": "Update a partner",
                 "parameters": [
@@ -3452,6 +3512,11 @@
                 "tags": [
                     "Delivery Partner"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "summary": "Delete a partner",
                 "parameters": [
                     {
@@ -3524,6 +3589,11 @@
             "post": {
                 "tags": [
                     "DeliveryPartnerAuth"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "summary": "Logout delivery partner account",
                 "requestBody": {
@@ -5053,6 +5123,11 @@
                 "tags": [
                     "Admin - Customers"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "summary": "Get all customers with pagination and search",
                 "description": "Retrieve a paginated list of customers with search functionality",
                 "parameters": [
@@ -5142,6 +5217,11 @@
                 "tags": [
                     "Admin - Customers"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "summary": "Get single customer details",
                 "description": "Retrieve complete details of a specific customer",
                 "parameters": [
@@ -5208,6 +5288,11 @@
                 "tags": [
                     "Admin - Customers"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "summary": "Get customer statistics",
                 "description": "Retrieve statistics for admin dashboard",
                 "responses": {
@@ -5269,6 +5354,11 @@
             "put": {
                 "tags": [
                     "Admin - Customers"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "summary": "Block or unblock a customer",
                 "description": "Update customer status to active or blocked",
@@ -5381,6 +5471,11 @@
             "get": {
                 "tags": [
                     "Admin - Restaurants"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "summary": "Get all restaurants with filters and pagination",
                 "parameters": [
@@ -5517,6 +5612,11 @@
                 "tags": [
                     "Admin - Restaurants"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "summary": "Get single restaurant details",
                 "parameters": [
                     {
@@ -5542,6 +5642,11 @@
             "get": {
                 "tags": [
                     "Admin - Restaurants"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "summary": "Get restaurant statistics",
                 "responses": {
@@ -5591,6 +5696,11 @@
                 "tags": [
                     "Admin - Restaurants"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "summary": "Get unique cuisine types for filter",
                 "responses": {
                     "200": {
@@ -5624,6 +5734,11 @@
             "put": {
                 "tags": [
                     "Admin - Restaurants"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "summary": "Update restaurant status (Approve/Block/Unblock)",
                 "parameters": [
@@ -5678,6 +5793,11 @@
             "get": {
                 "tags": [
                     "Admin - Delivery Partners"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "summary": "Get all delivery partners with filters and pagination",
                 "parameters": [
@@ -5738,6 +5858,11 @@
                 "tags": [
                     "Admin - Delivery Partners"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "summary": "Get single delivery partner details",
                 "parameters": [
                     {
@@ -5764,6 +5889,11 @@
                 "tags": [
                     "Admin - Delivery Partners"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "summary": "Get delivery partner statistics",
                 "responses": {
                     "200": {
@@ -5777,6 +5907,11 @@
                 "tags": [
                     "Admin - Delivery Partners"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "summary": "Get unique vehicle types for filter",
                 "responses": {
                     "200": {
@@ -5789,6 +5924,11 @@
             "put": {
                 "tags": [
                     "Admin - Delivery Partners"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "summary": "Update partner status",
                 "parameters": [
@@ -5844,6 +5984,11 @@
             "get": {
                 "tags": [
                     "Admin - Delivery Partners"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "summary": "Get partner attendance log",
                 "parameters": [
@@ -5977,6 +6122,11 @@
             "get": {
                 "tags": [
                     "Admin - Delivery Partners"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "summary": "Download attendance report as CSV",
                 "parameters": [
@@ -10872,6 +11022,11 @@
                 "tags": [
                     "Authentication"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -10927,6 +11082,13 @@
         }
     },
     "components": {
+        "securitySchemes": {
+            "bearerAuth": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT"
+            }
+        },
         "schemas": {
             "User": {
                 "type": "object",
@@ -12722,9 +12884,7 @@
                     }
                 }
             }
-            
         }
-        
     },
     "tags": [
         {

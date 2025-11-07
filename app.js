@@ -20,40 +20,52 @@ app.use(
 );
 
 app.use(express.json());
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+app.use("/api", require("./routes/uploadRoutes"));
 
 
 // ✅ Routes
-app.use("/api/users", require("./routes/user.routes"));
-app.use('/api/cart', require('./routes/cart.routes'));
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
-app.use('/api/restaurants', require('./routes/restaurant.routes'));
-app.use('/api/food-items', require('./routes/fooditem.routes'));
-app.use("/api", require("./routes/upload.routes"));
-app.use('/api/admin/categories', require('./routes/category.routes'));
-app.use('/api/cuisines', require('./routes/cuisine.routes'));
-app.use("/api/delivery", require("./routes/deliveryPartner.routes"));
-app.use("/api", require("./routes/order.routes"));
-app.use("/api/subscriptions", require("./routes/subscription.routes"));
-app.use('/api',require('./routes/address.routes') );
-app.use("/api/notifications",require ('./routes/notification.routes'));
-app.use("/api/partner", require ('./routes/partnerAttendance.routes'));
-app.use('/api/reviews/customer-to-restaurant', require('./routes/reviewCustomerToRestaurantRoutes'));
-app.use('/api/reviews/customer-to-delivery', require('./routes/reviewCustomerToDeliveryRoutes'));
-app.use('/api/reviews/delivery-to-customer', require('./routes/reviewDeliveryToCustomerRoutes'));
-app.use('/api/reviews/restaurant-to-delivery', require('./routes/reviewRestaurantToDeliveryRoutes'));
-app.use("/api",require('./routes/deliverySummaryRoutes') );
-app.use('/api/admin',require('./routes/adminRoutes') );
-app.use('/api',require('./routes/restaurantOrderRoutes')  );
+
+// Customer
+app.use("/api/users", require("./routes/customer/userRoutes"));
+app.use('/api',require('./routes/customer/addressRoutes') );
+app.use('/api/cart', require('./routes/customer/cartRoutes'));
+app.use('/api/customer',require('./routes/customer/customerBookingRoutes') );
+app.use('/api',require('./routes/customer/offerRoutes') );
+app.use('/api/reviews/customer-to-restaurant', require('./routes/customer/reviewCustomerToRestaurantRoutes'));
+app.use('/api/reviews/customer-to-delivery', require('./routes/customer/reviewCustomerToDeliveryRoutes'));
+
+// Restaurant
+app.use('/api/restaurants', require('./routes/restaurant/restaurantRoutes'));
+app.use('/api/food-items', require('./routes/restaurant/foodItemRoutes'));
+app.use('/api',require('./routes/restaurant/restaurantOrderRoutes')  );
+app.use('/api',require('./routes/restaurant/restaurantBookingRoutes') );
+app.use('/api',require('./routes/restaurant/offerRoutes') );
+app.use('/api',require('./routes/restaurant/restaurantStatusRoutes') );
+app.use("/api/subscriptions", require("./routes/restaurant/subscriptionRoutes"));
+app.use('/api/reviews/restaurant-to-delivery', require('./routes/restaurant/reviewRestaurantToDeliveryRoutes'));
+
+// Deliverypartner
+app.use("/api/delivery", require("./routes/deliverypartner/deliveryPartnerRoutes"));
+app.use("/api", require("./routes/deliverypartner/deliveryOrderRoutes"));
+app.use("/api/partner", require ('./routes/deliverypartner/deliveryPartnerAttendanceRoutes'));
+app.use('/api/reviews/delivery-to-customer', require('./routes/deliverypartner/reviewDeliveryToCustomerRoutes'));
+app.use("/api",require('./routes/deliverypartner/deliverySummaryRoutes') );
+
+// Admin
+app.use('/api/admin',require('./routes/admin/adminRoutes') );
 app.use('/api/admin', require('./routes/admin/userRoutes'));
 app.use('/api/admin', require('./routes/admin/restaurantRoutes'));
 app.use('/api/admin', require('./routes/admin/deliveryPartnerRoutes'));
 app.use('/api/admin', require('./routes/admin/orderRoutes'));
 app.use('/api/admin', require('./routes/admin/bookingRoutes'));
-app.use('/api', require('./routes/admin/offerRoutes'));
-app.use('/api/customer',require('./routes/customerBookingRoutes') );
-app.use('/api',require('./routes/restaurantBookingRoutes') );
-app.use('/api',require('./routes/offerRoutes') );
-app.use('/api',require('./routes/restaurantStatus.routes') );
+app.use('/api/admin', require('./routes/admin/offerRoutes'));
+app.use('/api/admin/categories', require('./routes/admin/categoryRoutes'));
+app.use('/api/cuisines', require('./routes/admin/cuisineRoutes'));
+
+
+app.use("/api/notifications",require ('./routes/notificationRoutes'));
+
 
 // ✅ Optional test route
 app.get("/api/firebase-test", async (req, res) => {

@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const deliveryPartnerController = require('../../controllers/admin/deliveryPartnerController');
-const { authenticateAdmin } = require('../../middlewares/auth.middleware');
+const { authenticateAdmin } = require('../../middlewares/authMiddleware');
 
 // Get all delivery partners with filters and pagination
 router.get('/delivery-partners',authenticateAdmin, deliveryPartnerController.getAllPartners);

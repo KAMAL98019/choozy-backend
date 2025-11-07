@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const customerController = require('../../controllers/admin/userController');
-const { authenticateAdmin } = require('../../middlewares/auth.middleware');
+const { authenticateAdmin } = require('../../middlewares/authMiddleware');
 // Get all customers with pagination
 router.get('/customers',authenticateAdmin, customerController.getAllCustomers);
 

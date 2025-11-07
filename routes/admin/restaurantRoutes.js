@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const restaurantController = require('../../controllers/admin/restaurantController');
-const { authenticateAdmin } = require('../../middlewares/auth.middleware');
+const { authenticateAdmin } = require('../../middlewares/authMiddleware');
 
 // Get all restaurants with filters and pagination
 router.get('/restaurants',authenticateAdmin, restaurantController.getAllRestaurants);
