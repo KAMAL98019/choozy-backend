@@ -7,7 +7,7 @@
     },
     "servers": [
         {
-            "url": "https://backend.zenzio.in"
+            "url": "http://localhost:5000"
         }
     ],
     "paths": {
