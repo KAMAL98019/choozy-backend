@@ -2,11 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const orderController = require('../../controllers/deliverypartner/deliveryOrderController');
-const checkoutController = require('../../controllers/customer/checkoutController');
-
-
-/// Checkout process
-router.post('/orders/checkout', checkoutController.checkout);
+const { authenticatePartner } = require("../../middlewares/authMiddleware");
 
 
 // ------------------- ORDER ROUTES -------------------
@@ -16,27 +12,27 @@ router.get('/orders/:id', orderController.getOrder);
 // ------------------- DELIVERY ROUTES (Partner Side) -------------------
 
 // Auto-assigned delivery shown to partner
-router.get('/delivery/new', orderController.getNewDeliveryRequests);
+router.get('/delivery/new',authenticatePartner, orderController.getNewDeliveryRequests);
 
 // Partner accepts a delivery
-router.put('/delivery/:deliveryId/accept', orderController.acceptDelivery);
+router.put('/delivery/:deliveryId/accept',authenticatePartner, orderController.acceptDelivery);
 
 // Partner rejects a delivery
-router.put('/delivery/:deliveryId/reject', orderController.rejectDelivery);
+router.put('/delivery/:deliveryId/reject',authenticatePartner, orderController.rejectDelivery);
 
 // Get partner’s current active delivery
-router.get('/delivery/current', orderController.getCurrentDelivery);
+router.get('/delivery/current',authenticatePartner, orderController.getCurrentDelivery);
 
 // Mark as picked up from restaurant
-router.put('/delivery/:deliveryId/pickedup', orderController.markPickedUp);
+router.put('/delivery/:deliveryId/pickedup',authenticatePartner, orderController.markPickedUp);
 
-router.put('/delivery/:deliveryId/photo', orderController.uploadDeliveryPhoto, orderController.uploadDeliveryProof);
+router.put('/delivery/:deliveryId/photo',authenticatePartner, orderController.uploadDeliveryPhoto, orderController.uploadDeliveryProof);
 
-router.post('/delivery/:deliveryId/verify-otp', orderController.verifyDeliveryOtp);
+router.post('/delivery/:deliveryId/verify-otp',authenticatePartner, orderController.verifyDeliveryOtp);
 
 
 // Delivery history for partner
-router.get('/delivery/history', orderController.getDeliveryHistory);
+router.get('/delivery/history',authenticatePartner, orderController.getDeliveryHistory);
 
 module.exports = router;
 

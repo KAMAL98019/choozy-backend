@@ -1,10 +1,11 @@
 const router = require('express').Router();
 const ctrl = require('../../controllers/admin/cuisineController');
+const { authenticateAdmin } = require("../../middlewares/authMiddleware");
 
-router.post('/', ctrl.create);
-router.get('/', ctrl.getAll);
-router.get('/:id', ctrl.getById);
-router.put('/:id', ctrl.update);
-router.delete('/:id', ctrl.remove);
+router.post('/',authenticateAdmin, ctrl.create);
+router.get('/',authenticateAdmin, ctrl.getAll);
+router.get('/:id',authenticateAdmin, ctrl.getById);
+router.put('/:id',authenticateAdmin, ctrl.update);
+router.delete('/:id',authenticateAdmin, ctrl.remove);
 
 module.exports = router;

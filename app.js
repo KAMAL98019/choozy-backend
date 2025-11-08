@@ -30,6 +30,7 @@ app.use("/api", require("./routes/uploadRoutes"));
 app.use("/api/users", require("./routes/customer/userRoutes"));
 app.use('/api',require('./routes/customer/addressRoutes') );
 app.use('/api/cart', require('./routes/customer/cartRoutes'));
+app.use('/api',require('./routes/customer/checkoutRoutes') );
 app.use('/api/customer',require('./routes/customer/customerBookingRoutes') );
 app.use('/api',require('./routes/customer/offerRoutes') );
 app.use('/api/reviews/customer-to-restaurant', require('./routes/customer/reviewCustomerToRestaurantRoutes'));
@@ -76,10 +77,6 @@ app.get("/api/firebase-test", async (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 });
-
-
-
-
 
 
 // ✅ Swagger setup

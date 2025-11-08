@@ -2,21 +2,22 @@ const express = require("express");
 const router = express.Router();
 const attendanceController = require("../../controllers/deliverypartner/partnerAttendance.controller");
 const uploadAttendance = require("../../middlewares/uploadAttendance");
+const { authenticatePartner } = require("../../middlewares/authMiddleware");
 
 // ✅ Mark Attendance (with photo upload)
 router.post(
-  "/attendance",
+  "/attendance",authenticatePartner,
   uploadAttendance.single("attendancePhoto"),
   attendanceController.markAttendance
 );
 
 // ✅ Update Partner Status (ONLINE / OFFLINE)
-router.put("/attendance/:partnerId/status", attendanceController.updateStatus);
+router.put("/attendance/:partnerId/status",authenticatePartner, attendanceController.updateStatus);
 
 // ✅ Update Partner Live Location (latitude & longitude)
-router.put("/attendance/:partnerId/location", attendanceController.updateLocation);
+router.put("/attendance/:partnerId/location",authenticatePartner, attendanceController.updateLocation);
 
 // ✅ Get Partner Earnings (today / week / month / lastMonth)
-router.get("/attendance/earnings", attendanceController.getEarnings);
+router.get("/attendance/earnings",authenticatePartner, attendanceController.getEarnings);
 
 module.exports = router;

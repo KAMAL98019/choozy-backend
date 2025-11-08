@@ -1,7 +1,7 @@
 const { User, sequelize } = require("../../models");
 const bcrypt = require("bcryptjs");
 const { generateToken } = require("../../utils/jwtUtils");
-const { sendOTPToIdentifier, sendOTPToBoth } = require("../../services/otpUtils");
+const { sendOTPToBoth } = require("../../services/otpUtils");
 require("dotenv").config();
 const { v4: uuidv4 } = require('uuid');
 

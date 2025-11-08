@@ -1,9 +1,8 @@
 const { Partner } = require("../../models");
 const bcrypt = require("bcryptjs");
 const { generateToken } = require("../../utils/jwtUtils");
-const { sendOTPViaSMS } = require("../../services/smsUtils");
+const { sendOTPToBoth } = require("../../services/otpUtils");
 
-const ENABLE_SMS = process.env.ENABLE_SMS === 'true';
 
 // ------------------- Register -------------------
 exports.register = async (req, res) => {
@@ -19,21 +18,17 @@ exports.register = async (req, res) => {
     const dlFile = req.files?.dlFile ? `${req.protocol}://${req.get("host")}/uploads/${req.files.dlFile[0].filename}` : null;
     const idProofFile = req.files?.idProofFile ? `${req.protocol}://${req.get("host")}/uploads/${req.files.idProofFile[0].filename}` : null;
 
-    const lastPartner = await Partner.findOne({
-      order: [['createdAt', 'DESC']],
-      attributes: ['partnerCode'],
-    });
-
-    let nextNumber = 1;
-    if (lastPartner && lastPartner.partnerCode) {
-      const match = lastPartner.partnerCode.match(/\d+$/);
-      if (match) nextNumber = parseInt(match[0]) + 1;
+    // ✅ Optional: check if they used a valid referral
+    if (req.body.referralCode) {
+      const referrer = await Partner.findOne({ where: { referralCode: req.body.referralCode } });
+      if (!referrer) {
+        return res.status(400).json({ success: false, message: "Invalid referral code" });
+      }
+      // (optional) — you could give bonus points to referrer here
     }
-    const partnerCode = `DP${String(nextNumber).padStart(4, '0')}`;
 
     const partner = await Partner.create({
       ...req.body,
-      partnerCode,
       password: hash,
       rcFile,
       dlFile,
@@ -47,15 +42,16 @@ exports.register = async (req, res) => {
       id: partner.id,
       partnerCode: partner.partnerCode,
       email: partner.email,
-      role: 'partner'
+      role: "partner"
     });
 
-    res.status(201).json({ 
-      success: true, 
-      message: "Registered successfully", 
+    res.status(201).json({
+      success: true,
+      message: "Registered successfully",
       partner: data,
-      token 
+      token,
     });
+
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -180,7 +176,7 @@ exports.login = async (req, res) => {
   }
 };
 
-// ------------------- Send OTP (AWS SNS Integrated) -------------------
+// ------------------- Send OTP (SMS + Email Support) -------------------
 exports.sendOTP = async (req, res) => {
   try {
     const { emailOrMobile } = req.body;
@@ -203,22 +199,41 @@ exports.sendOTP = async (req, res) => {
 
     await partner.update({ otp, otpExpiry, otpVerified: false });
 
-    // Send OTP via AWS SNS
-    if (ENABLE_SMS && !isEmail) {
-      try {
-        await sendOTPViaSMS(partner.mobile, otp, "password-reset");
-      } catch (smsError) {
-        console.error("SMS sending failed:", smsError);
+    // ✅ Send OTP via both SMS and Email
+    try {
+      const result = await sendOTPToBoth(
+        partner.mobile,
+        partner.email,
+        otp,
+        "password-reset",
+        partner.name || partner.contactPersonName
+      );
+      
+      if (!result.success) {
+        console.error("Password reset OTP failed:", result);
       }
-    } else {
-      console.log(`🔥 [DEV MODE] OTP for ${emailOrMobile}: ${otp}`);
-    }
 
-    res.json({ 
-      success: true, 
-      message: "Verification code sent",
-      ...(process.env.NODE_ENV === 'development' && { otp })
-    });
+      res.json({ 
+        success: true, 
+        message: "Verification code sent",
+        sentVia: {
+          sms: !!partner.mobile && result.results.sms.success,
+          email: !!partner.email && result.results.email.success,
+        },
+        expiryMinutes: result.expiryMinutes,
+        resendIntervalSeconds: result.resendIntervalSeconds,
+        ...(process.env.NODE_ENV === 'development' && { otp })
+      });
+
+    } catch (otpError) {
+      console.error("OTP sending error:", otpError);
+      // Continue even if OTP sending fails
+      res.json({ 
+        success: true, 
+        message: "OTP generated but sending failed",
+        ...(process.env.NODE_ENV === 'development' && { otp })
+      });
+    }
 
   } catch (err) {
     console.error("Send OTP Error:", err);
@@ -305,7 +320,7 @@ exports.resetPassword = async (req, res) => {
   }
 };
 
-// ------------------- Resend OTP (AWS SNS Integrated) -------------------
+// ------------------- Resend OTP (SMS + Email Support) -------------------
 exports.resendOTP = async (req, res) => {
   try {
     const { emailOrMobile } = req.body;
@@ -328,22 +343,40 @@ exports.resendOTP = async (req, res) => {
 
     await partner.update({ otp, otpExpiry });
 
-    // Send OTP via AWS SNS
-    if (ENABLE_SMS && !isEmail) {
-      try {
-        await sendOTPViaSMS(partner.mobile, otp, "password-reset");
-      } catch (smsError) {
-        console.error("SMS sending failed:", smsError);
+    // ✅ Send OTP via both SMS and Email
+    try {
+      const result = await sendOTPToBoth(
+        partner.mobile,
+        partner.email,
+        otp,
+        "password-reset",
+        partner.name || partner.contactPersonName
+      );
+      
+      if (!result.success) {
+        console.error("OTP resend failed:", result);
       }
-    } else {
-      console.log(`🔥 [DEV MODE] Resent OTP for ${emailOrMobile}: ${otp}`);
-    }
 
-    res.json({ 
-      success: true, 
-      message: "Verification code resent",
-      ...(process.env.NODE_ENV === 'development' && { otp })
-    });
+      res.json({ 
+        success: true, 
+        message: "Verification code resent",
+        sentVia: {
+          sms: !!partner.mobile && result.results.sms.success,
+          email: !!partner.email && result.results.email.success,
+        },
+        expiryMinutes: result.expiryMinutes,
+        resendIntervalSeconds: result.resendIntervalSeconds,
+        ...(process.env.NODE_ENV === 'development' && { otp })
+      });
+
+    } catch (otpError) {
+      console.error("OTP resend error:", otpError);
+      res.json({ 
+        success: true, 
+        message: "OTP generated but sending failed",
+        ...(process.env.NODE_ENV === 'development' && { otp })
+      });
+    }
 
   } catch (err) {
     console.error("Resend OTP Error:", err);

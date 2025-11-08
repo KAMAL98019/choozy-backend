@@ -91,6 +91,10 @@ module.exports = (sequelize, DataTypes) => {
     }
 
     instance.partnerCode = `DP${String(nextNumber).padStart(4, '0')}`;
+
+    // 🔹 Generate random unique referralCode (e.g. DP7F9B2)
+  const randomPart = crypto.randomBytes(3).toString("hex").toUpperCase().slice(0, 5);
+  instance.referralCode = `DP${randomPart}`;
   });
 
   return Partner;

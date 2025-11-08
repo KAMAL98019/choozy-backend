@@ -3,9 +3,8 @@ const { RestaurantReg, RestaurantStatus, FoodItem } = require('../../models');
 const { v4: uuidv4 } = require('uuid');
 const bcrypt = require("bcryptjs");
 const { generateToken } = require("../../utils/jwtUtils");
-const { sendOTPViaSMS } = require("../../services/smsUtils");
+const { sendOTPToBoth } = require("../../services/otpUtils");
 
-const ENABLE_SMS = process.env.ENABLE_SMS === 'true';
 
 exports.create = async (req, res) => {
   try {
@@ -285,7 +284,7 @@ exports.logout = async (req, res) => {
   }
 };
 
-// ------------------- Send OTP (AWS SNS Integrated) -------------------
+// ------------------- Send OTP (SMS + Email Support) -------------------
 exports.sendOTP = async (req, res) => {
   try {
     const { emailOrMobile } = req.body;
@@ -308,22 +307,40 @@ exports.sendOTP = async (req, res) => {
     
     await restaurant.update({ otp, otpExpiry, otpVerified: false });
 
-    // Send OTP via AWS SNS
-    if (ENABLE_SMS && !isEmail) {
-      try {
-        await sendOTPViaSMS(restaurant.contact_number, otp, "password-reset");
-      } catch (smsError) {
-        console.error("SMS sending failed:", smsError);
+    // ✅ Send OTP via both SMS and Email
+    try {
+      const result = await sendOTPToBoth(
+        restaurant.contact_number,
+        restaurant.contact_email,
+        otp,
+        "password-reset",
+        restaurant.contact_person_name || restaurant.rest_name
+      );
+      
+      if (!result.success) {
+        console.error("Password reset OTP failed:", result);
       }
-    } else {
-      console.log(`🔥 [DEV MODE] OTP for ${emailOrMobile}: ${otp}`);
-    }
 
-    res.json({ 
-      success: true, 
-      message: "Verification code sent",
-      ...(process.env.NODE_ENV === 'development' && { otp })
-    });
+      res.json({ 
+        success: true, 
+        message: "Verification code sent",
+        sentVia: {
+          sms: !!restaurant.contact_number && result.results.sms.success,
+          email: !!restaurant.contact_email && result.results.email.success,
+        },
+        expiryMinutes: result.expiryMinutes,
+        resendIntervalSeconds: result.resendIntervalSeconds,
+        ...(process.env.NODE_ENV === 'development' && { otp })
+      });
+
+    } catch (otpError) {
+      console.error("OTP sending error:", otpError);
+      res.json({ 
+        success: true, 
+        message: "OTP generated but sending failed",
+        ...(process.env.NODE_ENV === 'development' && { otp })
+      });
+    }
 
   } catch (err) {
     console.error("Send OTP Error:", err);
@@ -404,7 +421,7 @@ exports.resetPassword = async (req, res) => {
   }
 };
 
-// ------------------- Resend OTP (AWS SNS Integrated) -------------------
+// ------------------- Resend OTP (SMS + Email Support) -------------------
 exports.resendOTP = async (req, res) => {
   try {
     const { emailOrMobile } = req.body;
@@ -427,22 +444,40 @@ exports.resendOTP = async (req, res) => {
     
     await restaurant.update({ otp, otpExpiry });
 
-    // Send OTP via AWS SNS
-    if (ENABLE_SMS && !isEmail) {
-      try {
-        await sendOTPViaSMS(restaurant.contact_number, otp, "password-reset");
-      } catch (smsError) {
-        console.error("SMS sending failed:", smsError);
+    // ✅ Send OTP via both SMS and Email
+    try {
+      const result = await sendOTPToBoth(
+        restaurant.contact_number,
+        restaurant.contact_email,
+        otp,
+        "password-reset",
+        restaurant.contact_person_name || restaurant.rest_name
+      );
+      
+      if (!result.success) {
+        console.error("OTP resend failed:", result);
       }
-    } else {
-      console.log(`🔥 [DEV MODE] Resent OTP for ${emailOrMobile}: ${otp}`);
-    }
 
-    res.json({ 
-      success: true, 
-      message: "Verification code resent",
-      ...(process.env.NODE_ENV === 'development' && { otp })
-    });
+      res.json({ 
+        success: true, 
+        message: "Verification code resent",
+        sentVia: {
+          sms: !!restaurant.contact_number && result.results.sms.success,
+          email: !!restaurant.contact_email && result.results.email.success,
+        },
+        expiryMinutes: result.expiryMinutes,
+        resendIntervalSeconds: result.resendIntervalSeconds,
+        ...(process.env.NODE_ENV === 'development' && { otp })
+      });
+
+    } catch (otpError) {
+      console.error("OTP resend error:", otpError);
+      res.json({ 
+        success: true, 
+        message: "OTP generated but sending failed",
+        ...(process.env.NODE_ENV === 'development' && { otp })
+      });
+    }
 
   } catch (err) {
     console.error("Resend OTP Error:", err);

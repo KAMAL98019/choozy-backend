@@ -1,11 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const controller = require('../../controllers/deliverypartner/reviewDeliveryToCustomerController');
+const { authenticatePartner } = require("../../middlewares/authMiddleware");
 
-router.post('/', controller.create);
-router.get('/', controller.getAll);
-router.get('/:id', controller.getById);
-router.put('/:id', controller.update);
-router.delete('/:id', controller.delete);
+router.post('/', authenticatePartner, controller.create);
+router.get('/', authenticatePartner, controller.getAll);
+router.get('/:id', authenticatePartner, controller.getById);
+router.put('/:id', authenticatePartner, controller.update);
+router.delete('/:id', authenticatePartner, controller.delete);
 
 module.exports = router;

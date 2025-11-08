@@ -191,6 +191,11 @@
                 "tags": [
                     "Restaurants"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "parameters": [
                     {
                         "name": "q",
@@ -273,6 +278,11 @@
                 "tags": [
                     "Restaurants"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -305,6 +315,11 @@
                 "summary": "Get restaurant by id",
                 "tags": [
                     "Restaurants"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "parameters": [
                     {
@@ -522,6 +537,11 @@
             "get": {
                 "tags": [
                     "Restaurants"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "summary": "Get all active food items for a restaurant (only if online)",
                 "description": "Fetches all active food items from a restaurant only if the restaurant's current status is ONLINE.",
@@ -973,6 +993,11 @@
                 "tags": [
                     "Food Items"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "summary": "Get all food items (optionally filter by restaurantId, cuisineId, categoryId, or search)",
                 "parameters": [
                     {
@@ -1055,6 +1080,11 @@
                 "tags": [
                     "Food Items"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -1128,6 +1158,11 @@
                 "tags": [
                     "Food Items"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "parameters": [
                     {
                         "name": "id",
@@ -1176,6 +1211,11 @@
                 "summary": "Update food item (with optional new image upload)",
                 "tags": [
                     "Food Items"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "parameters": [
                     {
@@ -1253,6 +1293,11 @@
                 "tags": [
                     "Food Items"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "parameters": [
                     {
                         "name": "id",
@@ -1282,6 +1327,11 @@
                 "summary": "Get user's active cart (any restaurant)",
                 "tags": [
                     "Cart"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "parameters": [
                     {
@@ -1380,6 +1430,11 @@
                 "summary": "Add item to cart (with restaurant conflict detection)",
                 "tags": [
                     "Cart"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "requestBody": {
                     "required": true,
@@ -1617,6 +1672,11 @@
                 "tags": [
                     "Cart"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -1680,6 +1740,11 @@
                 "summary": "Update cart item quantity",
                 "tags": [
                     "Cart"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "parameters": [
                     {
@@ -1762,6 +1827,11 @@
                 "tags": [
                     "Cart"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "parameters": [
                     {
                         "name": "id",
@@ -1835,6 +1905,11 @@
                 "summary": "Get cart summary with pricing details",
                 "tags": [
                     "Cart"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "parameters": [
                     {
@@ -1951,6 +2026,11 @@
                 "summary": "Validate cart before checkout (price updates, availability, stock)",
                 "tags": [
                     "Cart"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "parameters": [
                     {
@@ -2126,11 +2206,116 @@
                 }
             }
         },
-        "/api/orders/checkout": {
+        "/api/orders/create-payment-order": {
             "post": {
-                "summary": "Create an order from cart (checkout process)",
+                "summary": "Create Razorpay payment order (before checkout)",
                 "tags": [
                     "Checkout"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "userId",
+                                    "cartId"
+                                ],
+                                "properties": {
+                                    "userId": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "example": "a3f4d02b-4d8b-4b1d-b26d-5c32a11e1f55"
+                                    },
+                                    "cartId": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "example": "b7d1c70c-8571-4f8e-b24c-f8f4b5ef6b3d"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Razorpay order created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "razorpayOrderId": {
+                                            "type": "string",
+                                            "example": "order_JK34F89AD2P3KL"
+                                        },
+                                        "amount": {
+                                            "type": "number",
+                                            "example": 565.0
+                                        },
+                                        "currency": {
+                                            "type": "string",
+                                            "example": "INR"
+                                        },
+                                        "key": {
+                                            "type": "string",
+                                            "example": "rzp_test_xxx"
+                                        },
+                                        "orderDetails": {
+                                            "type": "object",
+                                            "properties": {
+                                                "subtotal": {
+                                                    "type": "number",
+                                                    "example": 500.0
+                                                },
+                                                "tax": {
+                                                    "type": "number",
+                                                    "example": 25.0
+                                                },
+                                                "deliveryFee": {
+                                                    "type": "number",
+                                                    "example": 40.0
+                                                },
+                                                "totalAmount": {
+                                                    "type": "number",
+                                                    "example": 565.0
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid input or empty cart"
+                    },
+                    "500": {
+                        "description": "Server error during payment order creation"
+                    }
+                }
+            }
+        },
+        "/api/orders/checkout": {
+            "post": {
+                "summary": "Complete checkout with Razorpay or Cash on Delivery",
+                "tags": [
+                    "Checkout"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "requestBody": {
                     "required": true,
@@ -2162,22 +2347,33 @@
                                     "paymentMethod": {
                                         "type": "string",
                                         "enum": [
-                                            "CASH",
                                             "COD",
+                                            "CASH",
                                             "CARD",
-                                            "UPI"
+                                            "UPI",
+                                            "RAZORPAY"
                                         ],
-                                        "example": "CARD"
+                                        "example": "RAZORPAY"
                                     },
                                     "customerLat": {
                                         "type": "number",
-                                        "format": "float",
                                         "example": 12.9716
                                     },
                                     "customerLng": {
                                         "type": "number",
-                                        "format": "float",
                                         "example": 77.5946
+                                    },
+                                    "razorpayOrderId": {
+                                        "type": "string",
+                                        "example": "order_JK34F89AD2P3KL"
+                                    },
+                                    "razorpayPaymentId": {
+                                        "type": "string",
+                                        "example": "pay_LF28C4Y8J7H5W8"
+                                    },
+                                    "razorpaySignature": {
+                                        "type": "string",
+                                        "example": "2f6b3b802dbe6d3a3a8eec..."
                                     }
                                 }
                             }
@@ -2210,7 +2406,7 @@
                                                 },
                                                 "orderNumber": {
                                                     "type": "string",
-                                                    "example": "ORD-20250103-0001"
+                                                    "example": "ORD-20251107-0001"
                                                 },
                                                 "restaurant": {
                                                     "type": "object",
@@ -2225,7 +2421,7 @@
                                                         },
                                                         "address": {
                                                             "type": "string",
-                                                            "example": "No.45, Anna Nagar, Chennai"
+                                                            "example": "Anna Nagar, Chennai"
                                                         },
                                                         "phone": {
                                                             "type": "string",
@@ -2265,7 +2461,6 @@
                                                             },
                                                             "price": {
                                                                 "type": "number",
-                                                                "format": "float",
                                                                 "example": 250.0
                                                             },
                                                             "selectedAddOns": {
@@ -2286,7 +2481,6 @@
                                                             },
                                                             "totalPrice": {
                                                                 "type": "number",
-                                                                "format": "float",
                                                                 "example": 530.0
                                                             }
                                                         }
@@ -2294,39 +2488,39 @@
                                                 },
                                                 "subtotal": {
                                                     "type": "number",
-                                                    "format": "float",
                                                     "example": 500.0
                                                 },
                                                 "tax": {
                                                     "type": "number",
-                                                    "format": "float",
                                                     "example": 25.0
                                                 },
                                                 "deliveryFee": {
                                                     "type": "number",
-                                                    "format": "float",
                                                     "example": 40.0
                                                 },
                                                 "totalAmount": {
                                                     "type": "number",
-                                                    "format": "float",
                                                     "example": 565.0
                                                 },
                                                 "paymentMethod": {
                                                     "type": "string",
-                                                    "example": "CARD"
-                                                },
-                                                "status": {
-                                                    "type": "string",
-                                                    "example": "PENDING"
+                                                    "example": "RAZORPAY"
                                                 },
                                                 "paymentStatus": {
                                                     "type": "string",
                                                     "example": "PAID"
                                                 },
+                                                "status": {
+                                                    "type": "string",
+                                                    "example": "PENDING"
+                                                },
                                                 "deliveryAddress": {
                                                     "type": "string",
                                                     "example": "123, MG Road, Bangalore"
+                                                },
+                                                "razorpayPaymentId": {
+                                                    "type": "string",
+                                                    "example": "pay_LF28C4Y8J7H5W8"
                                                 }
                                             }
                                         }
@@ -2336,54 +2530,63 @@
                         }
                     },
                     "400": {
-                        "description": "Cart empty, invalid input, or stock insufficient",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "success": {
-                                            "type": "boolean",
-                                            "example": false
-                                        },
-                                        "error": {
-                                            "type": "string",
-                                            "example": "Cart is empty or not found"
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                        "description": "Cart empty, invalid payment details, or bad input"
                     },
                     "403": {
-                        "description": "Restaurant offline",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "success": {
-                                            "type": "boolean",
-                                            "example": false
-                                        },
-                                        "code": {
-                                            "type": "string",
-                                            "example": "RESTAURANT_OFFLINE"
-                                        },
-                                        "error": {
-                                            "type": "string",
-                                            "example": "Restaurant went offline. Cannot complete checkout."
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                        "description": "Restaurant offline or unavailable"
                     },
                     "404": {
                         "description": "User or restaurant not found"
                     },
                     "500": {
-                        "description": "Server error",
+                        "description": "Internal server error"
+                    }
+                }
+            }
+        },
+        "/api/orders/verify-payment": {
+            "post": {
+                "summary": "Verify Razorpay payment signature manually",
+                "tags": [
+                    "Checkout"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "razorpayOrderId",
+                                    "razorpayPaymentId",
+                                    "razorpaySignature"
+                                ],
+                                "properties": {
+                                    "razorpayOrderId": {
+                                        "type": "string",
+                                        "example": "order_JK34F89AD2P3KL"
+                                    },
+                                    "razorpayPaymentId": {
+                                        "type": "string",
+                                        "example": "pay_LF28C4Y8J7H5W8"
+                                    },
+                                    "razorpaySignature": {
+                                        "type": "string",
+                                        "example": "2f6b3b802dbe6d3a3a8eec..."
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Payment verified successfully",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -2391,20 +2594,26 @@
                                     "properties": {
                                         "success": {
                                             "type": "boolean",
-                                            "example": false
+                                            "example": true
                                         },
-                                        "error": {
+                                        "message": {
                                             "type": "string",
-                                            "example": "Checkout failed"
+                                            "example": "Payment verified successfully"
                                         },
-                                        "details": {
-                                            "type": "string",
-                                            "example": "Database transaction failed"
+                                        "verified": {
+                                            "type": "boolean",
+                                            "example": true
                                         }
                                     }
                                 }
                             }
                         }
+                    },
+                    "400": {
+                        "description": "Invalid or missing Razorpay details"
+                    },
+                    "500": {
+                        "description": "Payment verification failed"
                     }
                 }
             }
@@ -2413,6 +2622,11 @@
             "get": {
                 "tags": [
                     "Checkout"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "summary": "Track customer order",
                 "description": "Customer can track the order status, estimated preparation time, and delivery details.",
@@ -2573,6 +2787,11 @@
                 "tags": [
                     "DeliveryOrder Flow"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "summary": "Get new and accepted delivery requests",
                 "description": "Fetches all delivery requests (ASSIGNED, ACCEPTED, PICKED_UP) for an online partner. Includes `isNew` flag for newly assigned deliveries.",
                 "parameters": [
@@ -2634,6 +2853,11 @@
                 "tags": [
                     "DeliveryOrder Flow"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "summary": "Accept a delivery request",
                 "description": "Partner accepts an assigned delivery. Partner ID and Delivery ID are required.",
                 "requestBody": {
@@ -2677,6 +2901,11 @@
             "put": {
                 "tags": [
                     "DeliveryOrder Flow"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "summary": "Reject a delivery request",
                 "description": "Partner rejects an assigned delivery. The system automatically reassigns the order to another partner if available.",
@@ -2723,6 +2952,11 @@
                 "tags": [
                     "DeliveryOrder Flow"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "summary": "Mark delivery as picked up",
                 "description": "Partner marks a delivery as picked up from the restaurant.",
                 "requestBody": {
@@ -2766,6 +3000,11 @@
             "post": {
                 "tags": [
                     "DeliveryOrder Flow"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "summary": "Verify customer OTP for delivery completion",
                 "description": "Customer provides OTP to confirm delivery. Once verified, earnings are credited to the partner.",
@@ -2824,6 +3063,11 @@
                 "tags": [
                     "DeliveryOrder Flow"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "summary": "Upload delivery proof photo",
                 "description": "Uploads a photo proof after delivery. Must include `deliveryId` and an image file.",
                 "requestBody": {
@@ -2876,6 +3120,11 @@
                 "tags": [
                     "DeliveryOrder Flow"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "summary": "Get partner’s current active delivery",
                 "description": "Fetches the most recent delivery that is ASSIGNED, ACCEPTED, or PICKED_UP for the partner.",
                 "parameters": [
@@ -2923,6 +3172,11 @@
             "get": {
                 "tags": [
                     "DeliveryOrder Flow"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "summary": "Get delivery history for a partner",
                 "description": "Retrieves all previously delivered orders for the specified partner.",
@@ -3023,6 +3277,11 @@
                 "tags": [
                     "Food Categories"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "Success"
@@ -3033,6 +3292,11 @@
                 "summary": "Create new category",
                 "tags": [
                     "Food Categories"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "requestBody": {
                     "required": true,
@@ -3065,6 +3329,11 @@
                 "tags": [
                     "Food Categories"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "parameters": [
                     {
                         "in": "path",
@@ -3089,6 +3358,11 @@
                 "summary": "Update category",
                 "tags": [
                     "Food Categories"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "parameters": [
                     {
@@ -3133,6 +3407,11 @@
                 "tags": [
                     "Food Categories"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "parameters": [
                     {
                         "in": "path",
@@ -3160,6 +3439,11 @@
                 "tags": [
                     "Food Cuisine"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "Success"
@@ -3170,6 +3454,11 @@
                 "summary": "Create new cuisine",
                 "tags": [
                     "Food Cuisine"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "requestBody": {
                     "required": true,
@@ -3202,6 +3491,11 @@
                 "tags": [
                     "Food Cuisine"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "parameters": [
                     {
                         "in": "path",
@@ -3226,6 +3520,11 @@
                 "summary": "Update cuisine",
                 "tags": [
                     "Food Cuisine"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "parameters": [
                     {
@@ -3270,6 +3569,11 @@
                 "tags": [
                     "Food Cuisine"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "parameters": [
                     {
                         "in": "path",
@@ -3295,6 +3599,11 @@
             "post": {
                 "tags": [
                     "Delivery Partner"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "summary": "Register a new partner (all details in one step)",
                 "requestBody": {
@@ -3793,6 +4102,11 @@
                 "tags": [
                     "Address"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -3881,6 +4195,11 @@
                 "tags": [
                     "Address"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "parameters": [
                     {
                         "name": "userId",
@@ -3932,6 +4251,11 @@
                 "summary": "Update an address",
                 "tags": [
                     "Address"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "parameters": [
                     {
@@ -4026,6 +4350,11 @@
                 "tags": [
                     "Address"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "parameters": [
                     {
                         "name": "id",
@@ -4052,6 +4381,11 @@
             "post": {
                 "tags": [
                     "Partner Attendance"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "summary": "Mark partner attendance",
                 "description": "Mark attendance with optional photo and location. Default status will be ONLINE.",
@@ -4103,6 +4437,11 @@
             "put": {
                 "tags": [
                     "Partner Attendance"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "summary": "Update partner attendance status",
                 "description": "Update partner's status to ONLINE or OFFLINE (optionally with location).",
@@ -4169,6 +4508,11 @@
                 "tags": [
                     "Partner Attendance"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "summary": "Update partner live location",
                 "description": "Update partner's current latitude and longitude in real-time for live tracking.",
                 "parameters": [
@@ -4227,6 +4571,11 @@
                 "tags": [
                     "Partner Attendance"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "summary": "Get partner earnings",
                 "description": "Fetch partner earnings for today, week, month, or lastMonth.",
                 "parameters": [
@@ -4273,6 +4622,11 @@
                 "summary": "Create a review from customer to restaurant",
                 "tags": [
                     "Customer→Restaurant"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "requestBody": {
                     "required": true,
@@ -4322,6 +4676,11 @@
                 "tags": [
                     "Customer→Restaurant"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "List of reviews"
@@ -4334,6 +4693,11 @@
                 "summary": "Get one review by ID",
                 "tags": [
                     "Customer→Restaurant"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "parameters": [
                     {
@@ -4356,6 +4720,11 @@
                 "summary": "Update a review by ID",
                 "tags": [
                     "Customer→Restaurant"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "parameters": [
                     {
@@ -4422,6 +4791,11 @@
                 "tags": [
                     "Customer→Restaurant"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "parameters": [
                     {
                         "name": "id",
@@ -4445,6 +4819,11 @@
                 "summary": "Create a review from customer to delivery partner",
                 "tags": [
                     "Customer→DeliveryPartner"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "requestBody": {
                     "required": true,
@@ -4494,6 +4873,11 @@
                 "tags": [
                     "Customer→DeliveryPartner"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "List of reviews"
@@ -4506,6 +4890,11 @@
                 "summary": "Get one review by ID",
                 "tags": [
                     "Customer→DeliveryPartner"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "parameters": [
                     {
@@ -4528,6 +4917,11 @@
                 "summary": "Update review by ID",
                 "tags": [
                     "Customer→DeliveryPartner"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "parameters": [
                     {
@@ -4594,6 +4988,11 @@
                 "tags": [
                     "Customer→DeliveryPartner"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "parameters": [
                     {
                         "name": "id",
@@ -4617,6 +5016,11 @@
                 "summary": "Create a review from delivery partner to customer",
                 "tags": [
                     "DeliveryPartner→Customer"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "requestBody": {
                     "required": true,
@@ -4672,6 +5076,11 @@
                 "tags": [
                     "DeliveryPartner→Customer"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "List"
@@ -4684,6 +5093,11 @@
                 "summary": "Get one review by ID",
                 "tags": [
                     "DeliveryPartner→Customer"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "parameters": [
                     {
@@ -4706,6 +5120,11 @@
                 "summary": "Update review by ID",
                 "tags": [
                     "DeliveryPartner→Customer"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "parameters": [
                     {
@@ -4775,6 +5194,11 @@
                 "tags": [
                     "DeliveryPartner→Customer"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "parameters": [
                     {
                         "name": "id",
@@ -4798,6 +5222,11 @@
                 "summary": "Create review from restaurant to delivery partner",
                 "tags": [
                     "Restaurant→DeliveryPartner"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "requestBody": {
                     "required": true,
@@ -4853,6 +5282,11 @@
                 "tags": [
                     "Restaurant→DeliveryPartner"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "List"
@@ -4865,6 +5299,11 @@
                 "summary": "Get one review by ID",
                 "tags": [
                     "Restaurant→DeliveryPartner"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "parameters": [
                     {
@@ -4887,6 +5326,11 @@
                 "summary": "Update review by ID",
                 "tags": [
                     "Restaurant→DeliveryPartner"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "parameters": [
                     {
@@ -4956,6 +5400,11 @@
                 "tags": [
                     "Restaurant→DeliveryPartner"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "parameters": [
                     {
                         "name": "id",
@@ -4979,6 +5428,11 @@
                 "summary": "Get Delivery Summary",
                 "tags": [
                     "Delivery"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "parameters": [
                     {
@@ -6176,6 +6630,11 @@
                 "tags": [
                     "Admin - Orders"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "summary": "Get all orders with filters and pagination",
                 "parameters": [
                     {
@@ -6283,6 +6742,11 @@
                 "tags": [
                     "Admin - Orders"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "summary": "Get single order details",
                 "parameters": [
                     {
@@ -6332,6 +6796,11 @@
             "get": {
                 "tags": [
                     "Admin - Orders"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "summary": "Get order statistics",
                 "responses": {
@@ -6390,6 +6859,11 @@
             "put": {
                 "tags": [
                     "Admin - Orders"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "summary": "Update order status",
                 "parameters": [
@@ -6480,6 +6954,11 @@
                 "tags": [
                     "rest-Orders"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "summary": "Get all orders for a restaurant",
                 "parameters": [
                     {
@@ -6558,6 +7037,11 @@
                 "tags": [
                     "rest-Orders"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "summary": "Get order history",
                 "parameters": [
                     {
@@ -6614,6 +7098,11 @@
                 "tags": [
                     "rest-Orders"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "summary": "Get order details for a restaurant",
                 "parameters": [
                     {
@@ -6647,6 +7136,11 @@
             "put": {
                 "tags": [
                     "rest-Orders"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "summary": "Accept order",
                 "parameters": [
@@ -6694,6 +7188,11 @@
                 "tags": [
                     "rest-Orders"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "summary": "Reject order",
                 "parameters": [
                     {
@@ -6739,6 +7238,11 @@
             "put": {
                 "tags": [
                     "rest-Orders"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "summary": "Update order status",
                 "parameters": [
@@ -6790,6 +7294,11 @@
                 "tags": [
                     "rest-Orders"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "summary": "Print Kitchen Order Ticket",
                 "parameters": [
                     {
@@ -6813,6 +7322,11 @@
                 "tags": [
                     "rest-Orders"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "summary": "Track order",
                 "parameters": [
                     {
@@ -6835,6 +7349,11 @@
             "get": {
                 "tags": [
                     "Bookings"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "summary": "Get all bookings for a restaurant",
                 "parameters": [
@@ -6892,6 +7411,11 @@
                 "tags": [
                     "Bookings"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "summary": "Get booking details",
                 "parameters": [
                     {
@@ -6925,6 +7449,11 @@
             "put": {
                 "tags": [
                     "Bookings"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "summary": "Accept a booking",
                 "parameters": [
@@ -6976,6 +7505,11 @@
                 "tags": [
                     "Bookings"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "summary": "Reject a booking",
                 "parameters": [
                     {
@@ -7023,6 +7557,11 @@
                 "tags": [
                     "Bookings"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "summary": "Mark a booking as seated",
                 "parameters": [
                     {
@@ -7063,6 +7602,11 @@
             "put": {
                 "tags": [
                     "Bookings"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "summary": "Complete a booking",
                 "parameters": [
@@ -7105,6 +7649,11 @@
                 "tags": [
                     "Dining Spaces"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "summary": "Get all dining spaces",
                 "parameters": [
                     {
@@ -7127,6 +7676,11 @@
             "post": {
                 "tags": [
                     "Dining Spaces"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "summary": "Create a dining space",
                 "requestBody": {
@@ -7178,6 +7732,11 @@
                 "tags": [
                     "Dining Spaces"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "summary": "Update dining space",
                 "parameters": [
                     {
@@ -7228,6 +7787,11 @@
                 "tags": [
                     "Dining Spaces"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "summary": "Delete dining space",
                 "parameters": [
                     {
@@ -7251,6 +7815,11 @@
                 "tags": [
                     "Events"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "summary": "Get all events",
                 "parameters": [
                     {
@@ -7273,6 +7842,11 @@
             "post": {
                 "tags": [
                     "Events"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "summary": "Create an event",
                 "requestBody": {
@@ -7385,6 +7959,11 @@
                 "tags": [
                     "Events"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "summary": "Update an event",
                 "parameters": [
                     {
@@ -7495,6 +8074,11 @@
                 "tags": [
                     "Events"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "summary": "Delete event",
                 "parameters": [
                     {
@@ -7518,6 +8102,11 @@
                 "summary": "Get all restaurants",
                 "tags": [
                     "Customer Booking"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "parameters": [
                     {
@@ -7627,6 +8216,11 @@
                 "tags": [
                     "Customer Booking"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "parameters": [
                     {
                         "name": "id",
@@ -7653,6 +8247,11 @@
                 "summary": "Get available time slots",
                 "tags": [
                     "Customer Booking"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "parameters": [
                     {
@@ -7725,6 +8324,11 @@
                 "tags": [
                     "Customer Booking"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -7795,6 +8399,11 @@
                 "tags": [
                     "Customer Booking"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "parameters": [
                     {
                         "name": "userId",
@@ -7840,6 +8449,11 @@
                 "tags": [
                     "Customer Booking"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "parameters": [
                     {
                         "name": "id",
@@ -7875,6 +8489,11 @@
                 "summary": "Cancel booking",
                 "tags": [
                     "Customer Booking"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "parameters": [
                     {
@@ -7927,6 +8546,11 @@
                 "description": "Returns all events with isAdminVerified=false that need admin review",
                 "tags": [
                     "Admin-Event-Approval"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "parameters": [
                     {
@@ -8032,6 +8656,11 @@
                 "description": "Returns complete event details including restaurant and dining area information",
                 "tags": [
                     "Admin-Event-Approval"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "parameters": [
                     {
@@ -8172,6 +8801,11 @@
                 "tags": [
                     "Admin-Event-Approval"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "parameters": [
                     {
                         "name": "id",
@@ -8240,6 +8874,11 @@
                 "description": "Sets isAdminVerified=false and isActive=false with rejection reason",
                 "tags": [
                     "Admin-Event-Approval"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "parameters": [
                     {
@@ -8332,6 +8971,11 @@
                 "description": "Returns all events with filtering options for approved, rejected, and pending",
                 "tags": [
                     "Admin-Events"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "parameters": [
                     {
@@ -8454,6 +9098,11 @@
                 "tags": [
                     "Admin-Events"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "parameters": [
                     {
                         "name": "startDate",
@@ -8519,6 +9168,11 @@
                 "description": "Returns all bookings. No approval workflow needed.",
                 "tags": [
                     "Admin-Bookings"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "parameters": [
                     {
@@ -8657,6 +9311,11 @@
                 "description": "Returns complete booking information with timeline",
                 "tags": [
                     "Admin-Bookings"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "parameters": [
                     {
@@ -8823,6 +9482,11 @@
                 "tags": [
                     "Admin-Bookings"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "parameters": [
                     {
                         "name": "startDate",
@@ -8923,6 +9587,11 @@
                 "tags": [
                     "Restaurant Status"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "summary": "Create or update restaurant status (ONLINE/OFFLINE)",
                 "requestBody": {
                     "required": true,
@@ -8986,6 +9655,11 @@
                 "tags": [
                     "Admin Offers"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "summary": "Get all offers (admin view)",
                 "responses": {
                     "200": {
@@ -8998,6 +9672,11 @@
             "get": {
                 "tags": [
                     "Admin Offers"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "summary": "Get offer details by ID",
                 "parameters": [
@@ -9021,6 +9700,11 @@
             "put": {
                 "tags": [
                     "Admin Offers"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "summary": "Approve a restaurant-created offer",
                 "parameters": [
@@ -9061,6 +9745,11 @@
             "put": {
                 "tags": [
                     "Admin Offers"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "summary": "Reject a restaurant-created offer",
                 "parameters": [
@@ -9105,6 +9794,11 @@
                 "tags": [
                     "Admin Offers"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "summary": "Request changes for an offer",
                 "parameters": [
                     {
@@ -9147,6 +9841,11 @@
             "post": {
                 "tags": [
                     "Admin Offers"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "summary": "Create offer directly by Admin",
                 "requestBody": {
@@ -9224,6 +9923,11 @@
                 "tags": [
                     "Admin Offers"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "summary": "Update admin-created offer",
                 "parameters": [
                     {
@@ -9292,6 +9996,11 @@
                 "tags": [
                     "Admin Offers"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "summary": "Delete admin-created offer",
                 "parameters": [
                     {
@@ -9316,6 +10025,11 @@
                 "tags": [
                     "Admin Offers"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "summary": "Get all admin-created offers",
                 "responses": {
                     "200": {
@@ -9331,6 +10045,11 @@
             "post": {
                 "tags": [
                     "Restaurant Offers"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "summary": "Restaurant creates new offer",
                 "requestBody": {
@@ -9470,6 +10189,11 @@
                 "tags": [
                     "Restaurant Offers"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "summary": "Get offers created by restaurant",
                 "parameters": [
                     {
@@ -9569,6 +10293,11 @@
                 "tags": [
                     "Restaurant Offers"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "summary": "Get specific restaurant offer by ID",
                 "parameters": [
                     {
@@ -9665,6 +10394,11 @@
             "put": {
                 "tags": [
                     "Restaurant Offers"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "summary": "Update restaurant offer (only if not approved)",
                 "parameters": [
@@ -9792,6 +10526,11 @@
                 "tags": [
                     "Restaurant Offers"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "summary": "Delete a restaurant offer",
                 "parameters": [
                     {
@@ -9862,6 +10601,11 @@
             "get": {
                 "tags": [
                     "Customer Offers"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "summary": "Get all active offers (customer view)",
                 "description": "Retrieve all active, approved offers with optional filters for restaurant and category. Only shows offers that are currently valid.",
@@ -9961,6 +10705,11 @@
                 "tags": [
                     "Customer Offers"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "summary": "Get single offer details for customer",
                 "description": "Retrieve detailed information about a specific offer. Only returns if offer is active and approved.",
                 "parameters": [
@@ -10022,6 +10771,11 @@
             "get": {
                 "tags": [
                     "Customer Offers"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "summary": "Get food items with calculated offer discounts",
                 "description": "Retrieve all food items from a restaurant with automatically calculated discounted prices based on applicable offers. This is the main endpoint for displaying menu with prices.",
@@ -10145,6 +10899,11 @@
                 "tags": [
                     "Customer Offers"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "summary": "Calculate offer discount for a specific food item",
                 "description": "Get detailed pricing and offer information for a single food item including all applicable offers and the best discount calculation.",
                 "parameters": [
@@ -10258,6 +11017,11 @@
                 "tags": [
                     "Customer Offers"
                 ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "summary": "Get offers filtered by restaurant and category",
                 "description": "Retrieve offers for a specific restaurant, optionally filtered by category. Results are sorted by discount value (highest first).",
                 "parameters": [
@@ -10336,6 +11100,11 @@
             "post": {
                 "tags": [
                     "Customer Offers"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "summary": "Book/claim an offer",
                 "description": "Book an offer for a user. Validates usage limits, offer availability, and booking constraints.",
@@ -10440,6 +11209,11 @@
             "get": {
                 "tags": [
                     "Customer Offers"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "summary": "Get user's booked offers",
                 "description": "Retrieve all offers booked by a specific user with optional status filter.",
@@ -10558,6 +11332,11 @@
             "put": {
                 "tags": [
                     "Customer Offers"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
                 ],
                 "summary": "Cancel a booked offer",
                 "description": "Cancel a previously booked offer. Only offers with status 'BOOKED' can be cancelled.",

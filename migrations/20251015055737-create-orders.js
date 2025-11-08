@@ -76,12 +76,15 @@ module.exports = {
           'CONFIRMED',
           'PREPARING',
           'READY',
+          'ASSIGNED',
+          'ACCEPTED',
           'OUT_FOR_DELIVERY',
           'DELIVERED',
           'CANCELLED'
         ),
         defaultValue: 'PENDING',
       },
+
 
       specialInstructions: { type: Sequelize.TEXT, allowNull: true },
       estimatedPreparationTime: { type: Sequelize.INTEGER, allowNull: true },
@@ -93,6 +96,22 @@ module.exports = {
       deliveredAt: { type: Sequelize.DATE, allowNull: true },
       cancelledAt: { type: Sequelize.DATE, allowNull: true },
       cancellationReason: { type: Sequelize.TEXT, allowNull: true },
+
+      razorpayOrderId: {
+        type: Sequelize.STRING,
+        allowNull: true,
+        comment: 'Razorpay order ID'
+      },
+      razorpayPaymentId: {
+        type: Sequelize.STRING,
+        allowNull: true,
+        comment: 'Razorpay payment ID'
+      },
+      transactionId: {
+        type: Sequelize.STRING,
+        allowNull: true,
+        comment: 'Payment transaction ID'
+      },
 
       createdAt: {
         allowNull: false,

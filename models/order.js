@@ -119,6 +119,21 @@ module.exports = (sequelize, DataTypes) => {
       cancellationReason: {
         type: DataTypes.TEXT,
         allowNull: true
+      },
+      razorpayOrderId: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        comment: 'Razorpay order ID'
+      },
+      razorpayPaymentId: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        comment: 'Razorpay payment ID'
+      },
+      transactionId: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        comment: 'Payment transaction ID'
       }
     },
     {
