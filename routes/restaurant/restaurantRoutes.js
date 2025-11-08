@@ -20,7 +20,7 @@ router.post('/forgot-password/resend-otp', ctrl.resendOTP);
 
 // Public listing (customers can see restaurants)
 router.get('/',authenticateUser,ctrl.list);
-router.get('/:id',authenticateUser,ctrl.getById);
+router.get('/:id',authenticateRestaurant,ctrl.getById);
 router.get('/:id/foods',authenticateUser, ctrl.getRestaurantFoods);
 
 // ============= PROTECTED ROUTES (JWT Required) =============
