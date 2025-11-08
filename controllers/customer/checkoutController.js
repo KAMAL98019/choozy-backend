@@ -1,4 +1,4 @@
-// ==================== STEP 4: Updated Checkout Controller (controllers/checkoutController.js) ====================
+
 const { 
   sequelize, 
   Cart, 
