@@ -3428,12 +3428,12 @@
                         "description": "Deleted successfully"
                     },
                     "404": {
-                        "description": "Category not found"
+                        "description": "Category not found" 
                     }
                 }
             }
         },
-        "/api/cuisines": {
+        "/api/admin/cuisines": {
             "get": {
                 "summary": "Get all cuisines",
                 "tags": [
@@ -3485,7 +3485,7 @@
                 }
             }
         },
-        "/api/cuisines/{id}": {
+        "/api/admin/cuisines/{id}": {
             "get": {
                 "summary": "Get cuisine by ID",
                 "tags": [
