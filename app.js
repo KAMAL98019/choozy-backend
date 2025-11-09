@@ -62,7 +62,7 @@ app.use('/api/admin', require('./routes/admin/orderRoutes'));
 app.use('/api/admin', require('./routes/admin/bookingRoutes'));
 app.use('/api/admin', require('./routes/admin/offerRoutes'));
 app.use('/api/admin/categories', require('./routes/admin/categoryRoutes'));
-app.use('/api/cuisines', require('./routes/admin/cuisineRoutes'));
+app.use('/api/admin/cuisines', require('./routes/admin/cuisineRoutes'));
 
 
 app.use("/api/notifications",require ('./routes/notificationRoutes'));
